@@ -2,9 +2,9 @@
 
 **Phase 1 — Foundation**
 
-- [ ] T1 — Drift schema & database
-- [ ] T2 — App shell (bottom nav, theme)
-- [ ] T2b — Onboarding flow
+- [x] T1 — Drift schema & database
+- [x] T2 — App shell (bottom nav, theme)
+- [x] T2b — Onboarding flow
 
 **Phase 2 — Core Logging**
 

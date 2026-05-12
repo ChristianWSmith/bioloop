@@ -23,6 +23,9 @@ Standard Flutter app (default `flutter create` template). Minimal custom code.
 | Ticket | Status | Date | Agent |
 |--------|--------|------|-------|
 | T0 — Initial scaffold | ✅ Complete | — | Manual |
+| T1 — Drift schema & migrations | ✅ Complete | 2026-05-12 | AI |
+| T2 — App shell + navigation + theme | ✅ Complete | 2026-05-12 | AI |
+| T2b — Onboarding flow | ✅ Complete | 2026-05-12 | AI |
 
 After completing each ticket, the agent working on it appends a new row here. This table
 is the single source of truth for what has been built.
