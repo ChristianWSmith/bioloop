@@ -32,6 +32,10 @@ Standard Flutter app (default `flutter create` template). Minimal custom code.
 | T6 — Log food screen | ✅ Complete | 2026-05-12 | AI |
 | T7 — Bodyweight logging | ✅ Complete | 2026-05-12 | AI |
 | T8 — Food history screen | ✅ Complete | 2026-05-12 | AI |
+| T9 — Goals screen | ✅ Complete | 2026-05-12 | AI |
+| T10 — Macro targets provider | ✅ Complete | 2026-05-12 | AI |
+| T11 — Dashboard: summary + progress rings | ✅ Complete | 2026-05-12 | AI |
+| T12 — Bodyweight chart | ✅ Complete | 2026-05-12 | AI |
 
 After completing each ticket, the agent working on it appends a new row here. This table
 is the single source of truth for what has been built.

@@ -17,10 +17,10 @@
 
 **Phase 3 — Dashboard & Targets**
 
-- [ ] T9 — Goals screen (design)
-- [ ] T10 — Macro targets provider
-- [ ] T11 — Dashboard summary
-- [ ] T12 — Bodyweight chart
+- [x] T9 — Goals screen (design)
+- [x] T10 — Macro targets provider
+- [x] T11 — Dashboard summary
+- [x] T12 — Bodyweight chart
 
 **Phase 4 — Maintenance Algorithm**
 
