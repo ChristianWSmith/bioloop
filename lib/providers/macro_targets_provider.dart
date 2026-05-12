@@ -83,13 +83,13 @@ class MacroTargets {
 final macroTargetsProvider = FutureProvider<MacroTargets>((ref) async {
   final goals = await ref.watch(goalsProvider).getGoals();
   final entries = await ref.watch(bodyweightProvider.future);
-  final maintenance = await ref.watch(maintenanceProvider.future);
+  final maintenanceResult = await ref.watch(maintenanceProvider.future);
 
   final weightKg = entries.isNotEmpty ? entries.first.weightKg : null;
 
   return MacroTargets.compute(
     goals: goals,
     weightKg: weightKg,
-    regressionMaintenance: maintenance,
+    regressionMaintenance: maintenanceResult?.maintenanceCalories,
   );
 });
