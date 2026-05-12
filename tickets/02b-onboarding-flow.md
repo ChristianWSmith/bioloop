@@ -30,6 +30,16 @@ Number text field (cm), decimal keyboard
 - Date picker (defaults to today)
 - On save: seeds a `bodyweight_entry` row
 
+### Goal weight (optional)
+- Number text field (kg), decimal keyboard
+- Prompt: "What's your target bodyweight?"
+- Leave empty to skip (null in DB)
+
+### Display units
+- Segmented button: **Metric (kg, cm)** / **Imperial (lb, ft/in)**
+- Default: Metric
+- Maps to `user_goals.use_imperial` (0 = metric, 1 = imperial)
+
 ### Initial goals
 Same fields as T9 goals screen, embedded inline:
 - Goal type segmented button (cut / maintain / bulk), default: cut (−500)
@@ -41,11 +51,11 @@ Same fields as T9 goals screen, embedded inline:
 
 - On launch, if `user_goals.onboarding_completed == 0`, show onboarding before app shell
 - Save button validates all required fields, then:
-  1. Upserts `user_goals` row with all profile fields + goals + `onboarding_completed = 1`, `updated_at = now`
+  1. Upserts `user_goals` row with all profile fields + `goal_weight_kg` (nullable) + `use_imperial` + goals + `onboarding_completed = 1`, `updated_at = now`
   2. Inserts `bodyweight_entry` with starting weight + date
   3. Navigates to app shell (replaces onboarding, no back)
 - If user presses back during onboarding, show confirmation dialog: "Your progress won't be saved"
-- All fields required (starting weight date defaults to today if not changed)
+- All fields required except goal weight (optional) and date (defaults to today)
 
 ## DAO methods needed
 
@@ -57,18 +67,22 @@ Same fields as T9 goals screen, embedded inline:
 
 - Fresh install shows onboarding before app shell
 - All fields render with correct input types
+- Goal weight is optional (can be left empty)
+- Units toggle defaults to metric, persists correctly
 - Save persists all fields, navigates to app shell
 - Second launch skips onboarding (reads `onboarding_completed = 1`)
 - Back press during onboarding shows confirmation dialog
 
 ## Testing
 
-- **Widget — full flow**: fill all fields, tap save, verify `user_goals` row has correct values + `onboarding_completed = 1`, verify `bodyweight_entry` inserted
+- **Widget — full flow**: fill all fields (including goal weight and imperial toggle), tap save, verify `user_goals` row has correct values + `goal_weight_kg` stored + `use_imperial = 1` + `onboarding_completed = 1`, verify `bodyweight_entry` inserted
+- **Widget — skip goal weight**: leave goal weight empty, tap save, verify `goal_weight_kg` is null in DB
+- **Widget — units default**: verify `use_imperial` defaults to 0 (metric)
 - **Widget — skip on re-launch**: set `onboarding_completed = 1` in DB, launch app, verify app shell renders directly
-- **Widget — validation**: tap save with empty fields, error shown on each required field
+- **Widget — validation**: tap save with empty required fields, error shown on each
 - **Widget — back confirmation**: tap back, confirmation dialog appears; "Leave" pops, "Stay" dismisses dialog
 - **Widget — defaults**: goal type segmented buttons set correct calorie adjustment defaults (−500, 0, +300)
-- **Integration — full round-trip**: complete onboarding, kill app, re-launch, app shell appears, goals screen shows saved values
+- **Integration — full round-trip**: complete onboarding (metric), kill app, re-launch, app shell appears, goals screen shows saved values in metric
 - **Widget — keyboard type**: age uses number keyboard, height uses decimal keyboard, weight uses decimal keyboard
 
 Use `ProviderScope` with in-memory DB. Seed `user_goals` with `onboarding_completed = 0` (default) for first-launch tests.
@@ -77,14 +91,16 @@ Use `ProviderScope` with in-memory DB. Seed `user_goals` with `onboarding_comple
 
 - [ ] `flutter analyze` passes with zero errors
 - [ ] Fresh install: onboarding screen appears before app shell
-- [ ] Fill all fields, tap save — app shell appears
+- [ ] Fill all fields (including goal weight and imperial toggle), tap save — app shell appears
+- [ ] Goal weight left empty: save still succeeds, field is null in DB
+- [ ] Units toggle: Metric default; switching to Imperial and saving sets `use_imperial = 1`
 - [ ] Kill + re-launch: app shell appears (no onboarding)
 - [ ] Sex segmented button: Male / Female toggle correctly
 - [ ] Age, height, weight fields use correct keyboard types
 - [ ] Weight date picker defaults to today
 - [ ] Initial goals section with goal type, adjustment, protein, fat sliders
 - [ ] Back press shows "Discard?" confirmation dialog
-- [ ] After onboarding, goals screen shows all saved profile fields + goals
+- [ ] After onboarding, goals screen shows all saved profile fields + goal weight + units + goals
 - [ ] First bodyweight entry visible on bodyweight screen / dashboard sparkline
 - [ ] All widget tests pass
 

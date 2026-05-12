@@ -10,11 +10,17 @@ Polish the dashboard into the final layout with all components.
 ## Layout (top to bottom)
 
 1. **Greeting + date header** — "Today, May 11"
-2. **Calorie ring** — large, center of screen (from T11)
-3. **Macro rings row** — protein, fat, carbs (from T11)
-4. **Rate card** — "On track to lose ~1 lb/week" (reads from goals)
-5. **Maintenance card** — computed maintenance or onboarding prompt (from T13)
-6. **Bodyweight sparkline** — compact line chart (from T12)
+2. **Goal weight delta card** (visible when goal weight is set)
+   - Shows current weight, goal weight, and the difference
+   - e.g. *"82 kg → 75 kg (7 kg to go)"* or *"181 lb → 165 lb (16 lb to go)"*
+   - Respects `use_imperial` unit preference
+   - Reads `goal_weight_kg` from goals provider, latest weight from bodyweight provider
+   - Hidden when `goal_weight_kg` is null (not set)
+3. **Calorie ring** — large, center of screen (from T11)
+4. **Macro rings row** — protein, fat, carbs (from T11)
+5. **Rate card** — "On track to lose ~1 lb/week" (reads from goals)
+6. **Maintenance card** — computed maintenance or onboarding prompt (from T13)
+7. **Bodyweight sparkline** — compact line chart (from T12)
 
 ## Maintenance card states
 
@@ -42,12 +48,15 @@ Polish the dashboard into the final layout with all components.
 
 ## Testing
 
-- **Widget — all sections render**: full dashboard scrolls without overflow; calorie ring, macro rings, rate card, maintenance card, sparkline all present
+- **Widget — all sections render**: full dashboard scrolls without overflow; goal weight card, calorie ring, macro rings, rate card, maintenance card, sparkline all present
 - **Widget — maintenance states**:
   - Loading: shimmer/skeleton visible
   - Null: "Log 14+ days" prompt with X/14 progress
   - Value: "Your maintenance: **2,450 kcal** (±180)"
   - Error: "Unable to calculate — inconsistent data"
+- **Widget — goal weight card**: goal_weight_kg = 75, latest weight = 82 → shows "82 kg → 75 kg (7 kg to go)"
+- **Widget — goal weight hidden**: goal_weight_kg = null → no goal weight card rendered
+- **Widget — goal weight imperial**: use_imperial = 1, goal_weight_lb equivalent, latest weight in lb → shows correct lb values
 - **Widget — rate card**: "~1 lb/week loss" displayed with green text for deficit; "~0.6 lb/week gain" in orange; "Maintenance" in gray
 - **Widget — onboarding**: empty state (no food, no weight, no goals) shows "Log your first meal" or setup prompt
 - **Widget — data accumulation progression**: add 1 day of food+weight → X/14 increments; at 14+ days → maintenance value appears
@@ -57,7 +66,12 @@ Polish the dashboard into the final layout with all components.
 ## Human verification
 
 - [ ] `flutter analyze` passes with zero errors
-- [ ] Full dashboard renders on real device: all sections visible, scrollable without overflow
+- [ ] Full dashboard renders on real device: goal weight card, calorie ring, macro rings, rate card, maintenance card, sparkline — all visible, scrollable without overflow
+- [ ] Goal weight delta card:
+  - When goal weight is set: shows "82 kg → 75 kg (7 kg to go)"
+  - When bodyweight equals or exceeds goal: shows celebratory message
+  - When goal weight is not set: card is hidden
+  - Respects imperial units when toggled
 - [ ] Maintenance card states:
   - Fresh install: "Log 14+ days" with 0/14 progress
   - After 7 days of data: "7/14" progress
@@ -73,7 +87,7 @@ Polish the dashboard into the final layout with all components.
 
 ## Dependencies
 
-T11 (macro rings), T12 (weight sparkline), T13 (maintenance), T9 (goals)
+T11 (macro rings), T12 (weight sparkline), T13 (maintenance), T9 (goals — provides goal_weight_kg, use_imperial, and bodyweight for delta)
 
 ## Agent instructions (app state tracking)
 

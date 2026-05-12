@@ -13,7 +13,13 @@ Screen where users set their goal type, calorie adjustment, and macro preference
 ### Profile (editable fields from onboarding)
 - **Sex**: segmented button (Male / Female)
 - **Age**: number text field (years)
-- **Height**: number text field (cm)
+- **Height**: number text field (cm/ft-in depending on units toggle)
+- **Goal weight**: number text field, optional (kg/lb depending on units toggle)
+  - Leave empty for no target
+  - When set, dashboard shows delta from current bodyweight
+- **Display units**: segmented button **Metric (kg, cm)** / **Imperial (lb, ft/in)**
+  - When imperial: height shows ft + in fields, weight shows lb, goal weight shows lb
+  - Stored as `user_goals.use_imperial` (0 = metric, 1 = imperial)
 - All pre-filled from `user_goals`, included in upsert on save
 
 ### Goal type
@@ -43,14 +49,16 @@ Segmented button: **Cut** / **Maintain** / **Bulk**
 
 ## DAO methods needed
 - `Future<UserGoals?> getGoals()` — fetch singleton
-- `Future<void> upsertGoals(UserGoals goals)`
+- `Future<void> upsertGoals(UserGoals goals)` — includes `goal_weight_kg` and `use_imperial` fields
 
 ## Provider
 - `goalsProvider` — reads current goals
 - `updateGoalsProvider` — notifier to save changes, triggers recompute of macro targets
 
 ## Acceptance criteria
-- Profile fields (sex, age, height) editable, persist correctly
+- Profile fields (sex, age, height, goal weight) editable, persist correctly
+- Goal weight is optional, can be cleared
+- Units toggle switches between metric and imperial display for all weight/height fields
 - Can select goal type, defaults populate correctly
 - Rate preview updates live as adjustment changes
 - Protein and fat sliders work, show correct values
@@ -60,7 +68,10 @@ Segmented button: **Cut** / **Maintain** / **Bulk**
 ## Testing
 
 - **Widget — profile fields**: sex segmented button toggles, age and height fields accept numeric input and pre-fill from DB
-- **Widget — profile save**: profile fields are included in the upsert and readable after re-launch
+- **Widget — goal weight**: goal weight field accepts numeric input, shows correct unit label (kg or lb), leaving empty stores null
+- **Widget — units toggle**: switching to imperial converts height display to ft+in fields and weight to lb; switching back to metric reverts to cm and kg
+- **Widget — units persistence**: set units to imperial, save, reopen screen — units still show imperial
+- **Widget — profile save**: profile fields (including goal_weight_kg and use_imperial) are included in the upsert and readable after re-launch
 - **Widget — goal type defaults**: cut selects -500, maintain selects 0, bulk selects +300
 - **Widget — rate preview**: adjustment = -500 shows "~1 lb/week loss"; -1000 shows "~2 lb/week loss"; +350 shows "~0.7 lb/week gain"
 - **Widget — protein slider**: slider moves between 0.5 and 2.0; current value displayed above
@@ -75,8 +86,10 @@ Widget tests should use `ProviderScope` with in-memory DB and mock `bodyweightPr
 ## Human verification
 
 - [ ] `flutter analyze` passes with zero errors
-- [ ] Profile section renders with sex (Male/Female), age, and height fields pre-filled from DB
-- [ ] Editing profile fields and saving persists them
+- [ ] Profile section renders with sex (Male/Female), age, height, and goal weight fields pre-filled from DB
+- [ ] Goal weight field shows correct unit label (kg or lb); leaving empty is allowed
+- [ ] Units toggle: switching to imperial changes height to ft+in fields, weight to lb; switching back reverses
+- [ ] Editing profile fields (including goal weight and units) and saving persists them
 - [ ] Profile fields are nullable until onboarding completed
 - [ ] Goal type segmented button: tapping Cut sets adjustment to -500, Maintain to 0, Bulk to +300
 - [ ] Adjustment field editable — changing -500 to -800 updates rate preview to "~1.6 lb/week loss"

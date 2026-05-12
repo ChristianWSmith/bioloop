@@ -17,7 +17,7 @@ See PLAN.md §1 for full SQL DDL.
 - `lib/core/database/tables/foods.dart`
 - `lib/core/database/tables/food_entries.dart`
 - `lib/core/database/tables/bodyweight_entries.dart`
-- `lib/core/database/tables/user_goals.dart` — includes new columns: `sex`, `height_cm`, `age`, `onboarding_completed`
+- `lib/core/database/tables/user_goals.dart` — includes new columns: `sex`, `height_cm`, `age`, `goal_weight_kg`, `use_imperial`, `onboarding_completed`
 - `lib/providers/database_provider.dart` — `databaseProvider` (Riverpod)
 - `build.yaml` (project root) — drift build config
 
@@ -34,6 +34,7 @@ See PLAN.md §1 for full SQL DDL.
 - **Unit — table existence**: `select top 1 from foods` and `food_entries` and `bodyweight_entries` and `user_goals` do not throw
 - **Unit — basic CRUD each table**: insert a row, read it back, verify columns
 - **Unit — `user_goals` singleton**: inserting a second row with `id=1` replaces the first (upsert behavior)
+- **Unit — new columns**: `goal_weight_kg`, `use_imperial` are nullable / have correct defaults after table creation
 - **Unit — index works**: insert 100 foods, search by partial name, verify it returns matches
 - **Integration — migration**: `db.migrate()` creates all tables; calling it again is a no-op
 
@@ -45,6 +46,8 @@ All DB unit tests should use `NativeDatabase.memory()` to avoid filesystem depen
 - [ ] `flutter pub run build_runner build` succeeds and `database.g.dart` is generated
 - [ ] Generated DAO classes have correct table/column names matching the DDL in PLAN.md
 - [ ] `user_goals` uses `id=1` as a singleton — verify upsert logic doesn't create duplicates
+- [ ] `goal_weight_kg` is nullable and null by default
+- [ ] `use_imperial` defaults to 0 (metric) after table creation
 - [ ] `foods.barcode` is `UNIQUE` — verify the DAO handles constraint violations gracefully
 - [ ] `food_entries.food_id` is nullable `INTEGER REFERENCES foods(id)` — verify FK is enforced or handled correctly (drift FK behavior)
 - [ ] All four unit tests with `NativeDatabase.memory()` pass

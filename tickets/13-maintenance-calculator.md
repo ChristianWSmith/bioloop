@@ -26,28 +26,10 @@ OLS: daily_weight_change ~ calories
   maintenance = -intercept / slope
 ```
 
-## Algorithm — fallback estimate (Mifflin-St Jeor)
-
-Used by T10 when regression returns null and onboarding is complete:
-
-```dart
-double estimateMaintenance({
-  required String sex,
-  required double weightKg,
-  required double heightCm,
-  required int age,
-}) {
-  double bmr;
-  if (sex == 'male') {
-    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
-  } else {
-    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
-  }
-  return bmr * 1.55; // moderate activity
-}
-```
-
-This is a pure, stateless function — no DB or provider dependency.
+Note: The Mifflin-St Jeor fallback estimator is implemented in a separate file
+(`lib/core/algorithms/mifflin_st_jeor.dart`) as part of T10. Only the regression
+algorithm lives here. This keeps the phase ordering clean — T10 (Phase 3) can use
+the fallback without waiting for this ticket (Phase 4).
 
 ## Regression return type
 
@@ -65,7 +47,7 @@ Create `lib/providers/maintenance_provider.dart`:
 - Watches `foodEntriesProvider` + `bodyweightProvider`
 - Calls `MaintenanceCalculator.calculate(entries, weights)`
 - Returns `AsyncValue<MaintenanceResult?>`
-- Note: the Mifflin-St Jeor fallback is NOT called here — this provider only wraps the regression. The fallback lives in T10's `macroTargetsProvider` which calls `estimateMaintenance()` directly when this provider returns null.
+- Note: the Mifflin-St Jeor fallback is NOT called here — this provider only wraps the regression. The fallback lives in T10's `mifflin_st_jeor.dart` utility, consumed by `macroTargetsProvider` when this provider returns null.
 
 ## Testing
 
@@ -80,12 +62,7 @@ Create `lib/providers/maintenance_provider.dart`:
 - **Unit — provider wiring**: insert food entries and bodyweight entries via DAO, `maintenanceProvider` emits a valid `MaintenanceResult` (integration-level)
 - **Unit — confidence interval**: computed CI grows as data variance increases (proportional to standard error of estimate)
 
-### Mifflin-St Jeor tests
-
-- **Unit — male**: sex=male, weight=80kg, height=178cm, age=30 → BMR = 10×80 + 6.25×178 − 5×30 + 5 = 1757.5, ×1.55 = 2724.1. Verify within 0.1%
-- **Unit — female**: sex=female, same inputs → BMR = 10×80 + 6.25×178 − 5×30 − 161 = 1591.5, ×1.55 = 2466.8. Verify within 0.1%
-- **Unit — weight changes**: weight=70kg (same sex/height/age) produces lower result than 80kg
-- **Unit — height changes**: height=160cm produces lower result than 178cm
+(Mifflin-St Jeor tests live in `test/core/algorithms/mifflin_st_jeor_test.dart` as part of T10.)
 
 ## Human verification
 
@@ -98,14 +75,8 @@ Create `lib/providers/maintenance_provider.dart`:
 - [ ] Confidence interval widens as data variance increases — inspect the math
 - [ ] Provider recomputes on new food or weight insert (not on every build)
 - [ ] Provider caches result — if no new data, calling `.future` twice returns the same result without recomputation
-- [ ] All regression + Mifflin-St Jeor unit tests pass
+- [ ] All regression unit tests pass
 - [ ] **⚠ Confirm numeric stability**: when `var(cals)` is very small (near-zero), treat as null rather than dividing by zero
-
-### Mifflin-St Jeor
-- [ ] Male: 80kg, 178cm, 30y → ~2724 kcal — verify output matches hand calculation
-- [ ] Female: 80kg, 178cm, 30y → ~2467 kcal — verify output matches hand calculation
-- [ ] Changing weight/height/age produces proportional changes
-- [ ] Function is pure — no DB, no provider, no side effects
 
 ## Dependencies
 

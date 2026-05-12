@@ -22,10 +22,12 @@ lib/
         food_entries.dart
         bodyweight_entries.dart
         user_goals.dart
+
     api/
       open_food_facts_client.dart     # REST client for food search/barcode
     algorithms/
       maintenance_calculator.dart     # Rolling linear regression
+      mifflin_st_jeor.dart            # Mifflin-St Jeor BMR estimator (pure function, no deps)
   features/
     dashboard/
       dashboard_screen.dart
@@ -48,6 +50,8 @@ lib/
       history_screen.dart
     goals/
       goals_screen.dart
+    settings/
+      settings_screen.dart
   providers/
     database_provider.dart
     food_log_provider.dart
@@ -108,6 +112,8 @@ CREATE TABLE user_goals (                  -- singleton row (id=1)
   sex                   TEXT,                -- 'male' | 'female'; null until onboarding
   height_cm             REAL,                -- null until onboarding
   age                   INTEGER,             -- null until onboarding
+  goal_weight_kg        REAL,                -- target bodyweight; null until set
+  use_imperial          INTEGER NOT NULL DEFAULT 0, -- 0=kg/cm, 1=lb/ft/in
   onboarding_completed  INTEGER NOT NULL DEFAULT 0,
   updated_at            TEXT NOT NULL
 );
@@ -129,13 +135,13 @@ CREATE TABLE user_goals (                  -- singleton row (id=1)
 - **Local food cache:** API results auto-save to `foods` table on selection; search queries local `foods` first (instant), then hits API — merged & deduplicated by barcode
 - **Manual food creation:** form inside log flow — name, serving label, macros per serving, optional gram weight. Saves to `foods` (`source = 'manual'`), usable in search thereafter
 - **Log food screen:** search local cache + API → pick result → adjust servings (or grams if `serving_size_grams` known) → select meal type → save as snapshot in `food_entries`
-- **Bodyweight logging:** bottom sheet with date picker + weight field
-- **Food history screen:** paginated by date, swipe-to-delete
+- **Bodyweight logging:** bottom sheet with date picker + weight field; tap to edit existing entries
+- **Food history screen:** paginated by date, swipe-to-delete, tap-to-edit
 
 ### Phase 3 — Dashboard & Targets
-- **Dashboard:** macro progress rings (protein/carbs/fat), calories remaining, bodyweight sparkline, maintenance calorie card, estimated rate of loss/gain
-- **Goals screen:** goal type (cut/maintain/bulk), calorie deficit/surplus input with rate preview ("~1 lb/week loss"), protein g/lb slider (hint: 0.8–1.4), fat % slider with shaded 20–35% recommended band
-- **Macro target calculation:** see §4 for full detail
+- **Dashboard:** macro progress rings (protein/carbs/fat), calories remaining, bodyweight sparkline, maintenance calorie card, estimated rate of loss/gain, goal weight delta
+- **Goals screen:** goal type (cut/maintain/bulk), calorie deficit/surplus input with rate preview ("~1 lb/week loss"), goal weight field, units toggle (kg/lb, cm/ft), protein g/lb slider (hint: 0.8–1.4), fat % slider with shaded 20–35% recommended band
+- **Macro target calculation:** see §4 for full detail; Mifflin-St Jeor estimator lives in a standalone utility (`mifflin_st_jeor.dart`) consumed directly by T10 (no phase dependency on T13)
 
 ### Phase 4 — Maintenance Algorithm
 - Rolling regression in `maintenance_calculator.dart`:
@@ -146,9 +152,9 @@ CREATE TABLE user_goals (                  -- singleton row (id=1)
 - Provider caches result, recomputes on new food/weight insert
 
 ### Phase 5 — Polish (future)
-- Barcode scanning via `camera` + MLKit
-- CSV data export
-- Meal templates / favorites
+- **Barcode scanning** via `camera` + MLKit
+- **CSV export + meal templates + recipe builder:** CSV export (food + bodyweight), meal templates (named groups of foods that can be logged in one tap), and recipe builder (save a composite dish with ingredient quantities)
+- **Data reset option** — wipe all data and start fresh, accessible from settings
 
 ---
 
@@ -251,24 +257,10 @@ Display: *"2,450 kcal (±180, based on 22 days of data)"*
 ### Fallback: Mifflin-St Jeor estimate
 
 Before the user has enough data (≥14 paired days), maintenance is estimated via the
-Mifflin-St Jeor equation with a fixed moderate activity multiplier of 1.55:
+Mifflin-St Jeor equation with a fixed moderate activity multiplier of 1.55.
 
-```dart
-double estimateMaintenance({
-  required String sex,
-  required double weightKg,
-  required double heightCm,
-  required int age,
-}) {
-  double bmr;
-  if (sex == 'male') {
-    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
-  } else {
-    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
-  }
-  return bmr * 1.55;
-}
-```
+The function `estimateMaintenance(sex, weightKg, heightCm, age)` lives in
+`lib/core/algorithms/mifflin_st_jeor.dart`. See T10 for the implementation.
 
 This runs automatically whenever the regression returns null and the user has
 completed onboarding. The result is used in place of `maintenance_calories` in
@@ -281,7 +273,11 @@ the macro target calculation (§4).
 | Question | Decision |
 |----------|----------|
 | Navigation | go_router vs simple state-based — app has few screens, simple works |
-| Unit display | kg internally, lb optional on output |
+| Unit display | kg internally, configurable display toggle (`user_goals.use_imperial`) — lb/ft/in on output when enabled |
 | Testing | Write alongside features or defer? |
 | Barcode scanning | Phase 5 (requires camera permission) |
 | Fallback maintenance formula | Mifflin-St Jeor × 1.55 (moderate activity) — no user-choosable multiplier; data-driven regression replaces it once ≥14 paired days exist |
+| Edit entries | Phase 2 MVP — tap-to-edit for both bodyweight and food entries (not deferred) |
+| Recipe builder | Integrated with T16 meal templates — a "recipe" is a named group of foods with quantities |
+| Data reset | Phase 5 — simple nuke-all-tables button (not a priority for early phases) |
+| "Today" boundary | Calendar date from device local time (not rolling 24h window) |
