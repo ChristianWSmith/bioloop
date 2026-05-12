@@ -56,3 +56,11 @@ Use `ProviderScope` overrides to inject a real in-memory drift database so widge
 ## Dependencies
 
 T4 (foods DAO)
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T5 — Manual food creation form | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

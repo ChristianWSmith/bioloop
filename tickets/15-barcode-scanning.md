@@ -59,3 +59,11 @@ Camera-based barcode scanning that looks up foods via OpenFoodFacts.
 ## Dependencies
 
 T3 (API client), T6 (log flow)
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T15 — Barcode scanning | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

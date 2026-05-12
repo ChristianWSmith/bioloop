@@ -17,7 +17,7 @@ See PLAN.md §1 for full SQL DDL.
 - `lib/core/database/tables/foods.dart`
 - `lib/core/database/tables/food_entries.dart`
 - `lib/core/database/tables/bodyweight_entries.dart`
-- `lib/core/database/tables/user_goals.dart`
+- `lib/core/database/tables/user_goals.dart` — includes new columns: `sex`, `height_cm`, `age`, `onboarding_completed`
 - `lib/providers/database_provider.dart` — `databaseProvider` (Riverpod)
 - `build.yaml` (project root) — drift build config
 
@@ -59,3 +59,11 @@ Add to `pubspec.yaml`:
 - `sqlite3` (dev)
 - `drift_dev` (dev)
 - `build_runner` (dev)
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T1 — Drift schema + migrations | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

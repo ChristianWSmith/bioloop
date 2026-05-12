@@ -60,3 +60,11 @@ Bottom sheet for logging bodyweight.
 ## Dependencies
 
 T1 (database)
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T7 — Bodyweight logging | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

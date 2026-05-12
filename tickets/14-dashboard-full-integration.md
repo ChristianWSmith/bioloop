@@ -74,3 +74,11 @@ Polish the dashboard into the final layout with all components.
 ## Dependencies
 
 T11 (macro rings), T12 (weight sparkline), T13 (maintenance), T9 (goals)
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T14 — Dashboard: full integration | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

@@ -71,3 +71,11 @@ Widget tests override `todaysFoodProvider` and `macroTargetsProvider` with known
 ## Dependencies
 
 T6 (food entries), T10 (macro targets)
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T11 — Dashboard: summary + progress rings | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

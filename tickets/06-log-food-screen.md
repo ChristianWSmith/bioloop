@@ -70,3 +70,11 @@ Use `ProviderScope` overrides with in-memory DB. Mock the OpenFoodFacts API clie
 ## Dependencies
 
 T2 (app shell / placeholder exists), T4 (local food search), T5 (manual food form)
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T6 — Log food screen | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

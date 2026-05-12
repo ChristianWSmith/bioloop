@@ -67,3 +67,11 @@ Use `MockClient` from `http` testing utilities to inject responses without netwo
 
 - OpenFoodFacts is rate-limited. No auth needed. Respect `429` responses.
 - Base URL and user-agent should be configurable constants.
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T3 — OpenFoodFacts API client | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

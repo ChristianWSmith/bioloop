@@ -46,3 +46,12 @@ Use `tester.pumpWidget(ProviderScope(child: App()))` in widget tests. Provide `o
 
 - Use `Scaffold` + `NavigationBar` (Material 3). No router package needed for now — manage tab index with a `StatefulWidget` or simple Riverpod `StateProvider<int>`.
 - Theme: seed from `Colors.deepPurple` (matching Flutter default for now), can be refined later.
+- App entry point should check `onboarding_completed` from `user_goals` once T2b is implemented.
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T2 — App shell + navigation + theme | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

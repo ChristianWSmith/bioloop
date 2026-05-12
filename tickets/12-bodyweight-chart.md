@@ -51,3 +51,11 @@ Use `fl_chart`'s `LineChart` in the widget; test via `tester.tap(find.byType(Lin
 T7 (bodyweight entries), T2 (dashboard placeholder)
 
 Note: `fl_chart` must be added to `pubspec.yaml`.
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T12 — Bodyweight chart | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

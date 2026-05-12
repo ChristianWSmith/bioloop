@@ -55,3 +55,11 @@ DAO for the `foods` table, local search provider, and auto-caching of API result
 ## Dependencies
 
 T1 (database), T3 (API client)
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T4 — Foods reference table + local search | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

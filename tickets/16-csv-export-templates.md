@@ -73,3 +73,11 @@ CREATE TABLE meal_templates (
 ## Dependencies
 
 T6 (food entries), T7 (bodyweight entries), T8 (history screen)
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T16 — CSV export + meal templates | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

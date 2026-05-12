@@ -105,6 +105,10 @@ CREATE TABLE user_goals (                  -- singleton row (id=1)
   calorie_adjustment    REAL,              -- deficit/surplus: e.g. -500, 0, +300
   protein_g_per_lb      REAL DEFAULT 1.0,
   fat_calorie_pct       REAL DEFAULT 25.0, -- % of calories from fat
+  sex                   TEXT,                -- 'male' | 'female'; null until onboarding
+  height_cm             REAL,                -- null until onboarding
+  age                   INTEGER,             -- null until onboarding
+  onboarding_completed  INTEGER NOT NULL DEFAULT 0,
   updated_at            TEXT NOT NULL
 );
 ```
@@ -118,6 +122,7 @@ CREATE TABLE user_goals (                  -- singleton row (id=1)
 - Set up Riverpod providers (database, per-feature)
 - App shell with bottom navigation: Dashboard, Log, Bodyweight, History, Goals
 - Material 3 theme (dark + light)
+- Onboarding flow — sex, age, height, starting weight, initial goals
 
 ### Phase 2 — Core Logging
 - **OpenFoodFacts client:** search by name, fetch by barcode
@@ -171,10 +176,13 @@ Inputs:
   fat_pct                 (user-set % of calories, range 15–50%)
 
 Step 1 — Calorie target:
-  if maintenance_calories != null:
-    target_calories = maintenance_calories + calorie_adjustment
+  if regression_maintenance != null:
+    target_calories = regression_maintenance + calorie_adjustment
+  else if onboarding_completed:
+    estimated_maintenance = estimateMaintenance(sex, weight_kg, height_cm, age)
+    target_calories = estimated_maintenance + calorie_adjustment
   else:
-    target_calories = calorie_adjustment   (absolute floor)
+    target_calories = max(calorie_adjustment, 1200)   // safe floor before onboarding
 
 Step 2 — Protein:
   protein_g   = bodyweight_lb × protein_g_per_lb
@@ -187,6 +195,17 @@ Step 3 — Fat:
 Step 4 — Carbs (fills remainder):
   carbs_cal   = target_calories − protein_cal − fat_cal
   carbs_g     = carbs_cal / 4
+
+### Fallback formula (Mifflin-St Jeor)
+
+Used when rolling regression lacks sufficient data (<14 paired days):
+
+```
+male:   BMR = 10 × weight_kg + 6.25 × height_cm − 5 × age + 5
+female: BMR = 10 × weight_kg + 6.25 × height_cm − 5 × age − 161
+
+estimated_maintenance = BMR × 1.55   // moderate activity (fixed, see §6)
+```
 
 Rate preview:
   rate_lbs_per_week = calorie_adjustment × 7 / 3500
@@ -229,6 +248,32 @@ OLS: daily_weight_change ~ calories
 
 Display: *"2,450 kcal (±180, based on 22 days of data)"*
 
+### Fallback: Mifflin-St Jeor estimate
+
+Before the user has enough data (≥14 paired days), maintenance is estimated via the
+Mifflin-St Jeor equation with a fixed moderate activity multiplier of 1.55:
+
+```dart
+double estimateMaintenance({
+  required String sex,
+  required double weightKg,
+  required double heightCm,
+  required int age,
+}) {
+  double bmr;
+  if (sex == 'male') {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+  } else {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+  }
+  return bmr * 1.55;
+}
+```
+
+This runs automatically whenever the regression returns null and the user has
+completed onboarding. The result is used in place of `maintenance_calories` in
+the macro target calculation (§4).
+
 ---
 
 ## 6. Open Decisions
@@ -239,3 +284,4 @@ Display: *"2,450 kcal (±180, based on 22 days of data)"*
 | Unit display | kg internally, lb optional on output |
 | Testing | Write alongside features or defer? |
 | Barcode scanning | Phase 5 (requires camera permission) |
+| Fallback maintenance formula | Mifflin-St Jeor × 1.55 (moderate activity) — no user-choosable multiplier; data-driven regression replaces it once ≥14 paired days exist |

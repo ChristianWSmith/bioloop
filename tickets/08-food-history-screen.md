@@ -54,3 +54,11 @@ Paginated list of all logged food entries grouped by date.
 ## Dependencies
 
 T6 (food_entries DAO)
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T8 — Food history screen | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.

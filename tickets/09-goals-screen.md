@@ -10,6 +10,12 @@ Screen where users set their goal type, calorie adjustment, and macro preference
 
 ## Layout
 
+### Profile (editable fields from onboarding)
+- **Sex**: segmented button (Male / Female)
+- **Age**: number text field (years)
+- **Height**: number text field (cm)
+- All pre-filled from `user_goals`, included in upsert on save
+
 ### Goal type
 Segmented button: **Cut** / **Maintain** / **Bulk**
 
@@ -44,6 +50,7 @@ Segmented button: **Cut** / **Maintain** / **Bulk**
 - `updateGoalsProvider` — notifier to save changes, triggers recompute of macro targets
 
 ## Acceptance criteria
+- Profile fields (sex, age, height) editable, persist correctly
 - Can select goal type, defaults populate correctly
 - Rate preview updates live as adjustment changes
 - Protein and fat sliders work, show correct values
@@ -52,6 +59,8 @@ Segmented button: **Cut** / **Maintain** / **Bulk**
 
 ## Testing
 
+- **Widget — profile fields**: sex segmented button toggles, age and height fields accept numeric input and pre-fill from DB
+- **Widget — profile save**: profile fields are included in the upsert and readable after re-launch
 - **Widget — goal type defaults**: cut selects -500, maintain selects 0, bulk selects +300
 - **Widget — rate preview**: adjustment = -500 shows "~1 lb/week loss"; -1000 shows "~2 lb/week loss"; +350 shows "~0.7 lb/week gain"
 - **Widget — protein slider**: slider moves between 0.5 and 2.0; current value displayed above
@@ -66,6 +75,9 @@ Widget tests should use `ProviderScope` with in-memory DB and mock `bodyweightPr
 ## Human verification
 
 - [ ] `flutter analyze` passes with zero errors
+- [ ] Profile section renders with sex (Male/Female), age, and height fields pre-filled from DB
+- [ ] Editing profile fields and saving persists them
+- [ ] Profile fields are nullable until onboarding completed
 - [ ] Goal type segmented button: tapping Cut sets adjustment to -500, Maintain to 0, Bulk to +300
 - [ ] Adjustment field editable — changing -500 to -800 updates rate preview to "~1.6 lb/week loss"
 - [ ] Rate preview updates live as the adjustment field changes (not just on save)
@@ -77,4 +89,12 @@ Widget tests should use `ProviderScope` with in-memory DB and mock `bodyweightPr
 - [ ] All widget + unit tests pass
 
 ## Dependencies
-T1 (database), T2 (placeholder exists)
+T1 (database with profile columns), T2 (app shell), T2b (onboarding — profile fields seed the DB)
+
+## Agent instructions (app state tracking)
+
+After completing the work in this ticket, append a row to the `## App State` table in `AGENTS.md`:
+
+| T9 — Goals configuration screen | ✅ Complete | YYYY-MM-DD | AI |
+
+See `AGENTS.md` for the current state table.
