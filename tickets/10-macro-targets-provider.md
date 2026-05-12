@@ -5,6 +5,7 @@ Provider that reads goals + latest bodyweight + maintenance calories and compute
 ## Files to create
 
 - `lib/providers/macro_targets_provider.dart`
+- `lib/providers/maintenance_provider.dart` — **stub** that always returns `AsyncValue(null)`. Replaced by T13's real implementation in Phase 4. Exists here so that `macroTargetsProvider` can reference it without a Phase 4 dependency.
 - `lib/core/algorithms/mifflin_st_jeor.dart` — standalone pure function, no DB or provider dependencies
 
 ## Algorithm
@@ -158,7 +159,9 @@ Use Riverpod's `ProviderContainer` directly (no widget tree needed). Override su
 
 ## Dependencies
 
-T9 (goals provider with profile fields), T7 (bodyweight provider), T13 (maintenance provider — provides regression result; Mifflin-St Jeor fallback lives in this ticket)
+T9 (goals provider with profile fields), T7 (bodyweight provider)
+
+Note: This ticket creates a stub `maintenanceProvider` that always returns `null`. T13 (Phase 4) will replace it with the real regression-based implementation. The `macroTargetsProvider` handles the null case by falling back to Mifflin-St Jeor.
 
 ## Agent instructions (app state tracking)
 

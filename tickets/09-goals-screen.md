@@ -5,8 +5,7 @@ Screen where users set their goal type, calorie adjustment, and macro preference
 ## Files to modify
 
 - `lib/features/goals/goals_screen.dart` — full implementation
-- `lib/core/database/tables/user_goals.dart` — add DAO methods
-- `lib/providers/goals_provider.dart` — read/write `user_goals`
+- `lib/providers/goals_provider.dart` — read/write `user_goals` (uses existing DAOs from T2b)
 
 ## Layout
 
@@ -50,9 +49,13 @@ Segmented button: **Cut** / **Maintain** / **Bulk**
 - Automatically computed
 
 ### Save
-"Save" button at bottom; backs out to dashboard. Only one row exists (`id = 1`), upserted on save.
+- "Save" button at bottom; backs out to dashboard. Only one row exists (`id = 1`), upserted on save.
+- **Save button is disabled if any required field (age, height, sex) is empty** — prevent, don't validate after.
+- On DB write failure: error dialog per PLAN.md §6.
 
 ## DAO methods needed
+
+Already added in T2b (no new DAO work needed here):
 - `Future<UserGoals?> getGoals()` — fetch singleton
 - `Future<void> upsertGoals(UserGoals goals)` — includes `goal_weight_kg`, `use_imperial`, and `activity_level` fields
 
@@ -86,6 +89,8 @@ Segmented button: **Cut** / **Maintain** / **Bulk**
 - **Widget — fat slider**: slider moves between 10 and 50; current % and gram equivalent ("35% = 78g") displayed
 - **Widget — carbs display**: shows "Fills remaining calories" (not a user input)
 - **Widget — save + persist**: tap Save, pop back, reopen screen, all values match what was saved
+- **Widget — save disabled when required fields empty**: clear age field, verify Save button is disabled
+- **Widget — save error shows dialog**: inject a DB write failure, tap Save, verify error dialog appears
 - **Unit — DAO upsert**: calling `upsertGoals()` twice with id=1 updates in place, `getGoals()` returns latest
 - **Unit — DAO empty state**: `getGoals()` returns null when table is empty (no row inserted yet)
 

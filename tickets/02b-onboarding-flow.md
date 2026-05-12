@@ -5,12 +5,12 @@ Multi-field initial setup screen shown on first launch.
 ## Files to create
 
 - `lib/features/onboarding/onboarding_screen.dart` — scrollable form page
+- `lib/providers/onboarding_provider.dart` — read/write `user_goals` for onboarding (separate from T9's goals_provider to avoid cross-phase dependency)
 
 ## Files to modify
 
 - `lib/app.dart` — check `onboarding_completed` from `user_goals`; redirect to onboarding or app shell
-- `lib/core/database/tables/user_goals.dart` — add DAO methods for profile fields
-- `lib/providers/goals_provider.dart` — add profile read/write
+- `lib/core/database/tables/user_goals.dart` — add DAO methods (getGoals, upsertGoals) for the profile fields defined in PLAN.md schema
 
 ## Layout
 
@@ -75,9 +75,12 @@ Same fields as T9 goals screen, embedded inline:
 
 ## DAO methods needed
 
-- `Future<UserGoals?> getGoals()` — already added in T9
-- `Future<void> upsertGoals(UserGoals goals)` — already added in T9
-- `Future<void> insertWeight(BodyweightEntry entry)` — already added in T7
+Add to `lib/core/database/tables/user_goals.dart` (created in T1):
+- `Future<UserGoals?> getGoals()` — fetch singleton row
+- `Future<void> upsertGoals(UserGoals goals)` — insert or replace by id=1
+
+Add to `lib/core/database/tables/bodyweight_entries.dart` (created in T1):
+- `Future<void> insertWeight(BodyweightEntry entry)` — insert a bodyweight log row
 
 ## Acceptance criteria
 
@@ -125,7 +128,9 @@ Use `ProviderScope` with in-memory DB. Seed `user_goals` with `onboarding_comple
 
 ## Dependencies
 
-T1 (database schema with new columns), T2 (app shell — needs to exist for redirect)
+T1 (database schema with all columns), T2 (app shell — needs to exist for redirect)
+
+Note: The `user_goals` and `bodyweight_entries` DAO methods used in onboarding are defined *in this ticket*, not in later tickets. Do not defer them to T7 or T9.
 
 ## Agent instructions (app state tracking)
 

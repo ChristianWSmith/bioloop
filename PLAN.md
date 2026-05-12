@@ -22,13 +22,18 @@ lib/
         food_entries.dart
         bodyweight_entries.dart
         user_goals.dart
+        meal_templates.dart
 
     api/
       open_food_facts_client.dart     # REST client for food search/barcode
+      models/
+        food_result.dart              # API response deserialization
     algorithms/
       maintenance_calculator.dart     # Rolling linear regression
       mifflin_st_jeor.dart            # Mifflin-St Jeor BMR estimator (pure function, no deps)
   features/
+    onboarding/
+      onboarding_screen.dart          # First-launch setup (T2b)
     dashboard/
       dashboard_screen.dart
       widgets/
@@ -41,6 +46,9 @@ lib/
         food_search_delegate.dart
         serving_size_picker.dart
         meal_type_selector.dart
+        manual_food_form.dart
+        barcode_scanner.dart
+        meal_templates.dart           # Template/recipe list (T16)
     bodyweight/
       bodyweight_screen.dart
       widgets/
@@ -48,16 +56,20 @@ lib/
         add_weight_sheet.dart
     history/
       history_screen.dart
+      export.dart                    # CSV export (T16)
     goals/
       goals_screen.dart
     settings/
       settings_screen.dart
   providers/
     database_provider.dart
-    food_log_provider.dart
+    food_log_provider.dart            # includes todaysFoodProvider (T6)
+    food_search_provider.dart         # local + API merged search (T4)
     bodyweight_provider.dart
     goals_provider.dart
-    maintenance_provider.dart
+    onboarding_provider.dart          # onboarding CRUD, separate from goals (T2b)
+    macro_targets_provider.dart       # daily macro computations (T10)
+    maintenance_provider.dart         # regression result (stub in T10, real in T13)
   theme/
     theme.dart
 ```
@@ -118,6 +130,14 @@ CREATE TABLE user_goals (                  -- singleton row (id=1)
   onboarding_completed  INTEGER NOT NULL DEFAULT 0,
   updated_at            TEXT NOT NULL
 );
+
+CREATE TABLE meal_templates (               -- templates + recipes (added in T1, used in T16)
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT NOT NULL,
+  type        TEXT NOT NULL DEFAULT 'template',  -- 'template' | 'recipe'
+  foods       TEXT NOT NULL,       -- JSON array of ingredient snapshots
+  created_at  TEXT NOT NULL
+);
 ```
 
 ---
@@ -125,7 +145,7 @@ CREATE TABLE user_goals (                  -- singleton row (id=1)
 ## 2. Feature Phases
 
 ### Phase 1 — Foundation
-- Set up drift database with all four tables
+- Set up drift database with all five tables
 - Set up Riverpod providers (database, per-feature)
 - App shell with bottom navigation: Dashboard, Log, Bodyweight, History, Goals
 - Material 3 theme (dark + light)
@@ -168,6 +188,10 @@ CREATE TABLE user_goals (                  -- singleton row (id=1)
 | `fl_chart` | Charts |
 | `http` | API calls |
 | `intl` | Formatting |
+| `path_provider` | Database file path |
+| `share_plus` | CSV export share sheet (T16) |
+| `mobile_scanner` | Barcode scanning (T15) |
+| `camera` | Camera access (T15) |
 | `go_router` | Navigation (optional) |
 
 ---
@@ -283,7 +307,26 @@ the macro target calculation (§4).
 
 ---
 
-## 6. Open Decisions
+## 6. Error Handling & UX Philosophy
+
+### Prevent errors before they happen
+- **Disable, don't validate-after-the-fact**. If a form requires a field, keep the submit button disabled until the field is filled. If a meal type must be chosen, disable "Save" until one is selected. Users should never tap a button only to see an error.
+- **Good defaults**: pre-select sensible values (e.g. activity level = 3/moderate, meal type = snack) wherever ambiguous.
+- **Guard rails**: protein slider clamped 0.5–2.0, fat slider clamped 10–50%. The slider physically cannot leave range.
+
+### When errors do happen (network, DB, constraint violations)
+- Show a **dialog** (not a snackbar, not inline text). Title explains what went wrong, body gives the technical gist, one dismiss button: "OK".
+- Dialogs are modal — the user must acknowledge. This ensures they see the error.
+- Never silently swallow errors. Every DB write, API call, or camera operation that fails must show a dialog.
+
+### Exceptions
+- Loading states use skeleton shimmers / spinners (no error dialog for transient loading).
+- Empty states are inline UI (no dialog for "no data").
+- Deletion shows a confirmation dialog (prevention, not error).
+
+---
+
+## 7. Open Decisions
 
 | Question | Decision |
 |----------|----------|

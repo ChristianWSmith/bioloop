@@ -45,6 +45,7 @@ Use `tester.pumpWidget(ProviderScope(child: App()))` in widget tests. Provide `o
 ## Technical notes
 
 - Use `Scaffold` + `NavigationBar` (Material 3). No router package needed for now — manage tab index with a `StatefulWidget` or simple Riverpod `StateProvider<int>`.
+- Tab icons (Material Icons): Dashboard = `Icons.dashboard`, Log = `Icons.add_circle_outline`, Bodyweight = `Icons.monitor_weight`, History = `Icons.history`, Goals = `Icons.track_changes`.
 - Theme: seed from `Colors.deepPurple` (matching Flutter default for now), can be refined later.
 - App entry point should check `onboarding_completed` from `user_goals` once T2b is implemented.
 

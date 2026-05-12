@@ -23,11 +23,6 @@ Three smaller rings in a row (protein, fat, carbs):
 - Each shows consumed / target in grams
 - Color-coded: protein = blue, fat = orange, carbs = green
 
-## Provider needed
-
-- `todaysFoodProvider` — aggregates `food_entries` for today, exposes `List<FoodEntry>` + `Map<String, double>` totals
-  - "Today" is defined as the calendar date in the device's local timezone (not a rolling 24h window). This means the day resets at midnight local time.
-
 ## Data flow
 
 ```

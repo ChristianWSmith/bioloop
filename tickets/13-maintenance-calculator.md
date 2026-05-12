@@ -41,12 +41,18 @@ class MaintenanceResult {
 }
 ```
 
+## Files to modify
+
+- `lib/providers/maintenance_provider.dart` — replace T10 stub with real implementation
+
 ## Provider
 
-Create `lib/providers/maintenance_provider.dart`:
-- Watches `foodEntriesProvider` + `bodyweightProvider`
+Modify `lib/providers/maintenance_provider.dart` (created as a stub in T10, replaced here):
+- Watches `databaseProvider` (for table change signals) + `bodyweightProvider` (latest weight)
+- Uses DAOs directly (`getEntriesForDate(d)` for each day `d` in lookback window, `getWeights`) — no separate `foodEntriesProvider` exists; the raw data is fetched inline from the DB
 - Calls `MaintenanceCalculator.calculate(entries, weights)`
 - Returns `AsyncValue<MaintenanceResult?>`
+- Replaces the T10 stub that always returned `null`
 - Note: the Mifflin-St Jeor fallback is NOT called here — this provider only wraps the regression. The fallback lives in T10's `mifflin_st_jeor.dart` utility, consumed by `macroTargetsProvider` when this provider returns null.
 
 ## Testing

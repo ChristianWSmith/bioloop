@@ -14,7 +14,7 @@ Standard Flutter app (default `flutter create` template). Minimal custom code.
 ## Structure
 
 - `lib/main.dart` — single app entrypoint
-- `test/widget_test.dart` — single widget smoke test
+- `test/widget_test.dart` — default Flutter smoke test; update or remove as feature tests are added per ticket
 - No CI, no custom build tooling, no assets
 - Default `flutter_lints` lint rules via `analysis_options.yaml`
 

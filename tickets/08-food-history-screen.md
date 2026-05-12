@@ -15,6 +15,8 @@ Paginated list of all logged food entries grouped by date.
   - Name, servings, meal type, macros (calories, protein, carbs, fat)
   - Changing servings rescales macros proportionally
   - Save updates the `food_entries` row in-place
+  - On save failure: error dialog per PLAN.md §6
+  - Delete confirmation dialog; on failure: error dialog per PLAN.md §6
 - Pull-to-refresh
 - Infinite scroll / pagination (load 20 at a time)
 

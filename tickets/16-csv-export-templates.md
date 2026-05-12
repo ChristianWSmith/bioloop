@@ -34,15 +34,12 @@ The distinction from templates: a template saves exact macro snapshots of a meal
 
 ### Schema: `meal_templates` table
 
-```sql
-CREATE TABLE meal_templates (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  name        TEXT NOT NULL,
-  type        TEXT NOT NULL DEFAULT 'template',  -- 'template' | 'recipe'
-  foods       TEXT NOT NULL,       -- JSON array of {food_id?, name, serving_label, servings, calories, protein_g, ...}
-  created_at  TEXT NOT NULL
-);
-```
+The table is already created in T1 (see PLAN.md §1 for DDL). This ticket defines **DAO methods and CRUD logic** only:
+- `Future<int> insertTemplate(MealTemplate template)` — insert new template/recipe
+- `Future<List<MealTemplate>> getAllTemplates({String? type})` — filter by 'template' or 'recipe', or null for all
+- `Future<MealTemplate?> getTemplate(int id)`
+- `Future<void> updateTemplate(MealTemplate template)` — update name, type, or foods JSON
+- `Future<void> deleteTemplate(int id)`
 
 - `type = 'template'`: exact snapshot of a logged meal (macro values frozen)
 - `type = 'recipe'`: ingredient list that can be scaled (macro values recomputed when serving size changes)
@@ -106,7 +103,7 @@ CREATE TABLE meal_templates (
 
 ## Dependencies
 
-T6 (food entries), T7 (bodyweight entries), T8 (history screen), T4 (food search for ingredient selection)
+T1 (meal_templates table already exists), T6 (food entries), T7 (bodyweight entries), T8 (history screen), T4 (food search for ingredient selection)
 
 ## Agent instructions (app state tracking)
 
