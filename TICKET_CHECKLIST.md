@@ -8,12 +8,12 @@
 
 **Phase 2 — Core Logging**
 
-- [ ] T3 — OpenFoodFacts client (design)
-- [ ] T4 — Foods local search
-- [ ] T5 — Manual food form
-- [ ] T6 — Log food screen
-- [ ] T7 — Bodyweight logging
-- [ ] T8 — Food history screen
+- [x] T3 — OpenFoodFacts client (design)
+- [x] T4 — Foods local search
+- [x] T5 — Manual food form
+- [x] T6 — Log food screen
+- [x] T7 — Bodyweight logging
+- [x] T8 — Food history screen
 
 **Phase 3 — Dashboard & Targets**
 

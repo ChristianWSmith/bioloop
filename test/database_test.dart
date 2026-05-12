@@ -1,5 +1,5 @@
 import 'package:bioloop/core/database/database.dart';
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -260,6 +260,80 @@ void main() {
           .get();
       expect(results.length, 1);
       expect(results.single.name, 'Food 5');
+    });
+  });
+
+  group('foods DAO', () {
+    test('searchByName returns partial matches', () async {
+      final now = DateTime.now().toIso8601String();
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Apple',
+        servingLabel: '1 medium',
+        caloriesPerServing: 95,
+        proteinPerServing: 0.5,
+        carbsPerServing: 25,
+        fatPerServing: 0.3,
+        createdAt: now,
+      ));
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Pineapple',
+        servingLabel: '1 cup',
+        caloriesPerServing: 82,
+        proteinPerServing: 0.9,
+        carbsPerServing: 22,
+        fatPerServing: 0.2,
+        createdAt: now,
+      ));
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Banana',
+        servingLabel: '1 medium',
+        caloriesPerServing: 105,
+        proteinPerServing: 1.3,
+        carbsPerServing: 27,
+        fatPerServing: 0.4,
+        createdAt: now,
+      ));
+
+      final results = await db.searchByName('app');
+      expect(results.length, 2);
+      final names = results.map((f) => f.name).toSet();
+      expect(names, contains('Apple'));
+      expect(names, contains('Pineapple'));
+    });
+
+    test('upsertFood by barcode updates existing and keeps id', () async {
+      final now = DateTime.now().toIso8601String();
+      final id = await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Original',
+        servingLabel: '100g',
+        caloriesPerServing: 100,
+        proteinPerServing: 10,
+        carbsPerServing: 10,
+        fatPerServing: 5,
+        barcode: Value('X'),
+        createdAt: now,
+      ));
+
+      await db.upsertFood(FoodsCompanion.insert(
+        name: 'Updated',
+        servingLabel: '100g',
+        caloriesPerServing: 100,
+        proteinPerServing: 10,
+        carbsPerServing: 10,
+        fatPerServing: 5,
+        barcode: Value('X'),
+        createdAt: DateTime.now().toIso8601String(),
+      ));
+
+      final food = await db.getByBarcode('X');
+      expect(food, isNotNull);
+      expect(food!.name, 'Updated');
+      expect(food.id, id);
+    });
+
+    test('getByBarcode returns null for unknown barcode', () async {
+      final result = await db.getByBarcode('nonexistent');
+      expect(result, isNull);
     });
   });
 

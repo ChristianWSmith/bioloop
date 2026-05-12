@@ -78,7 +78,7 @@ void main() {
 
       await tester.tap(find.text('Log'));
       await tester.pumpAndSettle();
-      expect(find.text('Log Food'), findsOneWidget);
+      expect(find.byKey(const Key('food_search_field')), findsOneWidget);
 
       await tester.tap(find.text('Bodyweight'));
       await tester.pumpAndSettle();

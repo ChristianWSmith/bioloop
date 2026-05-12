@@ -1,0 +1,365 @@
+import 'dart:convert';
+import 'package:drift/drift.dart' hide isNull, isNotNull;
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+
+import 'package:bioloop/core/api/open_food_facts_client.dart';
+import 'package:bioloop/core/database/database.dart';
+import 'package:bioloop/features/logging/log_food_screen.dart';
+import 'package:bioloop/providers/database_provider.dart';
+import 'package:bioloop/providers/food_search_provider.dart';
+
+AppDatabase _createSeedDb() {
+  final db = AppDatabase.createInMemory();
+  final now = DateTime.now().toIso8601String();
+  db.into(db.foods).insert(FoodsCompanion.insert(
+    name: 'Oats',
+    servingLabel: '100g',
+    servingSizeGrams: Value(100),
+    caloriesPerServing: 389,
+    proteinPerServing: 16.9,
+    carbsPerServing: 66.3,
+    fatPerServing: 6.9,
+    barcode: Value('987'),
+    createdAt: now,
+  ));
+  db.into(db.foods).insert(FoodsCompanion.insert(
+    name: 'Chicken Breast',
+    servingLabel: '100g',
+    servingSizeGrams: Value(100),
+    caloriesPerServing: 165,
+    proteinPerServing: 31,
+    carbsPerServing: 0,
+    fatPerServing: 3.6,
+    createdAt: now,
+  ));
+  return db;
+}
+
+OpenFoodFactsClient _createMockApi({List<Map<String, dynamic>>? products}) {
+  final mock = MockClient((_) async {
+    return http.Response(jsonEncode({
+      'products': products ?? [],
+    }), 200);
+  });
+  return OpenFoodFactsClient(client: mock);
+}
+
+Finder _editableTextField() => find.byWidgetPredicate(
+      (w) => w is TextField && !w.readOnly,
+    );
+
+void main() {
+  group('LogFoodScreen', () {
+    Future<void> pumpScreen(WidgetTester tester, AppDatabase db,
+        {OpenFoodFactsClient? apiClient}) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            openFoodFactsClientProvider.overrideWithValue(
+              apiClient ?? _createMockApi(),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: LogFoodScreen()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    /// Open search delegate, type a query, tap the result label, and wait
+    /// for the route to fully pop.
+    Future<void> searchAndTapResult(
+        WidgetTester tester, String query, String resultLabel) async {
+      await tester.tap(find.byKey(const Key('food_search_field')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.enterText(_editableTextField(), query);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.text(resultLabel).last);
+      // Wait for route pop animation (300ms default) to fully complete
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+
+    Future<void> selectFood(WidgetTester tester) =>
+        searchAndTapResult(tester, 'Chicken', 'Chicken Breast');
+
+    testWidgets('empty state shows prompt text', (tester) async {
+      final db = _createSeedDb();
+      addTearDown(() => db.close());
+      await pumpScreen(tester, db);
+
+      expect(
+        find.text('Tap the search bar above to find or create a food'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('search delegate: typing shows results', (tester) async {
+      final db = _createSeedDb();
+      addTearDown(() => db.close());
+      await pumpScreen(tester, db);
+
+      await tester.tap(find.byKey(const Key('food_search_field')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.enterText(_editableTextField(), 'Oats');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('Oats'), findsAtLeastNWidgets(1));
+      expect(find.text('Create custom food'), findsOneWidget);
+    });
+
+    testWidgets('serving stepper: tap + increases servings, macros double',
+        (tester) async {
+      final db = _createSeedDb();
+      addTearDown(() => db.close());
+      await pumpScreen(tester, db);
+      await selectFood(tester);
+
+      expect(find.text('165'), findsOneWidget);
+
+      // Tap the + icon (only one in tree after delegate is gone)
+      await tester.tap(find.byIcon(Icons.add_circle_outline));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.text('248'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.add_circle_outline));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.text('330'), findsOneWidget);
+    });
+
+    testWidgets(
+        'gram input: entering grams converts to fractional servings',
+        (tester) async {
+      final db = _createSeedDb();
+      addTearDown(() => db.close());
+      await pumpScreen(tester, db);
+      await selectFood(tester);
+
+      // After selectFood the only non-readOnly TextField is the gram input
+      await tester.enterText(_editableTextField(), '150');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('248'), findsOneWidget);
+    });
+
+    testWidgets(
+        'meal type selector: tap selects, Save disabled until selected',
+        (tester) async {
+      final db = _createSeedDb();
+      addTearDown(() => db.close());
+      await pumpScreen(tester, db);
+      await selectFood(tester);
+
+      final saveButton =
+          tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(saveButton.onPressed, isNull);
+
+      await tester.tap(find.text('Lunch'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final saveButton2 =
+          tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(saveButton2.onPressed, isNotNull);
+    });
+
+    testWidgets('save creates food_entries row with scaled macros',
+        (tester) async {
+      final db = _createSeedDb();
+      addTearDown(() => db.close());
+      await pumpScreen(tester, db);
+      await selectFood(tester);
+
+      await tester.tap(find.text('Lunch'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      await tester.tap(find.byType(FilledButton));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final entries = await db.select(db.foodEntries).get();
+      expect(entries.length, 1);
+      expect(entries.first.name, 'Chicken Breast');
+      expect(entries.first.calories, 165);
+      expect(entries.first.proteinGrams, 31);
+      expect(entries.first.carbsGrams, 0);
+      expect(entries.first.fatGrams, 3.6);
+      expect(entries.first.servings, 1);
+      expect(entries.first.mealType, 'lunch');
+      expect(entries.first.foodId, isNotNull);
+    });
+
+    testWidgets('API food auto-caches to foods table on save',
+        (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+
+      await pumpScreen(
+        tester,
+        db,
+        apiClient: _createMockApi(products: [
+          {
+            'product_name': 'API Oats',
+            'nutriments': {
+              'energy-kcal_serving': 389,
+              'proteins_serving': 16.9,
+              'carbohydrates_serving': 66.3,
+              'fat_serving': 6.9,
+            },
+            'code': 'api-123',
+          },
+        ]),
+      );
+
+      await searchAndTapResult(tester, 'Oats', 'API Oats');
+
+      await tester.tap(find.text('Breakfast'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      await tester.tap(find.byType(FilledButton));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final foods = await db.select(db.foods).get();
+      expect(foods.length, 1);
+      expect(foods.first.name, 'API Oats');
+      expect(foods.first.source, 'open_food_facts');
+      expect(foods.first.barcode, 'api-123');
+    });
+
+    testWidgets('save error shows dialog', (tester) async {
+      final db = AppDatabase.createInMemory();
+      final now = DateTime.now().toIso8601String();
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Test Food',
+        servingLabel: '1 serving',
+        caloriesPerServing: 100,
+        proteinPerServing: 10,
+        carbsPerServing: 10,
+        fatPerServing: 5,
+        createdAt: now,
+      ));
+
+      await pumpScreen(tester, db);
+      await searchAndTapResult(tester, 'Test', 'Test Food');
+
+      await tester.tap(find.text('Dinner'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      await db.close();
+
+      await tester.tap(find.byType(FilledButton));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('Error'), findsOneWidget);
+      expect(find.textContaining('Failed to save'), findsOneWidget);
+
+      await tester.tap(find.text('OK'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Error'), findsNothing);
+    });
+
+    testWidgets('clear selection resets state', (tester) async {
+      final db = _createSeedDb();
+      addTearDown(() => db.close());
+      await pumpScreen(tester, db);
+      await selectFood(tester);
+
+      final searchField = tester.widget<TextField>(
+        find.byKey(const Key('food_search_field')),
+      );
+      final decoration = searchField.decoration as InputDecoration;
+      expect(decoration.hintText, 'Chicken Breast');
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(
+        find.text('Tap the search bar above to find or create a food'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('two saves create two separate entries', (tester) async {
+      final db = _createSeedDb();
+      addTearDown(() => db.close());
+      await pumpScreen(tester, db);
+
+      // First save
+      await selectFood(tester);
+      await tester.tap(find.text('Lunch'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byType(FilledButton));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('Food logged!'), findsOneWidget);
+
+      // Let snackbar fully auto-dismiss before second save
+      await tester.pumpAndSettle();
+
+      // Second save — invoke onPressed directly since the button
+      // is at the very bottom edge of the 600px test viewport
+      await searchAndTapResult(tester, 'Chicken', 'Chicken Breast');
+      await tester.tap(find.text('Dinner'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
+      button.onPressed!();
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final entries = await db.select(db.foodEntries).get();
+      expect(entries.length, 2);
+    });
+
+    testWidgets(
+        'macro scaling: all four macros match food.macro × servings',
+        (tester) async {
+      final db = _createSeedDb();
+      addTearDown(() => db.close());
+      await pumpScreen(tester, db);
+      await selectFood(tester);
+
+      expect(find.text('165'), findsOneWidget);
+      expect(find.textContaining('31.0'), findsAtLeastNWidgets(1));
+      expect(find.textContaining('0.0'), findsAtLeastNWidgets(1));
+      expect(find.textContaining('3.6'), findsAtLeastNWidgets(1));
+
+      // 2 servings
+      await tester.tap(find.byIcon(Icons.add_circle_outline));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byIcon(Icons.add_circle_outline));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('330'), findsOneWidget);
+      expect(find.textContaining('62.0'), findsAtLeastNWidgets(1));
+      expect(find.textContaining('0.0'), findsAtLeastNWidgets(1));
+      expect(find.textContaining('7.2'), findsAtLeastNWidgets(1));
+    });
+  });
+}

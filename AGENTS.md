@@ -26,6 +26,12 @@ Standard Flutter app (default `flutter create` template). Minimal custom code.
 | T1 — Drift schema & migrations | ✅ Complete | 2026-05-12 | AI |
 | T2 — App shell + navigation + theme | ✅ Complete | 2026-05-12 | AI |
 | T2b — Onboarding flow | ✅ Complete | 2026-05-12 | AI |
+| T3 — OpenFoodFacts API client | ✅ Complete | 2026-05-12 | AI |
+| T4 — Foods reference table + local search | ✅ Complete | 2026-05-12 | AI |
+| T5 — Manual food creation form | ✅ Complete | 2026-05-12 | AI |
+| T6 — Log food screen | ✅ Complete | 2026-05-12 | AI |
+| T7 — Bodyweight logging | ✅ Complete | 2026-05-12 | AI |
+| T8 — Food history screen | ✅ Complete | 2026-05-12 | AI |
 
 After completing each ticket, the agent working on it appends a new row here. This table
 is the single source of truth for what has been built.
