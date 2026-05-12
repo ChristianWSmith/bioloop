@@ -39,6 +39,19 @@ The main food-logging UI: search → select → adjust servings → pick meal ty
 - Save creates a correct `food_entries` row
 - Saved food appears on dashboard totals (next ticket)
 
+## Testing
+
+- **Widget — search delegate**: typing a query shows results from local foods + API (mocked)
+- **Widget — serving stepper**: tap "+" increases servings to 2, macro totals displayed double
+- **Widget — gram input**: when `serving_size_grams` is known, entering "150g" converts to correct fractional servings (1.5 for a 100g base)
+- **Widget — meal type selector**: tapping a meal type highlights it, default is no selection / must pick
+- **Widget — save**: tap save, verify `food_entries` row created with scaled macros matching `calories_per_serving × servings`
+- **Widget — API food auto-cache**: selecting an API-sourced food calls `insertFood` on the `foods` cache
+- **Unit — macro scaling**: `FoodEntry` macro computation matches `food.macro × servings` for all 4 macro fields
+- **Integration — save → dashboard**: after saving, `todaysFoodProvider` emits the new entry in its list
+
+Use `ProviderScope` overrides with in-memory DB. Mock the OpenFoodFacts API client for predictable search results.
+
 ## Dependencies
 
 T2 (app shell / placeholder exists), T4 (local food search), T5 (manual food form)

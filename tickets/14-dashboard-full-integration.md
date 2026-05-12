@@ -40,6 +40,20 @@ Polish the dashboard into the final layout with all components.
 - Empty state (no food, no weight) shows a helpful onboarding message
 - Scrollable if content exceeds viewport
 
+## Testing
+
+- **Widget — all sections render**: full dashboard scrolls without overflow; calorie ring, macro rings, rate card, maintenance card, sparkline all present
+- **Widget — maintenance states**:
+  - Loading: shimmer/skeleton visible
+  - Null: "Log 14+ days" prompt with X/14 progress
+  - Value: "Your maintenance: **2,450 kcal** (±180)"
+  - Error: "Unable to calculate — inconsistent data"
+- **Widget — rate card**: "~1 lb/week loss" displayed with green text for deficit; "~0.6 lb/week gain" in orange; "Maintenance" in gray
+- **Widget — onboarding**: empty state (no food, no weight, no goals) shows "Log your first meal" or setup prompt
+- **Widget — data accumulation progression**: add 1 day of food+weight → X/14 increments; at 14+ days → maintenance value appears
+- **Golden file — dashboard layout**: capture `DashboardScreen` with known data as a golden image, compare on subsequent runs (requires `flutter test --update-goldens` to regenerate)
+- **Integration — full CRUD cycle**: log food → dashboard totals update. Log weight → sparkline updates. Change goals → rate card updates. Full round-trip through DB.
+
 ## Dependencies
 
 T11 (macro rings), T12 (weight sparkline), T13 (maintenance), T9 (goals)

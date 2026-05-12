@@ -39,6 +39,19 @@ If `_serving` fields are absent, compute from `_100g` fields assuming a 100g ser
 Add to `pubspec.yaml`:
 - `http`
 
+## Testing
+
+- **Unit — search parsing**: inject a sample API JSON response, verify `search()` returns `List<FoodResult>` with correct field mapping
+- **Unit — barcode parsing**: inject a product JSON, verify `getByBarcode()` returns correctly mapped `FoodResult`
+- **Unit — `_serving` fallback**: inject a product JSON missing `_serving` fields but with `_100g` fields, verify it computes per-serving macros assuming 100g serving
+- **Unit — empty results**: inject `{"products": []}`, verify returns empty list
+- **Unit — malformed JSON**: inject garbage string, verify returns null / empty without throwing
+- **Unit — HTTP 429**: inject 429 response, verify graceful handling (retry header or empty)
+- **Unit — timeout**: inject `SocketException`, verify returns null / empty
+- **Unit — model parity**: every field in `FoodResult` maps to a field in the drift `Food` table (same types, same semantics)
+
+Use `MockClient` from `http` testing utilities to inject responses without network.
+
 ## Notes
 
 - OpenFoodFacts is rate-limited. No auth needed. Respect `429` responses.

@@ -39,6 +39,20 @@ CREATE TABLE meal_templates (
 - Can browse and add a template's foods to today's log in one tap
 - Can delete templates
 
+## Testing
+
+### CSV export
+- **Unit — food CSV format**: 3 food entries produce CSV with header + 3 data rows; fields match: date, meal_type, name, servings, calories, protein_g, carbs_g, fat_g
+- **Unit — weight CSV format**: 2 weight entries produce CSV with header + 2 rows; fields: date, weight_kg
+- **Unit — empty export**: no entries → CSV with header row only
+- **Unit — special characters**: food name with commas is quoted in CSV
+
+### Meal templates
+- **Widget — save template**: log a meal with 2 foods, tap "Save as template", enter name, verify template saved
+- **Widget — add from template**: tap "Templates" on log screen, select a template, all foods added to today's log
+- **Widget — delete template**: long-press a template, confirm delete, template removed from list
+- **Unit — template JSON round-trip**: serialize a meal with 3 foods to JSON, deserialize, verify all macro values match
+
 ## Dependencies
 
 T6 (food entries), T7 (bodyweight entries), T8 (history screen)

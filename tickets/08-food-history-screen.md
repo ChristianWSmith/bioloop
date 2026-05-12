@@ -26,6 +26,17 @@ Paginated list of all logged food entries grouped by date.
 - Deleting updates totals on dashboard (since provider reacts to DB changes)
 - Pull-to-refresh reloads data
 
+## Testing
+
+- **Widget — date grouping**: entries from 3 different dates render as 3 sections with correct date headers
+- **Widget — swipe-to-delete**: swipe an entry, confirmation dialog appears, confirm removes it from the list and DB
+- **Widget — cancel delete**: swipe, tap cancel, entry remains
+- **Widget — pull-to-refresh**: pull down triggers a reload (verify via spy on provider)
+- **Widget — pagination**: insert 25 entries, verify only first 20 render on initial load, scroll to bottom loads next 5
+- **Widget — empty state**: with no entries, shows "No food logged yet" message
+- **Widget — entry details**: tap an entry opens a detail popup showing name, macros, meal type, date/time
+- **Unit — pagination DAO**: `getEntriesPaginated(offset: 0, limit: 20)` returns 20, `getEntriesPaginated(offset: 20, limit: 20)` returns remaining
+
 ## Dependencies
 
 T6 (food_entries DAO)

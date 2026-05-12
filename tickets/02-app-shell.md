@@ -23,6 +23,15 @@ Create the app scaffold with bottom navigation and Material 3 theme.
 - Theme switches between light and dark (via system setting)
 - Layout handles safe areas on all platforms
 
+## Testing
+
+- **Widget — render**: app renders without errors, 5 bottom nav items visible
+- **Widget — tab switching**: tapping each nav item switches the body to the correct placeholder screen (check for unique text key in each)
+- **Widget — theme**: wrap in `MediaQuery` with `PlatformDispatcher.textScaleFactor` override; verify light/dark `ThemeData` is applied correctly
+- **Widget — safe areas**: render in landscape orientation, verify content respects safe areas
+
+Use `tester.pumpWidget(ProviderScope(child: App()))` in widget tests. Provide `overrides` for any required providers that aren't wired yet.
+
 ## Technical notes
 
 - Use `Scaffold` + `NavigationBar` (Material 3). No router package needed for now — manage tab index with a `StatefulWidget` or simple Riverpod `StateProvider<int>`.

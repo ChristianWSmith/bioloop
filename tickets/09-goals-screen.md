@@ -50,5 +50,18 @@ Segmented button: **Cut** / **Maintain** / **Bulk**
 - Save persists and is readable after restart
 - Carbs section shows "Fills remaining calories"
 
+## Testing
+
+- **Widget — goal type defaults**: cut selects -500, maintain selects 0, bulk selects +300
+- **Widget — rate preview**: adjustment = -500 shows "~1 lb/week loss"; -1000 shows "~2 lb/week loss"; +350 shows "~0.7 lb/week gain"
+- **Widget — protein slider**: slider moves between 0.5 and 2.0; current value displayed above
+- **Widget — fat slider**: slider moves between 10 and 50; current % and gram equivalent ("35% = 78g") displayed
+- **Widget — carbs display**: shows "Fills remaining calories" (not a user input)
+- **Widget — save + persist**: tap Save, pop back, reopen screen, all values match what was saved
+- **Unit — DAO upsert**: calling `upsertGoals()` twice with id=1 updates in place, `getGoals()` returns latest
+- **Unit — DAO empty state**: `getGoals()` returns null when table is empty (no row inserted yet)
+
+Widget tests should use `ProviderScope` with in-memory DB and mock `bodyweightProvider` (for rate display that depends on weight).
+
 ## Dependencies
 T1 (database), T2 (placeholder exists)

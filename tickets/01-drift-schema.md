@@ -28,6 +28,17 @@ See PLAN.md §1 for full SQL DDL.
 - `databaseProvider` can be read and returns a ready `AppDatabase`
 - Tables exist after calling `await db.migrate()`
 
+## Testing
+
+- **Unit — in-memory DB creation**: `AppDatabase` can be constructed with `NativeDatabase.memory()`, tables are queryable
+- **Unit — table existence**: `select top 1 from foods` and `food_entries` and `bodyweight_entries` and `user_goals` do not throw
+- **Unit — basic CRUD each table**: insert a row, read it back, verify columns
+- **Unit — `user_goals` singleton**: inserting a second row with `id=1` replaces the first (upsert behavior)
+- **Unit — index works**: insert 100 foods, search by partial name, verify it returns matches
+- **Integration — migration**: `db.migrate()` creates all tables; calling it again is a no-op
+
+All DB unit tests should use `NativeDatabase.memory()` to avoid filesystem dependencies.
+
 ## Dependencies
 
 Add to `pubspec.yaml`:

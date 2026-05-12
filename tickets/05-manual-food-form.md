@@ -31,6 +31,17 @@ Form for users to create custom foods that only exist in their local database.
 - Saved food appears in subsequent local searches
 - Cancelling returns null / pops without saving
 
+## Testing
+
+- **Widget — validation**: submit with empty name shows error; submit with all valid fields succeeds
+- **Widget — save**: fill valid form, tap save, verify `Food` is created with `source = 'manual'` and `barcode = null`
+- **Widget — cancel**: tap back/cancel, verify no DB writes occurred and pop returns null
+- **Widget — optional gram weight**: leaving the gram field empty does not block save; entering a value stores it
+- **Widget — field defaults**: all macro fields start empty (no pre-fill), serving label placeholder is "e.g. 1 cup, 1 slice"
+- **Integration**: food created via form is returned by `FoodSearchProvider.searchByName()`
+
+Use `ProviderScope` overrides to inject a real in-memory drift database so widget tests can verify persistence.
+
 ## Dependencies
 
 T4 (foods DAO)

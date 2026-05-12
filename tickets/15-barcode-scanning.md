@@ -34,6 +34,15 @@ Camera-based barcode scanning that looks up foods via OpenFoodFacts.
 - Unknown barcode shows "Not found" with manual entry fallback
 - Permission denied shows helpful message
 
+## Testing
+
+- **Unit — scan → API lookup**: a detected barcode "3017620422003" calls `OpenFoodFactsClient.getByBarcode("3017620422003")`
+- **Unit — unknown barcode**: API returns null → shows "Unknown barcode" UI with manual entry button
+- **Widget — permission denied**: camera permission denied → shows "Camera access required" message with settings button
+- **Widget — successful scan → log flow**: after scan returns a product, user can adjust servings and log it (same flow as T6)
+- **Widget — scanner overlay**: viewfinder rectangle renders with correct aspect ratio
+- **Note**: camera-based tests require a device/emulator — skip in CI with `test.skip = true` guard for platform test mode
+
 ## Dependencies
 
 T3 (API client), T6 (log flow)

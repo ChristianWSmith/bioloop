@@ -43,6 +43,19 @@ dashboard_screen
 - Rings animate on change
 - Over-consumption shown with overflow styling (red)
 
+## Testing
+
+- **Widget — rings render**: macro ring widget renders with consumed = 500, target = 2000, shows "500 / 2,000 kcal" in center
+- **Widget — empty day**: with no entries, all rings show 0 / target
+- **Widget — partial fill**: protein ring: consumed = 50g, target = 176g, fills to ~28%
+- **Widget — over-consumption**: calories exceeded turns ring red, remaining shows negative ("-200 over")
+- **Widget — ring animation**: ring animates from 0 to fill on first load (verify via `tester.pumpAndSettle`)
+- **Widget — individual macro rings**: protein=blue, fat=orange, carbs=green ring colors
+- **Unit — `todaysFoodProvider`**: insert 3 entries for today, 1 for yesterday, provider emits only today's 3 with correct aggregate totals
+- **Unit — aggregate math**: `todaysFoodProvider` sums calories, protein_grams, carbs_grams, fat_grams independently
+
+Widget tests override `todaysFoodProvider` and `macroTargetsProvider` with known values to isolate ring rendering.
+
 ## Dependencies
 
 T6 (food entries), T10 (macro targets)

@@ -34,6 +34,16 @@ Bottom sheet for logging bodyweight.
 - Can delete an entry via long-press
 - Provider exposes `AsyncValue<List<BodyweightEntry>>` sorted by date desc
 
+## Testing
+
+- **Widget — sheet opens**: tapping "Log weight" on bodyweight screen shows bottom sheet
+- **Widget — validation**: empty weight shows error; non-numeric input shows error
+- **Widget — save**: enter valid weight and date, tap "Log weight", sheet closes, entry appears in list below
+- **Widget — delete**: long-press an entry, tap delete in confirmation dialog, entry removed from list and DB
+- **Widget — keyboard type**: weight text field uses numeric keyboard (`TextInputType.numberWithOptions(decimal: true)`)
+- **Unit — provider sorting**: `bodyweightProvider` returns entries sorted by `logged_at` descending
+- **Integration — date backfill**: logging a weight for yesterday does not affect today's list, but appears in the full query
+
 ## Dependencies
 
 T1 (database)

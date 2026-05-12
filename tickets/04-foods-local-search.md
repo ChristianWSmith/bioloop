@@ -32,6 +32,15 @@ DAO for the `foods` table, local search provider, and auto-caching of API result
 - Selecting an API result triggers `insertFood` into `foods`
 - Re-running the same search returns the cached result instantly
 
+## Testing
+
+- **Unit — DAO insert + search**: insert 3 foods, `searchByName("app")` returns foods with "apple" and "pineapple" but not "banana"
+- **Unit — DAO upsert by barcode**: insert a food with barcode "X", upsert same barcode with different name, verify name updated and id unchanged
+- **Unit — DAO getByBarcode**: returns `null` for unknown barcode
+- **Unit — provider dedup**: mock API returns 3 results, 1 matches barcode in local DB, final list has no duplicate barcodes with local result first
+- **Unit — provider auto-save**: selecting an API result calls `insertFood` (verify via spy/mock on DAO)
+- **Unit — provider local-first**: when local search returns ≥25 results, API is not called
+
 ## Dependencies
 
 T1 (database), T3 (API client)
