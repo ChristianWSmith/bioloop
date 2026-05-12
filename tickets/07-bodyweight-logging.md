@@ -8,27 +8,16 @@ Bottom sheet for logging bodyweight.
 
 ## Files to modify
 
+- `lib/core/database/tables/bodyweight_entries.dart` — add DAO methods
 - `lib/features/bodyweight/bodyweight_screen.dart` — wire up the sheet + show existing entries
 - `lib/providers/bodyweight_provider.dart` — insert + query `bodyweight_entries`
 
-## AddWeightSheet layout
-
-| Field | Type | Default |
-|-------|------|---------|
-| Date | Date picker | Today |
-| Weight (kg/lb) | Text input with numeric keyboard | Empty |
-
-- Tap "Log weight" → validates → inserts → pops
-- Optional: quick-preset buttons for common weights nearby if we have prior data
-- When opened from edit (existing entry tapped): pre-fills current weight and date, title changes to "Edit weight", button reads "Update"
-- On edit save: updates `weight_kg` and/or `logged_at` in-place (no new row)
-- Weight label shows "kg" or "lb" depending on `user_goals.use_imperial` (default kg if goals not yet loaded)
-
 ## DAO methods needed
 
-- `Future<void> insertWeight(BodyweightEntry entry)`
+Add to `lib/core/database/tables/bodyweight_entries.dart` (created in T1, `insertWeight` already added in T2b):
 - `Future<void> updateWeight(BodyweightEntry entry)` — updates weight_kg and/or logged_at by id
-- `Future<List<BodyweightEntry>> getWeights({int? limit, DateTime? since})`
+- `Future<void> deleteWeight(int id)` — delete a single entry
+- `Future<List<BodyweightEntry>> getWeights({int? limit, DateTime? since})` — sorted by date desc
 
 ## Acceptance criteria
 

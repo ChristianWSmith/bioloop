@@ -1,9 +1,10 @@
 # T6 — Log food screen
 
-The main food-logging UI: search → select → adjust servings → pick meal type → save.
+The main food-logging UI: search → select → adjust servings → pick meal type → save. Also includes a "Recipes" entry point (see T17) for logging pre-built composite dishes as aggregated entries.
 
 ## Files to create
 
+- `lib/features/logging/log_food_screen.dart` — full log screen; "Recipes" button links to T17
 - `lib/features/logging/widgets/food_search_delegate.dart` — search delegate combining local + API + manual
 - `lib/features/logging/widgets/serving_size_picker.dart` — adjust servings (or grams)
 - `lib/features/logging/widgets/meal_type_selector.dart` — breakfast/lunch/dinner/snack
@@ -18,14 +19,17 @@ The main food-logging UI: search → select → adjust servings → pick meal ty
    - Default: serving count = 1
    - Stepper buttons (0.5, 1, 1.5, 2, etc.)
    - If `serving_size_grams` is known, show an optional gram input that converts to fractional servings
- 5. Meal type selector: segmented button (breakfast / lunch / dinner / snack). **Save button is disabled until a meal type is selected** (follows the PLAN.md §6 philosophy: prevent errors, not validate after).
- 6. Save button → computes macros (`calories = calories_per_serving × servings`, etc.)
+5. Alternatively, user taps "Recipes" → opens recipe list from T17 → selects recipe → portion input → returns with scaled macros
+6. Meal type selector: segmented button (breakfast / lunch / dinner / snack). **Save button is disabled until a meal type is selected** (follows the PLAN.md §6 philosophy: prevent errors, not validate after).
+7. Save button → computes macros (`calories = calories_per_serving × servings`, etc.)
     - Inserts into `food_entries` (denormalized snapshot)
     - For API-sourced foods: auto-saves to `foods` cache
     - On success: pops back to dashboard
     - On failure (DB error, constraint violation): shows error dialog per PLAN.md §6
 
 ## DAO methods for `food_entries`
+
+Add to `lib/core/database/tables/food_entries.dart` (created in T1):
 
 - `Future<void> insertEntry(FoodEntry entry)`
 - `Future<List<FoodEntry>> getEntriesForDate(DateTime date)`
@@ -75,12 +79,13 @@ Use `ProviderScope` overrides with in-memory DB. Mock the OpenFoodFacts API clie
 - [ ] Save creates a `food_entries` row — verify macros are `food.macro × servings`
 - [ ] API food auto-caches to `foods` table on save
 - [ ] After save, navigating back to Dashboard shows the entry in totals (once T11 is done)
+- [ ] "Recipes" button opens recipe list from T17 — selecting a recipe and entering portion creates an aggregated food_entry with correct scaled macros and recipe_id
 - [ ] All widget + unit tests pass
 - [ ] Edge case: same food logged twice creates two separate `food_entries` rows
 
 ## Dependencies
 
-T2 (app shell / placeholder exists), T4 (local food search), T5 (manual food form)
+T2 (app shell / placeholder exists), T4 (local food search), T5 (manual food form), T17 (forward reference — recipe builder is Phase 5, button placeholder only until T17 is implemented)
 
 ## Agent instructions (app state tracking)
 

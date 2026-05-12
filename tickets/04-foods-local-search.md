@@ -4,7 +4,7 @@ DAO for the `foods` table, local search provider, and auto-caching of API result
 
 ## Files to create
 
-- `lib/providers/food_search_provider.dart` — `FoodSearchProvider` (Riverpod)
+- `lib/providers/food_search_provider.dart` — `foodSearchProvider` (Riverpod)
 
 ## Files to modify
 
@@ -19,7 +19,7 @@ DAO for the `foods` table, local search provider, and auto-caching of API result
 
 ## Provider behavior
 
-`FoodSearchProvider` takes a query string:
+`foodSearchProvider` takes a query string:
 1. Query local `foods` table (instant)
 2. If fewer than 25 results, also query OpenFoodFacts API (from T3)
 3. Merge: local results first, API results appended, deduplicated by barcode
@@ -44,7 +44,7 @@ DAO for the `foods` table, local search provider, and auto-caching of API result
 ## Human verification
 
 - [ ] `flutter analyze` passes with zero errors
-- [ ] `FoodSearchProvider` correctly merges local + API results — manually test on emulator with network
+- [ ] `foodSearchProvider` correctly merges local + API results — manually test on emulator with network
 - [ ] No duplicate barcodes in merged results — run a search where API returns a food already in local DB
 - [ ] `LIKE` search is case-insensitive (ASCII only; accented chars like "café" won't match "cafe") — acceptable for MVP
 - [ ] When local search returns ≥25 results, no API call is made (saves network + rate limit)

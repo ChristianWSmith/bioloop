@@ -22,6 +22,8 @@ Paginated list of all logged food entries grouped by date.
 
 ## DAO methods needed
 
+Add to `lib/core/database/tables/food_entries.dart` (alongside methods from T6):
+
 - `Future<List<FoodEntry>> getEntriesPaginated({int offset, int limit})`
 - `Future<void> updateEntry(FoodEntry entry)` — updates name, servings, macros, meal_type by id
 
@@ -64,7 +66,7 @@ Paginated list of all logged food entries grouped by date.
 
 ## Dependencies
 
-T6 (food_entries DAO)
+T6 (food_entries DAO — `insertEntry`, `getEntriesForDate`, `deleteEntry` in `food_entries.dart`; this ticket adds `getEntriesPaginated` and `updateEntry` to the same file)
 
 ## Agent instructions (app state tracking)
 

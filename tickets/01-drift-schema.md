@@ -1,25 +1,29 @@
 # T1 — Drift schema + migrations
 
-Set up the drift database with all 5 tables and generate DAOs.
+Set up the drift database with all 7 tables and generate DAOs.
 
 ## Tables
 
 See PLAN.md §1 for full SQL DDL.
 
 - `foods` — searchable reference / cache of API and manual foods
-- `food_entries` — immutable daily log snapshots
+- `food_entries` — immutable daily log snapshots (with `recipe_id` FK for recipe-sourced entries)
 - `bodyweight_entries` — weight log
 - `user_goals` — singleton config row
-- `meal_templates` — templates + recipes (DDL in PLAN.md; DAO/CRUD in T16)
+- `meal_templates` — templates (DDL in PLAN.md; DAO/CRUD in T16)
+- `recipes` — named composite dishes with total serving size (DAO/CRUD in T17)
+- `recipe_ingredients` — ingredients linking recipes to foods (DAO/CRUD in T17)
 
 ## Files to create
 
 - `lib/core/database/database.dart` — `AppDatabase` class extending `GeneratedDatabase`
 - `lib/core/database/tables/foods.dart`
-- `lib/core/database/tables/food_entries.dart`
+- `lib/core/database/tables/food_entries.dart` — includes `recipe_id` nullable FK
 - `lib/core/database/tables/bodyweight_entries.dart`
 - `lib/core/database/tables/user_goals.dart` — includes new columns: `sex`, `height_cm`, `age`, `goal_weight_kg`, `use_imperial`, `activity_level`, `onboarding_completed`
 - `lib/core/database/tables/meal_templates.dart` — table definition only (DAO methods in T16)
+- `lib/core/database/tables/recipes.dart` — table definition only (DAO methods in T17)
+- `lib/core/database/tables/recipe_ingredients.dart` — table definition only (DAO methods in T17)
 - `lib/providers/database_provider.dart` — `databaseProvider` (Riverpod)
 - `build.yaml` (project root) — drift build config
 
@@ -33,12 +37,12 @@ See PLAN.md §1 for full SQL DDL.
 ## Testing
 
 - **Unit — in-memory DB creation**: `AppDatabase` can be constructed with `NativeDatabase.memory()`, tables are queryable
-- **Unit — table existence**: `select top 1 from foods` and `food_entries` and `bodyweight_entries` and `user_goals` and `meal_templates` do not throw
-- **Unit — basic CRUD each table**: insert a row, read it back, verify columns; includes `meal_templates` (insert template with JSON foods, read back)
+- **Unit — table existence**: `select top 1 from foods` and `food_entries` and `bodyweight_entries` and `user_goals` and `meal_templates` and `recipes` and `recipe_ingredients` do not throw
+- **Unit — basic CRUD each table**: insert a row, read it back, verify columns; includes `meal_templates` (insert template with JSON foods, read back), `recipes` (insert recipe, read back), `recipe_ingredients` (insert ingredient, read back)
 - **Unit — `user_goals` singleton**: inserting a second row with `id=1` replaces the first (upsert behavior)
 - **Unit — new columns**: `goal_weight_kg`, `use_imperial`, `activity_level` have correct defaults after table creation
 - **Unit — index works**: insert 100 foods, search by partial name, verify it returns matches
-- **Integration — migration**: `db.migrate()` creates all 5 tables; calling it again is a no-op
+- **Integration — migration**: `db.migrate()` creates all 7 tables; calling it again is a no-op
 
 All DB unit tests should use `NativeDatabase.memory()` to avoid filesystem dependencies.
 
@@ -54,7 +58,10 @@ All DB unit tests should use `NativeDatabase.memory()` to avoid filesystem depen
 - [ ] `foods.barcode` is `UNIQUE` — verify the DAO handles constraint violations gracefully
 - [ ] `food_entries.food_id` is nullable `INTEGER REFERENCES foods(id)` — verify FK is enforced or handled correctly (drift FK behavior)
 - [ ] `meal_templates` table exists and is queryable after `db.migrate()`
-- [ ] All five table unit tests with `NativeDatabase.memory()` pass
+- [ ] `recipes` table exists and is queryable after `db.migrate()`
+- [ ] `recipe_ingredients` table exists and is queryable after `db.migrate()`
+- [ ] `food_entries.recipe_id` is nullable `INTEGER REFERENCES recipes(id)` — verify FK behavior
+- [ ] All seven table unit tests with `NativeDatabase.memory()` pass
 - [ ] `databaseProvider` is a proper Riverpod provider (not a plain singleton) so it can be overridden in tests
 
 ## Dependencies

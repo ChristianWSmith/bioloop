@@ -23,26 +23,27 @@ a single "Reset All Data" section.
 1. User taps "Reset All Data"
 2. Confirmation dialog: "This will delete all your food logs, bodyweight entries, saved foods, and goals. This cannot be undone."
 3. After confirming:
-   - `resetAll()` truncates all 5 tables (`foods`, `food_entries`, `bodyweight_entries`, `user_goals`, `meal_templates`)
+   - `resetAll()` truncates all 7 tables (`foods`, `food_entries`, `bodyweight_entries`, `user_goals`, `meal_templates`, `recipes`, `recipe_ingredients`)
    - Navigate back to onboarding flow (same as fresh install — T2b)
 
 ### What is preserved
 - App theme settings (system-level, not app-managed)
-- Nothing else — all app data is in the 5 drift tables
+- Nothing else — all app data is in the 7 drift tables
 
 ### What is deleted
 - All food entries
 - All bodyweight entries
 - All foods (including seeded, manual, and API-cached)
 - All goals and profile settings
-- All meal templates and recipes
+- All meal templates
+- All recipes and recipe ingredients
 
 ## Acceptance criteria
 
 - Settings screen accessible from app (gear icon or overflow menu)
 - Tapping "Reset All Data" shows confirmation dialog with clear warning
 - Confirming triggers reset + re-onboarding
-- All 5 tables are empty after reset (verify via DB inspector)
+- All 7 tables are empty after reset (verify via DB inspector)
 - Onboarding flow appears after reset (same as fresh install)
 - Cancelling the dialog does nothing (safe)
 - App does not crash during or after reset
@@ -54,7 +55,7 @@ a single "Reset All Data" section.
 - **Widget — reset cancel**: cancel confirmation, no data deleted
 - **Widget — reset + re-onboarding**: confirm reset, verify onboarding screen appears, all DB tables empty
 - **Widget — post-reset goals**: complete onboarding after reset, verify user_goals has fresh data (id=1, onboarding_completed=1)
-- **Unit — `resetAll()` truncates tables**: insert data into all 5 tables, call `resetAll()`, verify each table has 0 rows
+- **Unit — `resetAll()` truncates tables**: insert data into all 7 tables, call `resetAll()`, verify each table has 0 rows
 - **Unit — `resetAll()` is idempotent**: call `resetAll()` twice, no crash or error
 - **Integration — full cycle**: reset → onboarding → log food → goals set → all flows work as on fresh install
 
@@ -70,7 +71,7 @@ restart by creating a new `ProviderScope` after reset.
 - [ ] Confirm reset — app navigates to onboarding screen
 - [ ] After completing onboarding: dashboard is empty, all data gone
 - [ ] Log food + weight after reset — everything works as on fresh install
-- [ ] Check DB contents (via debug/inspector) — all 5 tables empty after reset
+- [ ] Check DB contents (via debug/inspector) — all 7 tables empty after reset
 - [ ] Repeated reset (reset twice) — no crash, works correctly
 - [ ] All unit + widget tests pass
 

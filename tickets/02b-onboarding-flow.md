@@ -81,6 +81,7 @@ Add to `lib/core/database/tables/user_goals.dart` (created in T1):
 
 Add to `lib/core/database/tables/bodyweight_entries.dart` (created in T1):
 - `Future<void> insertWeight(BodyweightEntry entry)` — insert a bodyweight log row
+- Note: T7 reuses this method and adds `updateWeight` + `getWeights` to the same file
 
 ## Acceptance criteria
 

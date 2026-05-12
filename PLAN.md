@@ -23,6 +23,8 @@ lib/
         bodyweight_entries.dart
         user_goals.dart
         meal_templates.dart
+        recipes.dart
+        recipe_ingredients.dart
 
     api/
       open_food_facts_client.dart     # REST client for food search/barcode
@@ -48,11 +50,16 @@ lib/
         meal_type_selector.dart
         manual_food_form.dart
         barcode_scanner.dart
-        meal_templates.dart           # Template/recipe list (T16)
+        meal_templates.dart           # Templates list (T16)
+    recipes/
+      recipe_list_screen.dart
+      recipe_form_screen.dart
+      widgets/
+        recipe_ingredient_row.dart
+        log_recipe_sheet.dart
     bodyweight/
       bodyweight_screen.dart
       widgets/
-        weight_chart.dart
         add_weight_sheet.dart
     history/
       history_screen.dart
@@ -70,6 +77,7 @@ lib/
     onboarding_provider.dart          # onboarding CRUD, separate from goals (T2b)
     macro_targets_provider.dart       # daily macro computations (T10)
     maintenance_provider.dart         # regression result (stub in T10, real in T13)
+    recipe_provider.dart               # recipe CRUD + logging (T17)
   theme/
     theme.dart
 ```
@@ -105,6 +113,7 @@ CREATE TABLE food_entries (               -- immutable daily log (denormalized s
   serving_label   TEXT NOT NULL,           -- display text from food
   barcode         TEXT,
   food_id         INTEGER REFERENCES foods(id),
+  recipe_id       INTEGER REFERENCES recipes(id),
   meal_type       TEXT NOT NULL,           -- breakfast | lunch | dinner | snack
   logged_at       TEXT NOT NULL            -- ISO-8601
 );
@@ -131,12 +140,28 @@ CREATE TABLE user_goals (                  -- singleton row (id=1)
   updated_at            TEXT NOT NULL
 );
 
-CREATE TABLE meal_templates (               -- templates + recipes (added in T1, used in T16)
+CREATE TABLE meal_templates (               -- templates (added in T1, used in T16)
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   name        TEXT NOT NULL,
-  type        TEXT NOT NULL DEFAULT 'template',  -- 'template' | 'recipe'
   foods       TEXT NOT NULL,       -- JSON array of ingredient snapshots
   created_at  TEXT NOT NULL
+);
+
+CREATE TABLE recipes (                      -- named composite dishes (T17)
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  name            TEXT NOT NULL,
+  serving_size    REAL NOT NULL,             -- total yield, e.g. 600
+  serving_label   TEXT NOT NULL,             -- e.g. "g", "cups", "slices"
+  created_at      TEXT NOT NULL,
+  updated_at      TEXT NOT NULL
+);
+
+CREATE TABLE recipe_ingredients (            -- ingredients for recipes (T17)
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  recipe_id       INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  food_id         INTEGER NOT NULL REFERENCES foods(id),
+  quantity        REAL NOT NULL,             -- in food's serving units
+  created_at      TEXT NOT NULL
 );
 ```
 
@@ -145,7 +170,7 @@ CREATE TABLE meal_templates (               -- templates + recipes (added in T1,
 ## 2. Feature Phases
 
 ### Phase 1 — Foundation
-- Set up drift database with all five tables
+- Set up drift database with all seven tables
 - Set up Riverpod providers (database, per-feature)
 - App shell with bottom navigation: Dashboard, Log, Bodyweight, History, Goals
 - Material 3 theme (dark + light)
@@ -155,7 +180,7 @@ CREATE TABLE meal_templates (               -- templates + recipes (added in T1,
 - **OpenFoodFacts client:** search by name, fetch by barcode
 - **Local food cache:** API results auto-save to `foods` table on selection; search queries local `foods` first (instant), then hits API — merged & deduplicated by barcode
 - **Manual food creation:** form inside log flow — name, serving label, macros per serving, optional gram weight. Saves to `foods` (`source = 'manual'`), usable in search thereafter
-- **Log food screen:** search local cache + API → pick result → adjust servings (or grams if `serving_size_grams` known) → select meal type → save as snapshot in `food_entries`
+- **Log food screen:** search local cache + API → pick result → adjust servings (or grams if `serving_size_grams` known) → select meal type → save as snapshot in `food_entries`; also supports logging a recipe (T17) from the same screen
 - **Bodyweight logging:** bottom sheet with date picker + weight field; tap to edit existing entries
 - **Food history screen:** paginated by date, swipe-to-delete, tap-to-edit
 
@@ -174,7 +199,8 @@ CREATE TABLE meal_templates (               -- templates + recipes (added in T1,
 
 ### Phase 5 — Polish (future)
 - **Barcode scanning** via `camera` + MLKit
-- **CSV export + meal templates + recipe builder:** CSV export (food + bodyweight), meal templates (named groups of foods that can be logged in one tap), and recipe builder (save a composite dish with ingredient quantities)
+- **CSV export + meal templates:** CSV export (food + bodyweight), meal templates (named groups of foods that can be logged in one tap)
+- **Recipe builder:** create named composite dishes with ingredient-level quantities and total serving size; log as aggregated entry with summed macros (T17)
 - **Data reset option** — wipe all data and start fresh, accessible from settings
 
 ---
@@ -336,6 +362,6 @@ the macro target calculation (§4).
 | Barcode scanning | Phase 5 (requires camera permission) |
 | Fallback maintenance formula | Mifflin-St Jeor × user-chosen activity multiplier (1–5, default moderate) set during onboarding; data-driven regression replaces it once ≥14 paired days exist |
 | Edit entries | Phase 2 MVP — tap-to-edit for both bodyweight and food entries (not deferred) |
-| Recipe builder | Integrated with T16 meal templates — a "recipe" is a named group of foods with quantities |
+| Recipe builder | Standalone T17 — dedicated `recipes` + `recipe_ingredients` tables, aggregated log entries, independent from meal templates |
 | Data reset | Phase 5 — simple nuke-all-tables button (not a priority for early phases) |
 | "Today" boundary | Calendar date from device local time (not rolling 24h window) |
