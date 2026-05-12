@@ -1,10 +1,10 @@
 # T13 — Maintenance calculator algorithm
 
-Pure Dart implementation of the rolling regression algorithm and the Mifflin-St Jeor fallback estimator.
+Pure Dart implementation of the rolling regression algorithm.
 
 ## Files to create
 
-- `lib/core/algorithms/maintenance_calculator.dart` — `MaintenanceResult? calculate(...)` + `double estimateMaintenance(...)`
+- `lib/core/algorithms/maintenance_calculator.dart` — `MaintenanceResult? calculate(...)`
 - `test/core/algorithms/maintenance_calculator_test.dart`
 
 ## Algorithm — regression
@@ -62,7 +62,7 @@ Create `lib/providers/maintenance_provider.dart`:
 - **Unit — provider wiring**: insert food entries and bodyweight entries via DAO, `maintenanceProvider` emits a valid `MaintenanceResult` (integration-level)
 - **Unit — confidence interval**: computed CI grows as data variance increases (proportional to standard error of estimate)
 
-(Mifflin-St Jeor tests live in `test/core/algorithms/mifflin_st_jeor_test.dart` as part of T10.)
+(Mifflin-St Jeor tests live in `test/core/algorithms/mifflin_st_jeor_test.dart` as part of T10. The function signature is `estimateMaintenance(sex, weightKg, heightCm, age, {int activityLevel = 3})`.)
 
 ## Human verification
 

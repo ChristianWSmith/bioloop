@@ -40,6 +40,22 @@ Number text field (cm), decimal keyboard
 - Default: Metric
 - Maps to `user_goals.use_imperial` (0 = metric, 1 = imperial)
 
+### Activity level
+Segmented button or radio group with 5 levels. Each shows label + heuristic:
+
+| Level | Label | Heuristic |
+|-------|-------|-----------|
+| 1 | Sedentary | Little to no exercise, desk job |
+| 2 | Lightly active | Light exercise 1–3 days/week |
+| 3 | Moderately active | Moderate exercise 3–5 days/week |
+| 4 | Active | Hard exercise 6–7 days/week |
+| 5 | Extra active | Very hard exercise + physical job |
+
+- Default: 3 (Moderately active)
+- Stored as `user_goals.activity_level` (1–5)
+- Used as the Mifflin-St Jeor activity multiplier when the app falls back to the formula (before sufficient regression data)
+- No effect once the rolling regression has enough data
+
 ### Initial goals
 Same fields as T9 goals screen, embedded inline:
 - Goal type segmented button (cut / maintain / bulk), default: cut (−500)
@@ -51,7 +67,7 @@ Same fields as T9 goals screen, embedded inline:
 
 - On launch, if `user_goals.onboarding_completed == 0`, show onboarding before app shell
 - Save button validates all required fields, then:
-  1. Upserts `user_goals` row with all profile fields + `goal_weight_kg` (nullable) + `use_imperial` + goals + `onboarding_completed = 1`, `updated_at = now`
+  1. Upserts `user_goals` row with all profile fields + `goal_weight_kg` (nullable) + `use_imperial` + `activity_level` + goals + `onboarding_completed = 1`, `updated_at = now`
   2. Inserts `bodyweight_entry` with starting weight + date
   3. Navigates to app shell (replaces onboarding, no back)
 - If user presses back during onboarding, show confirmation dialog: "Your progress won't be saved"
@@ -75,9 +91,11 @@ Same fields as T9 goals screen, embedded inline:
 
 ## Testing
 
-- **Widget — full flow**: fill all fields (including goal weight and imperial toggle), tap save, verify `user_goals` row has correct values + `goal_weight_kg` stored + `use_imperial = 1` + `onboarding_completed = 1`, verify `bodyweight_entry` inserted
+- **Widget — full flow**: fill all fields (including goal weight, imperial toggle, activity level), tap save, verify `user_goals` row has correct values + `goal_weight_kg` stored + `use_imperial = 1` + `activity_level` stored + `onboarding_completed = 1`, verify `bodyweight_entry` inserted
 - **Widget — skip goal weight**: leave goal weight empty, tap save, verify `goal_weight_kg` is null in DB
 - **Widget — units default**: verify `use_imperial` defaults to 0 (metric)
+- **Widget — activity level default**: verify `activity_level` defaults to 3 (moderate)
+- **Widget — activity level selection**: select level 5 (extra active), save, verify DB stores `activity_level = 5`
 - **Widget — skip on re-launch**: set `onboarding_completed = 1` in DB, launch app, verify app shell renders directly
 - **Widget — validation**: tap save with empty required fields, error shown on each
 - **Widget — back confirmation**: tap back, confirmation dialog appears; "Leave" pops, "Stay" dismisses dialog
@@ -91,16 +109,17 @@ Use `ProviderScope` with in-memory DB. Seed `user_goals` with `onboarding_comple
 
 - [ ] `flutter analyze` passes with zero errors
 - [ ] Fresh install: onboarding screen appears before app shell
-- [ ] Fill all fields (including goal weight and imperial toggle), tap save — app shell appears
+- [ ] Fill all fields (including goal weight, imperial toggle, activity level), tap save — app shell appears
 - [ ] Goal weight left empty: save still succeeds, field is null in DB
 - [ ] Units toggle: Metric default; switching to Imperial and saving sets `use_imperial = 1`
+- [ ] Activity level defaults to 3 (Moderately active); selecting level 1 (Sedentary) stores 1; selects level 5 (Extra active) stores 5
 - [ ] Kill + re-launch: app shell appears (no onboarding)
 - [ ] Sex segmented button: Male / Female toggle correctly
 - [ ] Age, height, weight fields use correct keyboard types
 - [ ] Weight date picker defaults to today
 - [ ] Initial goals section with goal type, adjustment, protein, fat sliders
 - [ ] Back press shows "Discard?" confirmation dialog
-- [ ] After onboarding, goals screen shows all saved profile fields + goal weight + units + goals
+- [ ] After onboarding, goals screen shows all saved profile fields + goal weight + units + activity level + goals
 - [ ] First bodyweight entry visible on bodyweight screen / dashboard sparkline
 - [ ] All widget tests pass
 

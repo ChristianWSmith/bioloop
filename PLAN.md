@@ -114,6 +114,7 @@ CREATE TABLE user_goals (                  -- singleton row (id=1)
   age                   INTEGER,             -- null until onboarding
   goal_weight_kg        REAL,                -- target bodyweight; null until set
   use_imperial          INTEGER NOT NULL DEFAULT 0, -- 0=kg/cm, 1=lb/ft/in
+  activity_level        INTEGER NOT NULL DEFAULT 3, -- 1=sedentary … 5=extra active
   onboarding_completed  INTEGER NOT NULL DEFAULT 0,
   updated_at            TEXT NOT NULL
 );
@@ -128,7 +129,7 @@ CREATE TABLE user_goals (                  -- singleton row (id=1)
 - Set up Riverpod providers (database, per-feature)
 - App shell with bottom navigation: Dashboard, Log, Bodyweight, History, Goals
 - Material 3 theme (dark + light)
-- Onboarding flow — sex, age, height, starting weight, initial goals
+- Onboarding flow — sex, age, height, starting weight, activity level, initial goals
 
 ### Phase 2 — Core Logging
 - **OpenFoodFacts client:** search by name, fetch by barcode
@@ -185,7 +186,7 @@ Step 1 — Calorie target:
   if regression_maintenance != null:
     target_calories = regression_maintenance + calorie_adjustment
   else if onboarding_completed:
-    estimated_maintenance = estimateMaintenance(sex, weight_kg, height_cm, age)
+    estimated_maintenance = estimateMaintenance(sex, weight_kg, height_cm, age, activity_level)
     target_calories = estimated_maintenance + calorie_adjustment
   else:
     target_calories = max(calorie_adjustment, 1200)   // safe floor before onboarding
@@ -210,8 +211,22 @@ Used when rolling regression lacks sufficient data (<14 paired days):
 male:   BMR = 10 × weight_kg + 6.25 × height_cm − 5 × age + 5
 female: BMR = 10 × weight_kg + 6.25 × height_cm − 5 × age − 161
 
-estimated_maintenance = BMR × 1.55   // moderate activity (fixed, see §6)
+estimated_maintenance = BMR × activity_multiplier[activity_level]
 ```
+
+The activity multiplier is selected by the user during onboarding. Only applies
+to the formula fallback — once regression data is sufficient, the formula is
+not used.
+
+| Level | Label | Multiplier | Heuristic |
+|-------|-------|-----------|-----------|
+| 1 | Sedentary | 1.2 | Little to no exercise, desk job |
+| 2 | Lightly active | 1.375 | Light exercise 1–3 days/week |
+| 3 | Moderately active | 1.55 | Moderate exercise 3–5 days/week |
+| 4 | Active | 1.725 | Hard exercise 6–7 days/week |
+| 5 | Extra active | 1.9 | Very hard exercise + physical job |
+
+Default is 3 (moderate) — matches the original fixed multiplier.
 
 Rate preview:
   rate_lbs_per_week = calorie_adjustment × 7 / 3500
@@ -257,9 +272,9 @@ Display: *"2,450 kcal (±180, based on 22 days of data)"*
 ### Fallback: Mifflin-St Jeor estimate
 
 Before the user has enough data (≥14 paired days), maintenance is estimated via the
-Mifflin-St Jeor equation with a fixed moderate activity multiplier of 1.55.
+Mifflin-St Jeor equation with an activity multiplier chosen by the user.
 
-The function `estimateMaintenance(sex, weightKg, heightCm, age)` lives in
+The function `estimateMaintenance(sex, weightKg, heightCm, age, activityLevel)` lives in
 `lib/core/algorithms/mifflin_st_jeor.dart`. See T10 for the implementation.
 
 This runs automatically whenever the regression returns null and the user has
@@ -276,7 +291,7 @@ the macro target calculation (§4).
 | Unit display | kg internally, configurable display toggle (`user_goals.use_imperial`) — lb/ft/in on output when enabled |
 | Testing | Write alongside features or defer? |
 | Barcode scanning | Phase 5 (requires camera permission) |
-| Fallback maintenance formula | Mifflin-St Jeor × 1.55 (moderate activity) — no user-choosable multiplier; data-driven regression replaces it once ≥14 paired days exist |
+| Fallback maintenance formula | Mifflin-St Jeor × user-chosen activity multiplier (1–5, default moderate) set during onboarding; data-driven regression replaces it once ≥14 paired days exist |
 | Edit entries | Phase 2 MVP — tap-to-edit for both bodyweight and food entries (not deferred) |
 | Recipe builder | Integrated with T16 meal templates — a "recipe" is a named group of foods with quantities |
 | Data reset | Phase 5 — simple nuke-all-tables button (not a priority for early phases) |
