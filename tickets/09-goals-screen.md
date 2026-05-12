@@ -63,5 +63,18 @@ Segmented button: **Cut** / **Maintain** / **Bulk**
 
 Widget tests should use `ProviderScope` with in-memory DB and mock `bodyweightProvider` (for rate display that depends on weight).
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] Goal type segmented button: tapping Cut sets adjustment to -500, Maintain to 0, Bulk to +300
+- [ ] Adjustment field editable — changing -500 to -800 updates rate preview to "~1.6 lb/week loss"
+- [ ] Rate preview updates live as the adjustment field changes (not just on save)
+- [ ] Protein slider: drag between 0.5–2.0, value display updates, range indicator 0.8–1.4 visible
+- [ ] Fat slider: drag between 10–50, % display updates, gram equivalent ("35% = 78g") updates based on bodyweight
+- [ ] Carbs section shows "Fills remaining calories" (not an input)
+- [ ] Save persists: change values, save, navigate away, come back — all values match
+- [ ] First launch: empty state shows defaults (cut, -500, protein=1.0, fat=25%)
+- [ ] All widget + unit tests pass
+
 ## Dependencies
 T1 (database), T2 (placeholder exists)

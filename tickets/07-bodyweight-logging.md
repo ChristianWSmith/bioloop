@@ -44,6 +44,19 @@ Bottom sheet for logging bodyweight.
 - **Unit — provider sorting**: `bodyweightProvider` returns entries sorted by `logged_at` descending
 - **Integration — date backfill**: logging a weight for yesterday does not affect today's list, but appears in the full query
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] Tap "Log weight" on bodyweight tab — bottom sheet opens with date picker + weight field
+- [ ] Date picker defaults to today
+- [ ] Weight field uses numeric decimal keyboard
+- [ ] Enter weight, tap "Log weight" — sheet closes, entry appears in list below
+- [ ] Long-press an entry → delete confirmation → entry removed
+- [ ] Empty state (no entries) shows an appropriate message
+- [ ] Log weights on different dates — list sorts descending by date
+- [ ] All widget + unit tests pass
+- [ ] Quick-preset buttons (optional): if implemented, verify they show nearby values based on prior data
+
 ## Dependencies
 
 T1 (database)

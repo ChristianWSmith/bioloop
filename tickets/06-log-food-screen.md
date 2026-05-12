@@ -52,6 +52,21 @@ The main food-logging UI: search → select → adjust servings → pick meal ty
 
 Use `ProviderScope` overrides with in-memory DB. Mock the OpenFoodFacts API client for predictable search results.
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] Search bar opens the search delegate, typing shows results
+- [ ] "Create custom food" option appears in search results
+- [ ] Select a food → serving picker shows with default "1" serving
+- [ ] Tapping "+" increments servings, macro totals update live
+- [ ] Gram input: for a food with `serving_size_grams=100`, entering "150g" converts to 1.5 servings
+- [ ] Meal type selector allows exactly one selection, default is unselected
+- [ ] Save creates a `food_entries` row — verify macros are `food.macro × servings`
+- [ ] API food auto-caches to `foods` table on save
+- [ ] After save, navigating back to Dashboard shows the entry in totals (once T11 is done)
+- [ ] All widget + unit tests pass
+- [ ] Edge case: same food logged twice creates two separate `food_entries` rows
+
 ## Dependencies
 
 T2 (app shell / placeholder exists), T4 (local food search), T5 (manual food form)

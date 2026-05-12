@@ -42,6 +42,17 @@ Form for users to create custom foods that only exist in their local database.
 
 Use `ProviderScope` overrides to inject a real in-memory drift database so widget tests can verify persistence.
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] Open the form on emulator — all fields render with correct labels and placeholders
+- [ ] Tap save with empty fields — validation errors show on required fields
+- [ ] Fill valid data, save — entry appears in local food search results
+- [ ] "Serving size in grams" is optional — save without it, then with it; both persist correctly
+- [ ] `source` is `'manual'`, `barcode` is `null` — verify in DB
+- [ ] All widget tests pass (especially save + cancel flows)
+- [ ] Form handles keyboard dismissal and scroll correctly when keyboard covers fields
+
 ## Dependencies
 
 T4 (foods DAO)

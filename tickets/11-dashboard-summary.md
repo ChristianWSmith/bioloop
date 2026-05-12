@@ -56,6 +56,18 @@ dashboard_screen
 
 Widget tests override `todaysFoodProvider` and `macroTargetsProvider` with known values to isolate ring rendering.
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] Log a food, navigate to Dashboard — calorie ring shows "525 / 2,000 kcal" (or whatever the targets are)
+- [ ] Three macro rings show protein=blue, fat=orange, carbs=green
+- [ ] Empty day shows all rings at 0
+- [ ] Exceed a macro target (e.g. log 250g protein when target is 176g) — ring turns red, remaining shows negative
+- [ ] Rings animate smoothly on first render
+- [ ] `todaysFoodProvider` correctly excludes yesterday's entries
+- [ ] All widget + unit tests pass
+- [ ] No layout overflow — rings resize for different screen widths (small phone vs tablet)
+
 ## Dependencies
 
 T6 (food entries), T10 (macro targets)

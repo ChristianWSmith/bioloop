@@ -37,6 +37,20 @@ Paginated list of all logged food entries grouped by date.
 - **Widget — entry details**: tap an entry opens a detail popup showing name, macros, meal type, date/time
 - **Unit — pagination DAO**: `getEntriesPaginated(offset: 0, limit: 20)` returns 20, `getEntriesPaginated(offset: 20, limit: 20)` returns remaining
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] Log 3+ entries across different dates, navigate to History — entries grouped by date with headers
+- [ ] Swipe an entry left — confirmation dialog appears
+- [ ] Confirm delete — entry removed from list and DB; dashboard totals reflect the change (if navigating back)
+- [ ] Cancel delete — entry remains
+- [ ] Pull-to-refresh works
+- [ ] Load 30+ entries — pagination loads 20 initially, scroll loads next batch
+- [ ] Tap an entry — detail popup shows name, macros, meal type, date/time
+- [ ] Empty state shows "No food logged yet"
+- [ ] All widget + unit tests pass
+- [ ] Date formatting is correct for locale (ISO format or friendly like "Today", "Yesterday", "May 11")
+
 ## Dependencies
 
 T6 (food_entries DAO)

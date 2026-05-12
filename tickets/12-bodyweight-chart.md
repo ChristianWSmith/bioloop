@@ -34,6 +34,18 @@ Line chart showing recent bodyweight data on the dashboard.
 
 Use `fl_chart`'s `LineChart` in the widget; test via `tester.tap(find.byType(LineChart))` for tooltip interaction. Override `bodyweightProvider` with known data.
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] Log 5+ weight entries over 30 days — chart renders with line connecting points, axis labels readable
+- [ ] Tap a data point — tooltip shows date + weight
+- [ ] Delete a weight entry — chart updates, line re-renders without the deleted point
+- [ ] Empty state: no weights logged → chart area shows "Log your first weight" text (no broken chart)
+- [ ] Single weight entry renders as a dot (no line renders with 1 point)
+- [ ] Chart card fits in ~200px height, scrolls with rest of dashboard
+- [ ] All widget tests pass
+- [ ] Axis labels handle realistic weight ranges (e.g. 60–100kg) without overlapping
+
 ## Dependencies
 
 T7 (bodyweight entries), T2 (dashboard placeholder)

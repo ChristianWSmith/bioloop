@@ -43,6 +43,19 @@ Camera-based barcode scanning that looks up foods via OpenFoodFacts.
 - **Widget — scanner overlay**: viewfinder rectangle renders with correct aspect ratio
 - **Note**: camera-based tests require a device/emulator — skip in CI with `test.skip = true` guard for platform test mode
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] Build and install on Android/iOS device, tap the barcode icon — camera permission prompt appears
+- [ ] Grant permission — camera opens with viewfinder overlay
+- [ ] Scan a known barcode (find one on a packaged food) — product resolves, serving adjustment screen appears
+- [ ] Result proceeds through the standard log flow (meal type, save)
+- [ ] Unknown barcode: try scanning something without a food entry — shows "Not found" with "Enter manually" button
+- [ ] Deny permission — shows "Camera access required" with a button to settings
+- [ ] Web platform: shows unsupported message gracefully (no crash)
+- [ ] Cached result: first scan hits API, second scan of same barcode uses local cache (fast)
+- [ ] All unit tests pass
+
 ## Dependencies
 
 T3 (API client), T6 (log flow)

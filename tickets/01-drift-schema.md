@@ -39,6 +39,17 @@ See PLAN.md §1 for full SQL DDL.
 
 All DB unit tests should use `NativeDatabase.memory()` to avoid filesystem dependencies.
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] `flutter pub run build_runner build` succeeds and `database.g.dart` is generated
+- [ ] Generated DAO classes have correct table/column names matching the DDL in PLAN.md
+- [ ] `user_goals` uses `id=1` as a singleton — verify upsert logic doesn't create duplicates
+- [ ] `foods.barcode` is `UNIQUE` — verify the DAO handles constraint violations gracefully
+- [ ] `food_entries.food_id` is nullable `INTEGER REFERENCES foods(id)` — verify FK is enforced or handled correctly (drift FK behavior)
+- [ ] All four unit tests with `NativeDatabase.memory()` pass
+- [ ] `databaseProvider` is a proper Riverpod provider (not a plain singleton) so it can be overridden in tests
+
 ## Dependencies
 
 Add to `pubspec.yaml`:

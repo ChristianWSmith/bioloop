@@ -41,6 +41,17 @@ DAO for the `foods` table, local search provider, and auto-caching of API result
 - **Unit — provider auto-save**: selecting an API result calls `insertFood` (verify via spy/mock on DAO)
 - **Unit — provider local-first**: when local search returns ≥25 results, API is not called
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] `FoodSearchProvider` correctly merges local + API results — manually test on emulator with network
+- [ ] No duplicate barcodes in merged results — run a search where API returns a food already in local DB
+- [ ] `LIKE` search is case-insensitive — insert "Apple", search "apple" finds it
+- [ ] When local search returns ≥25 results, no API call is made (saves network + rate limit)
+- [ ] Selecting an API result inserts it into `foods` — verify via DB inspection
+- [ ] All 6 unit tests pass
+- [ ] Search handles empty query gracefully (returns empty list, no API call)
+
 ## Dependencies
 
 T1 (database), T3 (API client)

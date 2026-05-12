@@ -53,6 +53,23 @@ CREATE TABLE meal_templates (
 - **Widget — delete template**: long-press a template, confirm delete, template removed from list
 - **Unit — template JSON round-trip**: serialize a meal with 3 foods to JSON, deserialize, verify all macro values match
 
+## Human verification
+
+### CSV export
+- [ ] `flutter analyze` passes with zero errors
+- [ ] From History screen, tap overflow menu → "Export CSV" — share sheet opens with CSV file
+- [ ] CSV opens correctly in spreadsheet app (Numbers, Excel, Google Sheets) — columns delimited properly
+- [ ] Food names containing commas are properly quoted in CSV
+- [ ] Empty export produces CSV with header row only (not an empty file or error)
+- [ ] Bodyweight CSV export works from bodyweight screen
+
+### Meal templates
+- [ ] Log a meal with 2+ foods, tap "Save as template" — name the template, it saves
+- [ ] Next log session: tap "Templates" → saved template appears
+- [ ] Select the template → all template foods added to today's log in one tap
+- [ ] Long-press a template → delete with confirmation — template removed
+- [ ] All unit + widget tests pass
+
 ## Dependencies
 
 T6 (food entries), T7 (bodyweight entries), T8 (history screen)

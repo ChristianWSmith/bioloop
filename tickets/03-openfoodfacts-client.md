@@ -52,6 +52,17 @@ Add to `pubspec.yaml`:
 
 Use `MockClient` from `http` testing utilities to inject responses without network.
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] Real API call: `search("chicken breast")` returns results within 5s on device/emulator with network
+- [ ] Real API call: `getByBarcode("3017620422003")` returns Nutella with correct serving data
+- [ ] Fallback path: find a product without `_serving` fields in the API response and verify the `_100g` fallback works correctly
+- [ ] All 8 unit tests pass with `MockClient` (no network dependency in tests)
+- [ ] `FoodResult` model fields match `Food` table columns 1:1 — confirm no mapping gaps
+- [ ] Error responses (404, 429, timeout) don't crash the app — verify in code review
+- [ ] User-agent header is set (OpenFoodFacts may block requests without one)
+
 ## Notes
 
 - OpenFoodFacts is rate-limited. No auth needed. Respect `429` responses.

@@ -54,6 +54,19 @@ Create `lib/providers/maintenance_provider.dart`:
 - **Unit — provider wiring**: insert food entries and bodyweight entries via DAO, `maintenanceProvider` emits a valid `MaintenanceResult` (integration-level)
 - **Unit — confidence interval**: computed CI grows as data variance increases (proportional to standard error of estimate)
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] Synthetic data test: 30 days with true maintenance = 2500 kcal returns result within 5% — run test, inspect the output
+- [ ] Edge case: 13 data points returns `null` (below threshold of 14)
+- [ ] Edge case: all weights identical returns `null` (no trend to regress)
+- [ ] Edge case: all calories identical returns `null` (no variance, slope undefined)
+- [ ] Confidence interval widens as data noise increases — inspect the math
+- [ ] Provider recomputes on new food or weight insert (not on every build)
+- [ ] Provider caches result — if no new data, calling `.future` twice returns the same result without recomputation
+- [ ] All 8 unit tests pass
+- [ ] **⚠ Confirm numeric stability**: when `var(cals)` is very small (near-zero), treat as null rather than dividing by zero
+
 ## Dependencies
 
 T6, T7 (data sources), or both for provider wiring — algorithm can be written and unit-tested without them

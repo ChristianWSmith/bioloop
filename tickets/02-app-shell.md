@@ -32,6 +32,16 @@ Create the app scaffold with bottom navigation and Material 3 theme.
 
 Use `tester.pumpWidget(ProviderScope(child: App()))` in widget tests. Provide `overrides` for any required providers that aren't wired yet.
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] App launches on emulator — bottom nav renders with 5 labeled tabs
+- [ ] Tapping each tab switches the body content (verify each placeholder shows a unique label)
+- [ ] Toggle system dark mode — app theme switches correctly (Material 3)
+- [ ] Rotate to landscape — content respects safe areas, no overflow
+- [ ] All widget tests pass
+- [ ] No hardcoded text strings that should be localized (acceptable for MVP; just confirm no obviously weird copy)
+
 ## Technical notes
 
 - Use `Scaffold` + `NavigationBar` (Material 3). No router package needed for now — manage tab index with a `StatefulWidget` or simple Riverpod `StateProvider<int>`.

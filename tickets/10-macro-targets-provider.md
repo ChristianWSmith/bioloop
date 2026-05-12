@@ -59,6 +59,16 @@ class MacroTargets {
 
 Use Riverpod's `ProviderContainer` directly (no widget tree needed). Override sub-providers with known values, then `container.read(macroTargetsProvider.future)` and assert on the result.
 
+## Human verification
+
+- [ ] `flutter analyze` passes with zero errors
+- [ ] With known bodyweight (80kg) and goals (cut, -500, 1.0g/lb, 25% fat), verify targets are reasonable: ~2000 cal, ~176g protein, ~56g fat, ~199g carbs
+- [ ] When maintenance is null, `targetCalories` equals `calorieAdjustment` (absolute floor) — confirm this doesn't produce nonsensical targets (e.g. -500 → 500 calories is dangerously low — may need a minimum floor)
+- [ ] Rate preview: -500 produces "-1.0", +300 produces "0.6", 0 produces "0" — formatting is correct (not "-1.000000")
+- [ ] Changing bodyweight from 80kg to 70kg updates protein/fat targets but not calorie targets
+- [ ] All 7 unit tests pass via `ProviderContainer` (no widget tree)
+- [ ] **⚠ Critical check**: is there a minimum `targetCalories` floor? 500 calories is unsafe. Consider adding a floor of ~1200 (female) / ~1500 (male) or making it a design decision.
+
 ## Dependencies
 
 T9 (goals provider), T7 (bodyweight provider), T13 (maintenance provider — use a stub that returns null initially)
