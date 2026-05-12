@@ -1,0 +1,35 @@
+# Ticket Checklist
+
+**Phase 1 — Foundation**
+
+- [ ] T1 — Drift schema & database
+- [ ] T2 — App shell (bottom nav, theme)
+- [ ] T2b — Onboarding flow
+
+**Phase 2 — Core Logging**
+
+- [ ] T3 — OpenFoodFacts client (design)
+- [ ] T4 — Foods local search
+- [ ] T5 — Manual food form
+- [ ] T6 — Log food screen
+- [ ] T7 — Bodyweight logging
+- [ ] T8 — Food history screen
+
+**Phase 3 — Dashboard & Targets**
+
+- [ ] T9 — Goals screen (design)
+- [ ] T10 — Macro targets provider
+- [ ] T11 — Dashboard summary
+- [ ] T12 — Bodyweight chart
+
+**Phase 4 — Maintenance Algorithm**
+
+- [ ] T13 — Maintenance calculator
+- [ ] T14 — Dashboard full integration
+
+**Phase 5 — Polish**
+
+- [ ] T15 — Barcode scanning
+- [ ] T16 — CSV export & meal templates
+- [ ] T17 — Recipe builder
+- [ ] T18 — Data reset
