@@ -102,6 +102,23 @@ void main() {
 
       expect(find.text('Meal Templates'), findsOneWidget);
       expect(find.text('No templates yet'), findsOneWidget);
+      expect(
+        find.byKey(const Key('empty_state_log_food')),
+        findsOneWidget,
+      );
+      expect(find.text('Log a food'), findsOneWidget);
+    });
+
+    testWidgets('empty state button closes the sheet', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      await pumpSheet(tester, db);
+
+      expect(find.text('Meal Templates'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('empty_state_log_food')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Meal Templates'), findsNothing);
     });
 
     testWidgets('shows saved template name and food count',

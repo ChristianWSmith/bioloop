@@ -77,7 +77,47 @@ class MealTemplatesSheet extends ConsumerWidget {
                     }
                     final templates = snapshot.data ?? [];
                     if (templates.isEmpty) {
-                      return const Center(child: Text('No templates yet'));
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.bookmark_border,
+                                  size: 64,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No templates yet',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Log a food and tap the bookmark icon\nto save it as a template.',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                              const SizedBox(height: 24),
+                              FilledButton.tonalIcon(
+                                key: const Key('empty_state_log_food'),
+                                onPressed: () =>
+                                    Navigator.of(context).pop(),
+                                icon: const Icon(Icons.arrow_back),
+                                label: const Text('Log a food'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
                     }
                     return ListView.builder(
                       controller: scrollController,
