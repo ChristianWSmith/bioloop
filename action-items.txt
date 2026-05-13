@@ -1,0 +1,16 @@
+- the app icon does not apply to the APK OR to the installed app
+- during onboarding, the user should be able to enter their height as cm OR as feet+inches.  we can represent it internally the same as before, converting as needed
+- during onboarding, instead of asking for the user's age, we should ask for their birthdate, and then whenever we need their age for a calculation, we should calculate it based on their birthdate
+- during onboarding, the user should be able to enter their starting weight in kg OR lbs.  the existing metric/imperial toggle should probably come earlier on this screen, and it should influence all of these fields
+- during onboarding, the metric/imperial toggle currently does nothing from the end user perspective, the hint units in each field still show metric units only
+- during onboarding, we don't really need to prompt the user for the date.  we can just assume today.
+- during onboarding, if possible we should highlight the recommended ranges on the protein and fat sliders
+- the reset all data function doesn't clear the database of logged food entries or logged bodyweights, it seemingly just sends you back to the onboarding screen.  also, this button is pretty nuclear so it should probably have a confirmation dialog.  wait, no, it DOES clear all of the logged food from the history, but the dashboard still displays as though the logged food wasn't deleted.  Logging another food item after the reset seems to force the dashboard to refresh, and it displays accurately again.
+- on the recipes screen, it says "No recies yet.  Tap + to create one." but there is no + button present
+- similarly, when you hit "templates", you get a drawer that says "no template yet" with no way to add one.
+- when searching foods, searching for "white rice" returns no results.  this may just be a shortcoming of the API we're using, but it seems as though these sorts of basic things would be in their database, no?  if not, no worries.
+- AHH on the goals screen, the metric/imperial toggle works perfectly, but on the onboarding screen, it doesn't.
+- on the goals screen and onboarding screen, we should issue a warning if the user wants a deficit below -500 or a surplus over +300.  we should still allow them to enter whatever values they want
+- we should aim for complete parity between the onboarding screen and the goals screen, or as close as possible where it makes sense
+- when exporting CSV, we should make it so that it can be saved directly to the device.  currently on android it seems to be sending over handling of the export to the OS, which doesn't list "Files" as a destination to "Share" the file to, it lists Socials and such.  This is probably an issue with how we're externalizing the export.
+- on the onboarding screen the save button should be DISABLED until all of the necessary fields are filled
