@@ -250,9 +250,9 @@ void main() {
       await pumpDashboard(tester, buildDashboard([], targets,
           weights: weights, goals: goals));
 
-      expect(find.textContaining('70 kg'), findsOneWidget);
-      expect(find.textContaining('75 kg'), findsOneWidget);
-      expect(find.textContaining('5 kg to go'), findsOneWidget);
+      expect(find.textContaining('70.00 kg'), findsOneWidget);
+      expect(find.textContaining('75.00 kg'), findsOneWidget);
+      expect(find.textContaining('5.00 kg to go'), findsOneWidget);
     });
 
     testWidgets('goal weight card hidden when goals null', (tester) async {
@@ -279,9 +279,9 @@ void main() {
       await pumpDashboard(tester, buildDashboard([], targets,
           weights: weights, goals: goals));
 
-      expect(find.textContaining('154 lb'), findsOneWidget);
-      expect(find.textContaining('165 lb'), findsOneWidget);
-      expect(find.textContaining('11 lb to go'), findsOneWidget);
+      expect(find.textContaining('154.32 lb'), findsOneWidget);
+      expect(find.textContaining('165.35 lb'), findsOneWidget);
+      expect(find.textContaining('11.02 lb to go'), findsOneWidget);
     });
 
     testWidgets('rate card shows loss with deficit', (tester) async {

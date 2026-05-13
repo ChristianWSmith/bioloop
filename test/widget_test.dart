@@ -833,7 +833,7 @@ void main() {
           matching: find.byType(TextField),
         ),
       );
-      expect(imperialWeight.controller?.text, '165.3');
+      expect(imperialWeight.controller?.text, '165.35');
 
       await tester.tap(find.text('Metric'));
       await tester.pumpAndSettle();
@@ -844,7 +844,7 @@ void main() {
           matching: find.byType(TextField),
         ),
       );
-      expect(metricWeight.controller?.text, '75.0');
+      expect(metricWeight.controller?.text, '75.00');
     });
 
     testWidgets('saving with imperial stores metric values',

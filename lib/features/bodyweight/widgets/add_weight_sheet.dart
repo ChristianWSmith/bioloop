@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/database.dart';
 import '../../../providers/bodyweight_provider.dart';
+import '../../../providers/unit_preferences_provider.dart';
 
 class AddWeightSheet extends ConsumerStatefulWidget {
   final BodyweightEntry? entry;
@@ -21,7 +22,8 @@ class _AddWeightSheetState extends ConsumerState<AddWeightSheet> {
   void initState() {
     super.initState();
     if (widget.entry != null) {
-      _weightController.text = widget.entry!.weightKg.toString();
+      final prefs = ref.read(unitPreferencesProvider);
+      _weightController.text = prefs.displayWeight(widget.entry!.weightKg).toStringAsFixed(2);
       _selectedDate = DateTime.parse(widget.entry!.loggedAt);
     } else {
       final now = DateTime.now();
@@ -50,18 +52,20 @@ class _AddWeightSheetState extends ConsumerState<AddWeightSheet> {
 
     try {
       final service = ref.read(bodyweightServiceProvider);
+      final prefs = ref.read(unitPreferencesProvider);
       final loggedAt =
           '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+      final weightKg = prefs.kgWeight(double.parse(_weightController.text.trim()));
 
       if (widget.entry != null) {
         await service.updateWeight(BodyweightEntry(
           id: widget.entry!.id,
-          weightKg: double.parse(_weightController.text.trim()),
+          weightKg: weightKg,
           loggedAt: loggedAt,
         ));
       } else {
         await service.insertWeight(BodyweightEntriesCompanion.insert(
-          weightKg: double.parse(_weightController.text.trim()),
+          weightKg: weightKg,
           loggedAt: loggedAt,
         ));
       }
@@ -105,6 +109,7 @@ class _AddWeightSheetState extends ConsumerState<AddWeightSheet> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.entry != null;
+    final prefs = ref.watch(unitPreferencesProvider);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -139,7 +144,7 @@ class _AddWeightSheetState extends ConsumerState<AddWeightSheet> {
             controller: _weightController,
             decoration: InputDecoration(
               labelText: 'Weight',
-              suffixText: 'kg',
+              suffixText: prefs.weightUnit,
               errorText: _weightController.text.isNotEmpty && !_isValid
                   ? 'Enter a valid weight'
                   : null,

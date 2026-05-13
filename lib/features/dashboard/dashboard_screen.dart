@@ -250,7 +250,7 @@ class DashboardScreen extends ConsumerWidget {
                     )
                   : Text.rich(
                       TextSpan(
-                        text: '${current.toStringAsFixed(0)} $unit',
+                        text: '${current.toStringAsFixed(2)} $unit',
                         style: Theme.of(context)
                             .textTheme
                             .titleLarge
@@ -261,7 +261,7 @@ class DashboardScreen extends ConsumerWidget {
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           TextSpan(
-                            text: '${goal.toStringAsFixed(0)} $unit',
+                            text: '${goal.toStringAsFixed(2)} $unit',
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge
@@ -271,7 +271,7 @@ class DashboardScreen extends ConsumerWidget {
                             child: Padding(
                               padding: const EdgeInsets.only(left: 8),
                               child: Text(
-                                '(${diff.toStringAsFixed(0)} $unit to go)',
+                                '(${diff.toStringAsFixed(2)} $unit to go)',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium

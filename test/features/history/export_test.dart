@@ -119,14 +119,14 @@ void main() {
       final lines = csv.trim().split('\n');
 
       expect(lines.length, 3);
-      expect(lines[0], 'date,weight_kg');
-      expect(lines[1], '2026-05-10,75.0');
-      expect(lines[2], '2026-05-12,74.5');
+      expect(lines[0], 'date,weight_kg,unit');
+      expect(lines[1], '2026-05-10,75.0,kg');
+      expect(lines[2], '2026-05-12,74.5,kg');
     });
 
     test('empty entries produces header only', () {
       final csv = exportBodyweightToCsv([]);
-      expect(csv.trim(), 'date,weight_kg');
+      expect(csv.trim(), 'date,weight_kg,unit');
     });
   });
 }

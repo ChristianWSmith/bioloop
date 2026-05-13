@@ -105,7 +105,7 @@ class BodyweightSparkline extends ConsumerWidget {
                     reservedSize: 38,
                     getTitlesWidget: (value, meta) {
                       return Text(
-                        value.toStringAsFixed(value >= 100 ? 0 : 1),
+                        value.toStringAsFixed(value >= 100 ? 1 : 2),
                         style: const TextStyle(fontSize: 10),
                       );
                     },
@@ -133,8 +133,8 @@ class BodyweightSparkline extends ConsumerWidget {
                           refDate.add(Duration(days: spot.x.toInt()));
                       final dateStr = DateFormat('M/d/yy').format(day);
                       final val = useImperial
-                          ? '${spot.y.toStringAsFixed(1)} lb'
-                          : '${spot.y.toStringAsFixed(1)} kg';
+                          ? '${spot.y.toStringAsFixed(2)} lb'
+                          : '${spot.y.toStringAsFixed(2)} kg';
                       return LineTooltipItem(
                         '$dateStr\n$val',
                         const TextStyle(

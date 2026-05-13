@@ -104,7 +104,7 @@ void main() {
       expect(entries.length, 1);
       expect(entries.first.weightKg, 75.5);
 
-      expect(find.text('75.5 kg'), findsOneWidget);
+      expect(find.text('75.50 kg'), findsOneWidget);
     });
 
     testWidgets('edit: tap entry opens sheet pre-filled', (tester) async {
@@ -117,16 +117,16 @@ void main() {
           );
 
       await pumpScreen(tester, db);
-      expect(find.text('75.5 kg'), findsOneWidget);
+      expect(find.text('75.50 kg'), findsOneWidget);
 
-      await tester.tap(find.text('75.5 kg'));
+      await tester.tap(find.text('75.50 kg'));
       await tester.pumpAndSettle();
 
       expect(find.text('Edit weight'), findsOneWidget);
       expect(find.text('Update'), findsOneWidget);
 
       final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.controller?.text, '75.5');
+      expect(textField.controller?.text, '75.50');
     });
 
     testWidgets('edit save: update weight reflects in list',
@@ -140,7 +140,7 @@ void main() {
           );
 
       await pumpScreen(tester, db);
-      await tester.tap(find.text('75.5 kg'));
+      await tester.tap(find.text('75.50 kg'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), '80.0');
@@ -151,8 +151,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
 
-      expect(find.text('80.0 kg'), findsOneWidget);
-      expect(find.text('75.5 kg'), findsNothing);
+      expect(find.text('80.00 kg'), findsOneWidget);
+      expect(find.text('75.50 kg'), findsNothing);
 
       final entries = await db.select(db.bodyweightEntries).get();
       expect(entries.length, 1);
@@ -169,9 +169,9 @@ void main() {
           );
 
       await pumpScreen(tester, db);
-      expect(find.text('75.5 kg'), findsOneWidget);
+      expect(find.text('75.50 kg'), findsOneWidget);
 
-      await tester.longPress(find.text('75.5 kg'));
+      await tester.longPress(find.text('75.50 kg'));
       await tester.pumpAndSettle();
 
       expect(find.text('Delete entry?'), findsOneWidget);
@@ -180,7 +180,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await tester.pump();
 
-      expect(find.text('75.5 kg'), findsNothing);
+      expect(find.text('75.50 kg'), findsNothing);
       expect(find.text('No entries yet'), findsOneWidget);
 
       final entries = await db.select(db.bodyweightEntries).get();
