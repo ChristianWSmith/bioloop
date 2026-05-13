@@ -19,5 +19,5 @@
 - [x] **#011** CSV export direct save
 
 ## Phase 4 — Polish
-- [ ] **#012** Generate and apply custom app icon
+- [x] **#012** Generate and apply custom app icon
 - [ ] **#013** Investigate "white rice" search failure
