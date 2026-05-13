@@ -7,7 +7,10 @@ import 'features/goals/goals_screen.dart';
 import 'features/history/history_screen.dart';
 import 'features/logging/log_food_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'providers/bodyweight_provider.dart';
 import 'providers/database_provider.dart';
+import 'providers/food_log_provider.dart';
+import 'providers/goals_provider.dart';
 import 'providers/reset_provider.dart';
 import 'theme/theme.dart';
 
@@ -44,6 +47,9 @@ class _AppState extends ConsumerState<App> {
   }
 
   void _onOnboardingComplete() {
+    ref.invalidate(bodyweightProvider);
+    ref.invalidate(todaysFoodProvider);
+    ref.invalidate(userGoalsProvider);
     setState(() => _onboardingCompleted = true);
   }
 
@@ -54,7 +60,7 @@ class _AppState extends ConsumerState<App> {
     });
 
     return MaterialApp(
-      title: 'bioloop',
+      title: 'BioLoop',
       themeMode: ThemeMode.system,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

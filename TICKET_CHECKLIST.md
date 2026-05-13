@@ -2,7 +2,7 @@
 
 | # | Title | Phase | Status |
 |---|-------|-------|--------|
-| 001 | App title + stale bodyweight after reset | Phase 1 — Quick wins | ❌ Pending |
+| 001 | App title + stale bodyweight after reset | Phase 1 — Quick wins | ✅ Complete |
 | 002 | Fix height & goal weight not loading in imperial | Phase 1 — Quick wins | ❌ Pending |
 | 003 | Create global unit preference provider | Phase 2 — Unit infrastructure | ❌ Pending |
 | 004 | Bodyweight imperial + authoritative unit + 2dp rounding | Phase 2 — Unit infrastructure | ❌ Pending |

@@ -185,7 +185,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Welcome to bioloop',
+              'Welcome to BioLoop',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
