@@ -6,7 +6,7 @@
 | 002 | Fix height & goal weight not loading in imperial | Phase 1 — Quick wins | ✅ Complete |
 | 003 | Create global unit preference provider | Phase 2 — Unit infrastructure | ✅ Complete |
 | 004 | Bodyweight imperial + authoritative unit + 2dp rounding | Phase 2 — Unit infrastructure | ✅ Complete |
-| 005 | Serving units: schema migration + API parsing | Phase 3 — Serving units | ❌ Pending |
+| 005 | Serving units: schema migration + API parsing | Phase 3 — Serving units | ✅ Complete |
 | 006 | Serving units: UI | Phase 3 — Serving units | ❌ Pending |
 | 007 | Log tab rework: recent foods + today's entries with delete | Phase 4 — Log tab | ❌ Pending |
 

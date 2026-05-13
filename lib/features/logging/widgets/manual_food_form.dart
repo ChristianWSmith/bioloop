@@ -50,6 +50,8 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
         servingSizeGrams: _servingSizeController.text.isNotEmpty
             ? Value(double.parse(_servingSizeController.text))
             : const Value(null),
+        servingQuantity: const Value.absent(),
+        servingUnit: const Value.absent(),
         caloriesPerServing: double.parse(_caloriesController.text),
         proteinPerServing: double.parse(_proteinController.text),
         carbsPerServing: double.parse(_carbsController.text),
@@ -67,6 +69,8 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
           servingSizeGrams: _servingSizeController.text.isNotEmpty
               ? double.parse(_servingSizeController.text)
               : null,
+          servingQuantity: 1.0,
+          servingUnit: 'serving',
           caloriesPerServing: double.parse(_caloriesController.text),
           proteinPerServing: double.parse(_proteinController.text),
           carbsPerServing: double.parse(_carbsController.text),

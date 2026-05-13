@@ -52,6 +52,30 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _servingQuantityMeta = const VerificationMeta(
+    'servingQuantity',
+  );
+  @override
+  late final GeneratedColumn<double> servingQuantity = GeneratedColumn<double>(
+    'serving_quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1.0),
+  );
+  static const VerificationMeta _servingUnitMeta = const VerificationMeta(
+    'servingUnit',
+  );
+  @override
+  late final GeneratedColumn<String> servingUnit = GeneratedColumn<String>(
+    'serving_unit',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('serving'),
+  );
   static const VerificationMeta _caloriesPerServingMeta =
       const VerificationMeta('caloriesPerServing');
   @override
@@ -136,6 +160,8 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     name,
     servingLabel,
     servingSizeGrams,
+    servingQuantity,
+    servingUnit,
     caloriesPerServing,
     proteinPerServing,
     carbsPerServing,
@@ -184,6 +210,24 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         servingSizeGrams.isAcceptableOrUnknown(
           data['serving_size_grams']!,
           _servingSizeGramsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('serving_quantity')) {
+      context.handle(
+        _servingQuantityMeta,
+        servingQuantity.isAcceptableOrUnknown(
+          data['serving_quantity']!,
+          _servingQuantityMeta,
+        ),
+      );
+    }
+    if (data.containsKey('serving_unit')) {
+      context.handle(
+        _servingUnitMeta,
+        servingUnit.isAcceptableOrUnknown(
+          data['serving_unit']!,
+          _servingUnitMeta,
         ),
       );
     }
@@ -276,6 +320,14 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         DriftSqlType.double,
         data['${effectivePrefix}serving_size_grams'],
       ),
+      servingQuantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}serving_quantity'],
+      )!,
+      servingUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}serving_unit'],
+      )!,
       caloriesPerServing: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}calories_per_serving'],
@@ -318,6 +370,8 @@ class Food extends DataClass implements Insertable<Food> {
   final String name;
   final String servingLabel;
   final double? servingSizeGrams;
+  final double servingQuantity;
+  final String servingUnit;
   final double caloriesPerServing;
   final double proteinPerServing;
   final double carbsPerServing;
@@ -330,6 +384,8 @@ class Food extends DataClass implements Insertable<Food> {
     required this.name,
     required this.servingLabel,
     this.servingSizeGrams,
+    required this.servingQuantity,
+    required this.servingUnit,
     required this.caloriesPerServing,
     required this.proteinPerServing,
     required this.carbsPerServing,
@@ -347,6 +403,8 @@ class Food extends DataClass implements Insertable<Food> {
     if (!nullToAbsent || servingSizeGrams != null) {
       map['serving_size_grams'] = Variable<double>(servingSizeGrams);
     }
+    map['serving_quantity'] = Variable<double>(servingQuantity);
+    map['serving_unit'] = Variable<String>(servingUnit);
     map['calories_per_serving'] = Variable<double>(caloriesPerServing);
     map['protein_per_serving'] = Variable<double>(proteinPerServing);
     map['carbs_per_serving'] = Variable<double>(carbsPerServing);
@@ -367,6 +425,8 @@ class Food extends DataClass implements Insertable<Food> {
       servingSizeGrams: servingSizeGrams == null && nullToAbsent
           ? const Value.absent()
           : Value(servingSizeGrams),
+      servingQuantity: Value(servingQuantity),
+      servingUnit: Value(servingUnit),
       caloriesPerServing: Value(caloriesPerServing),
       proteinPerServing: Value(proteinPerServing),
       carbsPerServing: Value(carbsPerServing),
@@ -389,6 +449,8 @@ class Food extends DataClass implements Insertable<Food> {
       name: serializer.fromJson<String>(json['name']),
       servingLabel: serializer.fromJson<String>(json['servingLabel']),
       servingSizeGrams: serializer.fromJson<double?>(json['servingSizeGrams']),
+      servingQuantity: serializer.fromJson<double>(json['servingQuantity']),
+      servingUnit: serializer.fromJson<String>(json['servingUnit']),
       caloriesPerServing: serializer.fromJson<double>(
         json['caloriesPerServing'],
       ),
@@ -408,6 +470,8 @@ class Food extends DataClass implements Insertable<Food> {
       'name': serializer.toJson<String>(name),
       'servingLabel': serializer.toJson<String>(servingLabel),
       'servingSizeGrams': serializer.toJson<double?>(servingSizeGrams),
+      'servingQuantity': serializer.toJson<double>(servingQuantity),
+      'servingUnit': serializer.toJson<String>(servingUnit),
       'caloriesPerServing': serializer.toJson<double>(caloriesPerServing),
       'proteinPerServing': serializer.toJson<double>(proteinPerServing),
       'carbsPerServing': serializer.toJson<double>(carbsPerServing),
@@ -423,6 +487,8 @@ class Food extends DataClass implements Insertable<Food> {
     String? name,
     String? servingLabel,
     Value<double?> servingSizeGrams = const Value.absent(),
+    double? servingQuantity,
+    String? servingUnit,
     double? caloriesPerServing,
     double? proteinPerServing,
     double? carbsPerServing,
@@ -437,6 +503,8 @@ class Food extends DataClass implements Insertable<Food> {
     servingSizeGrams: servingSizeGrams.present
         ? servingSizeGrams.value
         : this.servingSizeGrams,
+    servingQuantity: servingQuantity ?? this.servingQuantity,
+    servingUnit: servingUnit ?? this.servingUnit,
     caloriesPerServing: caloriesPerServing ?? this.caloriesPerServing,
     proteinPerServing: proteinPerServing ?? this.proteinPerServing,
     carbsPerServing: carbsPerServing ?? this.carbsPerServing,
@@ -455,6 +523,12 @@ class Food extends DataClass implements Insertable<Food> {
       servingSizeGrams: data.servingSizeGrams.present
           ? data.servingSizeGrams.value
           : this.servingSizeGrams,
+      servingQuantity: data.servingQuantity.present
+          ? data.servingQuantity.value
+          : this.servingQuantity,
+      servingUnit: data.servingUnit.present
+          ? data.servingUnit.value
+          : this.servingUnit,
       caloriesPerServing: data.caloriesPerServing.present
           ? data.caloriesPerServing.value
           : this.caloriesPerServing,
@@ -480,6 +554,8 @@ class Food extends DataClass implements Insertable<Food> {
           ..write('name: $name, ')
           ..write('servingLabel: $servingLabel, ')
           ..write('servingSizeGrams: $servingSizeGrams, ')
+          ..write('servingQuantity: $servingQuantity, ')
+          ..write('servingUnit: $servingUnit, ')
           ..write('caloriesPerServing: $caloriesPerServing, ')
           ..write('proteinPerServing: $proteinPerServing, ')
           ..write('carbsPerServing: $carbsPerServing, ')
@@ -497,6 +573,8 @@ class Food extends DataClass implements Insertable<Food> {
     name,
     servingLabel,
     servingSizeGrams,
+    servingQuantity,
+    servingUnit,
     caloriesPerServing,
     proteinPerServing,
     carbsPerServing,
@@ -513,6 +591,8 @@ class Food extends DataClass implements Insertable<Food> {
           other.name == this.name &&
           other.servingLabel == this.servingLabel &&
           other.servingSizeGrams == this.servingSizeGrams &&
+          other.servingQuantity == this.servingQuantity &&
+          other.servingUnit == this.servingUnit &&
           other.caloriesPerServing == this.caloriesPerServing &&
           other.proteinPerServing == this.proteinPerServing &&
           other.carbsPerServing == this.carbsPerServing &&
@@ -527,6 +607,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
   final Value<String> name;
   final Value<String> servingLabel;
   final Value<double?> servingSizeGrams;
+  final Value<double> servingQuantity;
+  final Value<String> servingUnit;
   final Value<double> caloriesPerServing;
   final Value<double> proteinPerServing;
   final Value<double> carbsPerServing;
@@ -539,6 +621,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.name = const Value.absent(),
     this.servingLabel = const Value.absent(),
     this.servingSizeGrams = const Value.absent(),
+    this.servingQuantity = const Value.absent(),
+    this.servingUnit = const Value.absent(),
     this.caloriesPerServing = const Value.absent(),
     this.proteinPerServing = const Value.absent(),
     this.carbsPerServing = const Value.absent(),
@@ -552,6 +636,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     required String name,
     required String servingLabel,
     this.servingSizeGrams = const Value.absent(),
+    this.servingQuantity = const Value.absent(),
+    this.servingUnit = const Value.absent(),
     required double caloriesPerServing,
     required double proteinPerServing,
     required double carbsPerServing,
@@ -571,6 +657,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Expression<String>? name,
     Expression<String>? servingLabel,
     Expression<double>? servingSizeGrams,
+    Expression<double>? servingQuantity,
+    Expression<String>? servingUnit,
     Expression<double>? caloriesPerServing,
     Expression<double>? proteinPerServing,
     Expression<double>? carbsPerServing,
@@ -584,6 +672,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       if (name != null) 'name': name,
       if (servingLabel != null) 'serving_label': servingLabel,
       if (servingSizeGrams != null) 'serving_size_grams': servingSizeGrams,
+      if (servingQuantity != null) 'serving_quantity': servingQuantity,
+      if (servingUnit != null) 'serving_unit': servingUnit,
       if (caloriesPerServing != null)
         'calories_per_serving': caloriesPerServing,
       if (proteinPerServing != null) 'protein_per_serving': proteinPerServing,
@@ -600,6 +690,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Value<String>? name,
     Value<String>? servingLabel,
     Value<double?>? servingSizeGrams,
+    Value<double>? servingQuantity,
+    Value<String>? servingUnit,
     Value<double>? caloriesPerServing,
     Value<double>? proteinPerServing,
     Value<double>? carbsPerServing,
@@ -613,6 +705,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       name: name ?? this.name,
       servingLabel: servingLabel ?? this.servingLabel,
       servingSizeGrams: servingSizeGrams ?? this.servingSizeGrams,
+      servingQuantity: servingQuantity ?? this.servingQuantity,
+      servingUnit: servingUnit ?? this.servingUnit,
       caloriesPerServing: caloriesPerServing ?? this.caloriesPerServing,
       proteinPerServing: proteinPerServing ?? this.proteinPerServing,
       carbsPerServing: carbsPerServing ?? this.carbsPerServing,
@@ -637,6 +731,12 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     }
     if (servingSizeGrams.present) {
       map['serving_size_grams'] = Variable<double>(servingSizeGrams.value);
+    }
+    if (servingQuantity.present) {
+      map['serving_quantity'] = Variable<double>(servingQuantity.value);
+    }
+    if (servingUnit.present) {
+      map['serving_unit'] = Variable<String>(servingUnit.value);
     }
     if (caloriesPerServing.present) {
       map['calories_per_serving'] = Variable<double>(caloriesPerServing.value);
@@ -669,6 +769,8 @@ class FoodsCompanion extends UpdateCompanion<Food> {
           ..write('name: $name, ')
           ..write('servingLabel: $servingLabel, ')
           ..write('servingSizeGrams: $servingSizeGrams, ')
+          ..write('servingQuantity: $servingQuantity, ')
+          ..write('servingUnit: $servingUnit, ')
           ..write('caloriesPerServing: $caloriesPerServing, ')
           ..write('proteinPerServing: $proteinPerServing, ')
           ..write('carbsPerServing: $carbsPerServing, ')
@@ -3617,6 +3719,8 @@ typedef $$FoodsTableCreateCompanionBuilder =
       required String name,
       required String servingLabel,
       Value<double?> servingSizeGrams,
+      Value<double> servingQuantity,
+      Value<String> servingUnit,
       required double caloriesPerServing,
       required double proteinPerServing,
       required double carbsPerServing,
@@ -3631,6 +3735,8 @@ typedef $$FoodsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> servingLabel,
       Value<double?> servingSizeGrams,
+      Value<double> servingQuantity,
+      Value<String> servingUnit,
       Value<double> caloriesPerServing,
       Value<double> proteinPerServing,
       Value<double> carbsPerServing,
@@ -3712,6 +3818,16 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<double> get servingSizeGrams => $composableBuilder(
     column: $table.servingSizeGrams,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get servingQuantity => $composableBuilder(
+    column: $table.servingQuantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get servingUnit => $composableBuilder(
+    column: $table.servingUnit,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3830,6 +3946,16 @@ class $$FoodsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get servingQuantity => $composableBuilder(
+    column: $table.servingQuantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get servingUnit => $composableBuilder(
+    column: $table.servingUnit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get caloriesPerServing => $composableBuilder(
     column: $table.caloriesPerServing,
     builder: (column) => ColumnOrderings(column),
@@ -3888,6 +4014,16 @@ class $$FoodsTableAnnotationComposer
 
   GeneratedColumn<double> get servingSizeGrams => $composableBuilder(
     column: $table.servingSizeGrams,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get servingQuantity => $composableBuilder(
+    column: $table.servingQuantity,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get servingUnit => $composableBuilder(
+    column: $table.servingUnit,
     builder: (column) => column,
   );
 
@@ -4007,6 +4143,8 @@ class $$FoodsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> servingLabel = const Value.absent(),
                 Value<double?> servingSizeGrams = const Value.absent(),
+                Value<double> servingQuantity = const Value.absent(),
+                Value<String> servingUnit = const Value.absent(),
                 Value<double> caloriesPerServing = const Value.absent(),
                 Value<double> proteinPerServing = const Value.absent(),
                 Value<double> carbsPerServing = const Value.absent(),
@@ -4019,6 +4157,8 @@ class $$FoodsTableTableManager
                 name: name,
                 servingLabel: servingLabel,
                 servingSizeGrams: servingSizeGrams,
+                servingQuantity: servingQuantity,
+                servingUnit: servingUnit,
                 caloriesPerServing: caloriesPerServing,
                 proteinPerServing: proteinPerServing,
                 carbsPerServing: carbsPerServing,
@@ -4033,6 +4173,8 @@ class $$FoodsTableTableManager
                 required String name,
                 required String servingLabel,
                 Value<double?> servingSizeGrams = const Value.absent(),
+                Value<double> servingQuantity = const Value.absent(),
+                Value<String> servingUnit = const Value.absent(),
                 required double caloriesPerServing,
                 required double proteinPerServing,
                 required double carbsPerServing,
@@ -4045,6 +4187,8 @@ class $$FoodsTableTableManager
                 name: name,
                 servingLabel: servingLabel,
                 servingSizeGrams: servingSizeGrams,
+                servingQuantity: servingQuantity,
+                servingUnit: servingUnit,
                 caloriesPerServing: caloriesPerServing,
                 proteinPerServing: proteinPerServing,
                 carbsPerServing: carbsPerServing,

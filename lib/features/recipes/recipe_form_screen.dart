@@ -114,6 +114,8 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
           name: food.name,
           servingLabel: food.servingLabel,
           servingSizeGrams: food.servingSizeGrams,
+          servingQuantity: food.servingQuantity,
+          servingUnit: food.servingUnit,
           caloriesPerServing: food.caloriesPerServing,
           proteinPerServing: food.proteinPerServing,
           carbsPerServing: food.carbsPerServing,

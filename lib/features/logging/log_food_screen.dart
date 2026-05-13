@@ -221,6 +221,8 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
           name: food.name,
           servingLabel: food.servingLabel,
           servingSizeGrams: Value(food.servingSizeGrams),
+          servingQuantity: Value(food.servingQuantity),
+          servingUnit: Value(food.servingUnit),
           caloriesPerServing: food.caloriesPerServing,
           proteinPerServing: food.proteinPerServing,
           carbsPerServing: food.carbsPerServing,
