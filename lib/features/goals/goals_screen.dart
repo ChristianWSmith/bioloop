@@ -63,9 +63,23 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         setState(() {
           _sex = goals.sex;
           _birthdate = goals.birthdate;
-          _heightController.text = goals.heightCm?.toString() ?? '';
-          _goalWeightController.text = goals.goalWeightKg?.toString() ?? '';
           _useImperial = goals.useImperial == 1;
+          if (_useImperial) {
+            if (goals.heightCm != null) {
+              final totalInches = goals.heightCm! / 2.54;
+              _heightFeetController.text = (totalInches ~/ 12).toString();
+              _heightInchesController.text =
+                  (totalInches % 12).round().toString();
+            }
+            if (goals.goalWeightKg != null) {
+              _goalWeightController.text =
+                  (goals.goalWeightKg! * 2.20462).toStringAsFixed(1);
+            }
+          } else {
+            _heightController.text = goals.heightCm?.toString() ?? '';
+            _goalWeightController.text =
+                goals.goalWeightKg?.toString() ?? '';
+          }
           _activityLevel = goals.activityLevel;
           _goalType = goals.goalType;
           _calorieAdjustmentController.text =
