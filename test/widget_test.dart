@@ -149,8 +149,10 @@ void main() {
       await tester.tap(find.text('Male'));
       await tester.pumpAndSettle();
 
-      // Age
-      await tester.enterTextByLabel('Age', '25');
+      // Birthdate
+      await tester.tap(find.text('Select your birthdate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
 
       // Height
@@ -163,11 +165,6 @@ void main() {
 
       // Goal weight
       await tester.enterTextByLabel('Goal weight (optional)', '70');
-      await tester.pumpAndSettle();
-
-      // Units — Imperial
-      await tester.scrollUntilVisible(find.text('Imperial'), 100, scrollable: _scrollable);
-      await tester.tap(find.text('Imperial'));
       await tester.pumpAndSettle();
 
       // Activity level — Extra active
@@ -200,10 +197,10 @@ void main() {
       final goals = await db.getGoals();
       expect(goals, isNotNull);
       expect(goals!.sex, 'male');
-      expect(goals.age, 25);
+      expect(goals.birthdate, isNotNull);
       expect(goals.heightCm, 175);
       expect(goals.goalWeightKg, 70);
-      expect(goals.useImperial, 1);
+      expect(goals.useImperial, 0);
       expect(goals.activityLevel, 5);
       expect(goals.goalType, 'bulk');
       expect(goals.onboardingCompleted, 1);
@@ -222,7 +219,14 @@ void main() {
       // Fill required fields only
       await tester.tap(find.text('Female'));
       await tester.pumpAndSettle();
-      await tester.enterTextByLabel('Age', '30');
+      await tester.scrollUntilVisible(
+        find.text('Select your birthdate'),
+        100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Select your birthdate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
       await tester.enterTextByLabel('Height', '165');
       await tester.pumpAndSettle();
@@ -246,8 +250,16 @@ void main() {
       // Metric button is selected by default
       await tester.tap(find.text('Male'));
       await tester.pumpAndSettle();
-      await tester.enterTextByLabel('Age', '25');
+      await tester.scrollUntilVisible(
+        find.text('Select your birthdate'),
+        100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Select your birthdate'));
       await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
       await tester.enterTextByLabel('Height', '180');
       await tester.pumpAndSettle();
       await tester.enterTextByLabel('Weight', '80');
@@ -259,7 +271,6 @@ void main() {
       expect(goals, isNotNull);
       expect(goals!.useImperial, 0);
     });
-
     testWidgets('activity level defaults to 3', (tester) async {
       final db = createDb();
       addTearDown(() => db.close());
@@ -267,7 +278,14 @@ void main() {
 
       await tester.tap(find.text('Male'));
       await tester.pumpAndSettle();
-      await tester.enterTextByLabel('Age', '25');
+      await tester.scrollUntilVisible(
+        find.text('Select your birthdate'),
+        100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Select your birthdate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
       await tester.enterTextByLabel('Height', '180');
       await tester.pumpAndSettle();
@@ -289,7 +307,14 @@ void main() {
 
       await tester.tap(find.text('Male'));
       await tester.pumpAndSettle();
-      await tester.enterTextByLabel('Age', '25');
+      await tester.scrollUntilVisible(
+        find.text('Select your birthdate'),
+        100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Select your birthdate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
       await tester.enterTextByLabel('Height', '180');
       await tester.pumpAndSettle();
@@ -298,6 +323,8 @@ void main() {
 
       // Select Extra active (level 5)
       await tester.scrollUntilVisible(find.text('Extra active'), 100, scrollable: _scrollable);
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -80));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Extra active'));
       await tester.pumpAndSettle();
 
@@ -308,17 +335,60 @@ void main() {
       expect(goals!.activityLevel, 5);
     });
 
-    testWidgets('validation blocks save with empty required fields',
+    testWidgets('save button disabled when required fields empty',
         (tester) async {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
-      await saveOnboarding(tester);
+      await tester.scrollUntilVisible(
+        find.text('Save'),
+        100,
+        scrollable: _scrollable,
+      );
+      final saveButton = find.ancestor(
+        of: find.text('Save'),
+        matching: find.byType(FilledButton),
+      );
+      expect(saveButton, findsOneWidget);
 
-      // Still on onboarding, no shell
-      expect(find.text('Setup'), findsOneWidget);
-      expect(find.byType(NavigationBar), findsNothing);
+      final button = tester.widget<FilledButton>(saveButton);
+      expect(button.onPressed, isNull);
+    });
+
+    testWidgets('save button becomes enabled when all required fields filled',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.tap(find.text('Male'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Select your birthdate'),
+        100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Select your birthdate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await tester.enterTextByLabel('Height', '175');
+      await tester.pumpAndSettle();
+      await tester.enterTextByLabel('Weight', '75');
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Save'),
+        100,
+        scrollable: _scrollable,
+      );
+      final saveButton = find.ancestor(
+        of: find.text('Save'),
+        matching: find.byType(FilledButton),
+      );
+      final button = tester.widget<FilledButton>(saveButton);
+      expect(button.onPressed, isNotNull);
     });
 
     testWidgets('back press shows confirmation dialog',
@@ -434,18 +504,36 @@ void main() {
       expect(find.text('Fat: 25% of calories'), findsOneWidget);
     });
 
-    testWidgets('keyboard types are correct', (tester) async {
+    testWidgets('sliders show recommended range text', (tester) async {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
-      final ageField = tester.widget<TextField>(
-        find.descendant(
-          of: find.widgetWithText(TextFormField, 'Age'),
-          matching: find.byType(TextField),
-        ),
+      await tester.scrollUntilVisible(
+        find.text('Recommended: 0.8\u20131.4 g/lb'),
+        100,
+        scrollable: _scrollable,
       );
-      expect(ageField.keyboardType, TextInputType.number);
+      expect(
+        find.text('Recommended: 0.8\u20131.4 g/lb'),
+        findsOneWidget,
+      );
+
+      await tester.scrollUntilVisible(
+        find.text('Recommended: 20\u201335% of calories'),
+        100,
+        scrollable: _scrollable,
+      );
+      expect(
+        find.text('Recommended: 20\u201335% of calories'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('keyboard types are correct', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
 
       final heightField = tester.widget<TextField>(
         find.descendant(
@@ -468,6 +556,153 @@ void main() {
         weightField.keyboardType,
         const TextInputType.numberWithOptions(decimal: true),
       );
+    });
+
+    testWidgets('calorie warning absent at default -500', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        100,
+        scrollable: _scrollable,
+      );
+
+      expect(
+        find.text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+        ),
+        findsNothing,
+      );
+      expect(
+        find.text(
+          'Surpluses over 300 kcal/day may lead to excess fat gain. Consider a smaller surplus.',
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('calorie warning appears for deficit >500',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        100,
+        scrollable: _scrollable,
+      );
+
+      await tester.enterTextByLabel('Calorie adjustment', '-600');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('calorie warning appears for surplus >300',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        100,
+        scrollable: _scrollable,
+      );
+
+      await tester.enterTextByLabel('Calorie adjustment', '400');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Surpluses over 300 kcal/day may lead to excess fat gain. Consider a smaller surplus.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('calorie warning disappears when corrected', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        100,
+        scrollable: _scrollable,
+      );
+
+      await tester.enterTextByLabel('Calorie adjustment', '-600');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.enterTextByLabel('Calorie adjustment', '-500');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('calorie warning does not block save button',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.tap(find.text('Male'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Select your birthdate'),
+        100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Select your birthdate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await tester.enterTextByLabel('Height', '175');
+      await tester.pumpAndSettle();
+      await tester.enterTextByLabel('Weight', '75');
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        100,
+        scrollable: _scrollable,
+      );
+
+      await tester.enterTextByLabel('Calorie adjustment', '-1000');
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Save'),
+        100,
+        scrollable: _scrollable,
+      );
+      final saveButton = find.ancestor(
+        of: find.text('Save'),
+        matching: find.byType(FilledButton),
+      );
+      final button = tester.widget<FilledButton>(saveButton);
+      expect(button.onPressed, isNotNull);
     });
 
     testWidgets('rate preview updates when calorie adjustment changes',
@@ -497,15 +732,188 @@ void main() {
       expect(find.textContaining('gain'), findsOneWidget);
     });
 
-    testWidgets('date defaults to today', (tester) async {
+    testWidgets('toggling to imperial changes height field layout',
+        (tester) async {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
-      final now = DateTime.now();
-      final todayStr =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      expect(find.text(todayStr), findsOneWidget);
+      await tester.tap(find.text('Male'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Select your birthdate'),
+        100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Select your birthdate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      await tester.enterTextByLabel('Height', '175');
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(TextFormField, 'Height'), findsOneWidget);
+
+      // Toggle is above height field — scroll up to find it
+      await tester.scrollUntilVisible(
+        find.text('Imperial'),
+        -100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Imperial'));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(TextFormField, 'Height'), findsNothing);
+      expect(
+        find.widgetWithText(TextFormField, 'Height (ft)'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(TextFormField, 'Height (in)'),
+        findsOneWidget,
+      );
+      expect(
+        tester.widget<TextField>(
+          find.descendant(
+            of: find.widgetWithText(TextFormField, 'Height (ft)'),
+            matching: find.byType(TextField),
+          ),
+        ).controller?.text,
+        '5',
+      );
+      expect(
+        tester.widget<TextField>(
+          find.descendant(
+            of: find.widgetWithText(TextFormField, 'Height (in)'),
+            matching: find.byType(TextField),
+          ),
+        ).controller?.text,
+        '9',
+      );
+    });
+
+    testWidgets('toggling imperial converts weight and restores on toggle back',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.tap(find.text('Male'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Select your birthdate'),
+        100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Select your birthdate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      await tester.enterTextByLabel('Weight', '75');
+      await tester.pumpAndSettle();
+
+      // Toggle is above weight field — scroll up to find it
+      await tester.scrollUntilVisible(
+        find.text('Imperial'),
+        -100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Imperial'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.widgetWithText(TextFormField, 'Weight'),
+        findsOneWidget,
+      );
+      final imperialWeight = tester.widget<TextField>(
+        find.descendant(
+          of: find.widgetWithText(TextFormField, 'Weight'),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(imperialWeight.controller?.text, '165.3');
+
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
+
+      final metricWeight = tester.widget<TextField>(
+        find.descendant(
+          of: find.widgetWithText(TextFormField, 'Weight'),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(metricWeight.controller?.text, '75.0');
+    });
+
+    testWidgets('saving with imperial stores metric values',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.tap(find.text('Male'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Select your birthdate'),
+        100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Select your birthdate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      // Toggle to imperial
+      await tester.scrollUntilVisible(
+        find.text('Imperial'),
+        100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Imperial'));
+      await tester.pumpAndSettle();
+
+      // Height in imperial
+      final heightFtField = find.widgetWithText(TextFormField, 'Height (ft)');
+      await tester.scrollUntilVisible(heightFtField, 100, scrollable: _scrollable);
+      await tester.enterText(heightFtField, '5');
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Height (in)'),
+        '10',
+      );
+      await tester.pumpAndSettle();
+
+      // Weight in imperial
+      await tester.enterTextByLabel('Weight', '165');
+      await tester.pumpAndSettle();
+
+      // Goal weight in imperial
+      await tester.enterTextByLabel('Goal weight (optional)', '154');
+      await tester.pumpAndSettle();
+
+      await saveOnboarding(tester);
+
+      expect(find.byType(NavigationBar), findsOneWidget);
+
+      final goals = await db.getGoals();
+      expect(goals, isNotNull);
+      expect(goals!.heightCm, closeTo(177.8, 0.1));
+      expect(goals.goalWeightKg, closeTo(69.9, 0.1));
+      expect(goals.useImperial, 1);
+
+      final weights = await (db.select(db.bodyweightEntries)).get();
+      expect(weights.length, 1);
+      expect(weights.first.weightKg, closeTo(74.8, 0.1));
+    });
+
+    testWidgets('no date field shown', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      expect(find.widgetWithText(InputDecorator, 'Date'), findsNothing);
     });
   });
 }

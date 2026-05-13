@@ -2181,6 +2181,17 @@ class $UserGoalsTable extends UserGoals
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _birthdateMeta = const VerificationMeta(
+    'birthdate',
+  );
+  @override
+  late final GeneratedColumn<String> birthdate = GeneratedColumn<String>(
+    'birthdate',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _ageMeta = const VerificationMeta('age');
   @override
   late final GeneratedColumn<int> age = GeneratedColumn<int>(
@@ -2256,6 +2267,7 @@ class $UserGoalsTable extends UserGoals
     fatCaloriePct,
     sex,
     heightCm,
+    birthdate,
     age,
     goalWeightKg,
     useImperial,
@@ -2323,6 +2335,12 @@ class $UserGoalsTable extends UserGoals
       context.handle(
         _heightCmMeta,
         heightCm.isAcceptableOrUnknown(data['height_cm']!, _heightCmMeta),
+      );
+    }
+    if (data.containsKey('birthdate')) {
+      context.handle(
+        _birthdateMeta,
+        birthdate.isAcceptableOrUnknown(data['birthdate']!, _birthdateMeta),
       );
     }
     if (data.containsKey('age')) {
@@ -2412,6 +2430,10 @@ class $UserGoalsTable extends UserGoals
         DriftSqlType.double,
         data['${effectivePrefix}height_cm'],
       ),
+      birthdate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}birthdate'],
+      ),
       age: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}age'],
@@ -2453,6 +2475,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
   final double fatCaloriePct;
   final String? sex;
   final double? heightCm;
+  final String? birthdate;
   final int? age;
   final double? goalWeightKg;
   final int useImperial;
@@ -2467,6 +2490,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     required this.fatCaloriePct,
     this.sex,
     this.heightCm,
+    this.birthdate,
     this.age,
     this.goalWeightKg,
     required this.useImperial,
@@ -2489,6 +2513,9 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     }
     if (!nullToAbsent || heightCm != null) {
       map['height_cm'] = Variable<double>(heightCm);
+    }
+    if (!nullToAbsent || birthdate != null) {
+      map['birthdate'] = Variable<String>(birthdate);
     }
     if (!nullToAbsent || age != null) {
       map['age'] = Variable<int>(age);
@@ -2516,6 +2543,9 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       heightCm: heightCm == null && nullToAbsent
           ? const Value.absent()
           : Value(heightCm),
+      birthdate: birthdate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(birthdate),
       age: age == null && nullToAbsent ? const Value.absent() : Value(age),
       goalWeightKg: goalWeightKg == null && nullToAbsent
           ? const Value.absent()
@@ -2542,6 +2572,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       fatCaloriePct: serializer.fromJson<double>(json['fatCaloriePct']),
       sex: serializer.fromJson<String?>(json['sex']),
       heightCm: serializer.fromJson<double?>(json['heightCm']),
+      birthdate: serializer.fromJson<String?>(json['birthdate']),
       age: serializer.fromJson<int?>(json['age']),
       goalWeightKg: serializer.fromJson<double?>(json['goalWeightKg']),
       useImperial: serializer.fromJson<int>(json['useImperial']),
@@ -2563,6 +2594,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       'fatCaloriePct': serializer.toJson<double>(fatCaloriePct),
       'sex': serializer.toJson<String?>(sex),
       'heightCm': serializer.toJson<double?>(heightCm),
+      'birthdate': serializer.toJson<String?>(birthdate),
       'age': serializer.toJson<int?>(age),
       'goalWeightKg': serializer.toJson<double?>(goalWeightKg),
       'useImperial': serializer.toJson<int>(useImperial),
@@ -2580,6 +2612,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     double? fatCaloriePct,
     Value<String?> sex = const Value.absent(),
     Value<double?> heightCm = const Value.absent(),
+    Value<String?> birthdate = const Value.absent(),
     Value<int?> age = const Value.absent(),
     Value<double?> goalWeightKg = const Value.absent(),
     int? useImperial,
@@ -2596,6 +2629,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     fatCaloriePct: fatCaloriePct ?? this.fatCaloriePct,
     sex: sex.present ? sex.value : this.sex,
     heightCm: heightCm.present ? heightCm.value : this.heightCm,
+    birthdate: birthdate.present ? birthdate.value : this.birthdate,
     age: age.present ? age.value : this.age,
     goalWeightKg: goalWeightKg.present ? goalWeightKg.value : this.goalWeightKg,
     useImperial: useImperial ?? this.useImperial,
@@ -2618,6 +2652,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
           : this.fatCaloriePct,
       sex: data.sex.present ? data.sex.value : this.sex,
       heightCm: data.heightCm.present ? data.heightCm.value : this.heightCm,
+      birthdate: data.birthdate.present ? data.birthdate.value : this.birthdate,
       age: data.age.present ? data.age.value : this.age,
       goalWeightKg: data.goalWeightKg.present
           ? data.goalWeightKg.value
@@ -2645,6 +2680,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
           ..write('fatCaloriePct: $fatCaloriePct, ')
           ..write('sex: $sex, ')
           ..write('heightCm: $heightCm, ')
+          ..write('birthdate: $birthdate, ')
           ..write('age: $age, ')
           ..write('goalWeightKg: $goalWeightKg, ')
           ..write('useImperial: $useImperial, ')
@@ -2664,6 +2700,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     fatCaloriePct,
     sex,
     heightCm,
+    birthdate,
     age,
     goalWeightKg,
     useImperial,
@@ -2682,6 +2719,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
           other.fatCaloriePct == this.fatCaloriePct &&
           other.sex == this.sex &&
           other.heightCm == this.heightCm &&
+          other.birthdate == this.birthdate &&
           other.age == this.age &&
           other.goalWeightKg == this.goalWeightKg &&
           other.useImperial == this.useImperial &&
@@ -2698,6 +2736,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
   final Value<double> fatCaloriePct;
   final Value<String?> sex;
   final Value<double?> heightCm;
+  final Value<String?> birthdate;
   final Value<int?> age;
   final Value<double?> goalWeightKg;
   final Value<int> useImperial;
@@ -2713,6 +2752,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     this.fatCaloriePct = const Value.absent(),
     this.sex = const Value.absent(),
     this.heightCm = const Value.absent(),
+    this.birthdate = const Value.absent(),
     this.age = const Value.absent(),
     this.goalWeightKg = const Value.absent(),
     this.useImperial = const Value.absent(),
@@ -2729,6 +2769,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     this.fatCaloriePct = const Value.absent(),
     this.sex = const Value.absent(),
     this.heightCm = const Value.absent(),
+    this.birthdate = const Value.absent(),
     this.age = const Value.absent(),
     this.goalWeightKg = const Value.absent(),
     this.useImperial = const Value.absent(),
@@ -2746,6 +2787,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     Expression<double>? fatCaloriePct,
     Expression<String>? sex,
     Expression<double>? heightCm,
+    Expression<String>? birthdate,
     Expression<int>? age,
     Expression<double>? goalWeightKg,
     Expression<int>? useImperial,
@@ -2762,6 +2804,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
       if (fatCaloriePct != null) 'fat_calorie_pct': fatCaloriePct,
       if (sex != null) 'sex': sex,
       if (heightCm != null) 'height_cm': heightCm,
+      if (birthdate != null) 'birthdate': birthdate,
       if (age != null) 'age': age,
       if (goalWeightKg != null) 'goal_weight_kg': goalWeightKg,
       if (useImperial != null) 'use_imperial': useImperial,
@@ -2781,6 +2824,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     Value<double>? fatCaloriePct,
     Value<String?>? sex,
     Value<double?>? heightCm,
+    Value<String?>? birthdate,
     Value<int?>? age,
     Value<double?>? goalWeightKg,
     Value<int>? useImperial,
@@ -2797,6 +2841,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
       fatCaloriePct: fatCaloriePct ?? this.fatCaloriePct,
       sex: sex ?? this.sex,
       heightCm: heightCm ?? this.heightCm,
+      birthdate: birthdate ?? this.birthdate,
       age: age ?? this.age,
       goalWeightKg: goalWeightKg ?? this.goalWeightKg,
       useImperial: useImperial ?? this.useImperial,
@@ -2830,6 +2875,9 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     }
     if (heightCm.present) {
       map['height_cm'] = Variable<double>(heightCm.value);
+    }
+    if (birthdate.present) {
+      map['birthdate'] = Variable<String>(birthdate.value);
     }
     if (age.present) {
       map['age'] = Variable<int>(age.value);
@@ -2865,6 +2913,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
           ..write('fatCaloriePct: $fatCaloriePct, ')
           ..write('sex: $sex, ')
           ..write('heightCm: $heightCm, ')
+          ..write('birthdate: $birthdate, ')
           ..write('age: $age, ')
           ..write('goalWeightKg: $goalWeightKg, ')
           ..write('useImperial: $useImperial, ')
@@ -5236,6 +5285,7 @@ typedef $$UserGoalsTableCreateCompanionBuilder =
       Value<double> fatCaloriePct,
       Value<String?> sex,
       Value<double?> heightCm,
+      Value<String?> birthdate,
       Value<int?> age,
       Value<double?> goalWeightKg,
       Value<int> useImperial,
@@ -5253,6 +5303,7 @@ typedef $$UserGoalsTableUpdateCompanionBuilder =
       Value<double> fatCaloriePct,
       Value<String?> sex,
       Value<double?> heightCm,
+      Value<String?> birthdate,
       Value<int?> age,
       Value<double?> goalWeightKg,
       Value<int> useImperial,
@@ -5303,6 +5354,11 @@ class $$UserGoalsTableFilterComposer
 
   ColumnFilters<double> get heightCm => $composableBuilder(
     column: $table.heightCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get birthdate => $composableBuilder(
+    column: $table.birthdate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5381,6 +5437,11 @@ class $$UserGoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get birthdate => $composableBuilder(
+    column: $table.birthdate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get age => $composableBuilder(
     column: $table.age,
     builder: (column) => ColumnOrderings(column),
@@ -5448,6 +5509,9 @@ class $$UserGoalsTableAnnotationComposer
   GeneratedColumn<double> get heightCm =>
       $composableBuilder(column: $table.heightCm, builder: (column) => column);
 
+  GeneratedColumn<String> get birthdate =>
+      $composableBuilder(column: $table.birthdate, builder: (column) => column);
+
   GeneratedColumn<int> get age =>
       $composableBuilder(column: $table.age, builder: (column) => column);
 
@@ -5510,6 +5574,7 @@ class $$UserGoalsTableTableManager
                 Value<double> fatCaloriePct = const Value.absent(),
                 Value<String?> sex = const Value.absent(),
                 Value<double?> heightCm = const Value.absent(),
+                Value<String?> birthdate = const Value.absent(),
                 Value<int?> age = const Value.absent(),
                 Value<double?> goalWeightKg = const Value.absent(),
                 Value<int> useImperial = const Value.absent(),
@@ -5525,6 +5590,7 @@ class $$UserGoalsTableTableManager
                 fatCaloriePct: fatCaloriePct,
                 sex: sex,
                 heightCm: heightCm,
+                birthdate: birthdate,
                 age: age,
                 goalWeightKg: goalWeightKg,
                 useImperial: useImperial,
@@ -5542,6 +5608,7 @@ class $$UserGoalsTableTableManager
                 Value<double> fatCaloriePct = const Value.absent(),
                 Value<String?> sex = const Value.absent(),
                 Value<double?> heightCm = const Value.absent(),
+                Value<String?> birthdate = const Value.absent(),
                 Value<int?> age = const Value.absent(),
                 Value<double?> goalWeightKg = const Value.absent(),
                 Value<int> useImperial = const Value.absent(),
@@ -5557,6 +5624,7 @@ class $$UserGoalsTableTableManager
                 fatCaloriePct: fatCaloriePct,
                 sex: sex,
                 heightCm: heightCm,
+                birthdate: birthdate,
                 age: age,
                 goalWeightKg: goalWeightKg,
                 useImperial: useImperial,

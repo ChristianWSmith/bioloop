@@ -19,7 +19,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
   bool _saving = false;
 
   String? _sex;
-  final _ageController = TextEditingController();
+  String? _birthdate;
   final _heightController = TextEditingController();
   final _heightFeetController = TextEditingController();
   final _heightInchesController = TextEditingController();
@@ -47,7 +47,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
 
   @override
   void dispose() {
-    _ageController.dispose();
     _heightController.dispose();
     _heightFeetController.dispose();
     _heightInchesController.dispose();
@@ -63,7 +62,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       if (goals != null && mounted) {
         setState(() {
           _sex = goals.sex;
-          _ageController.text = goals.age?.toString() ?? '';
+          _birthdate = goals.birthdate;
           _heightController.text = goals.heightCm?.toString() ?? '';
           _goalWeightController.text = goals.goalWeightKg?.toString() ?? '';
           _useImperial = goals.useImperial == 1;
@@ -85,7 +84,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
 
   bool get _canSave {
     if (_sex == null) return false;
-    if (_ageController.text.trim().isEmpty) return false;
+    if (_birthdate == null) return false;
     if (_useImperial) {
       if (_heightFeetController.text.trim().isEmpty) return false;
     } else {
@@ -114,8 +113,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     final weightKg = ref.read(bodyweightProvider).valueOrNull?.firstOrNull?.weightKg;
     if (weightKg == null) return '';
     if (_sex == null) return '';
-    final age = int.tryParse(_ageController.text);
-    if (age == null) return '';
+    if (_birthdate == null) return '';
     final heightCm = _useImperial
         ? (_heightFeetController.text.isNotEmpty && _heightInchesController.text.isNotEmpty
             ? double.tryParse(_heightFeetController.text)! * 30.48 +
@@ -128,7 +126,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       sex: _sex!,
       weightKg: weightKg,
       heightCm: heightCm,
-      age: age,
+      birthdate: _birthdate,
       activityLevel: _activityLevel,
     );
     final adjustment = double.tryParse(_calorieAdjustmentController.text) ?? 0;
@@ -136,6 +134,36 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     final fatCals = targetCals * (_fatCaloriePct / 100);
     final fatGrams = fatCals / 9;
     return '${_fatCaloriePct.toStringAsFixed(0)}% = ${fatGrams.toStringAsFixed(0)}g';
+  }
+
+  Widget _calorieWarning(String text) {
+    final adjustment = double.tryParse(text);
+    if (adjustment == null) return const SizedBox.shrink();
+    if (adjustment < -500) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.tertiary,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+    if (adjustment > 300) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          'Surpluses over 300 kcal/day may lead to excess fat gain. Consider a smaller surplus.',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.tertiary,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   void _onGoalTypeChanged(String type) {
@@ -198,7 +226,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
 
     final heightCm = _useImperial
         ? double.parse(_heightFeetController.text) * 30.48 +
-            double.parse(_heightInchesController.text) * 2.54
+            (double.tryParse(_heightInchesController.text) ?? 0) * 2.54
         : double.parse(_heightController.text);
 
     final goalWeightKg = _goalWeightController.text.isNotEmpty
@@ -217,7 +245,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         fatCaloriePct: Value(_fatCaloriePct),
         sex: Value(_sex),
         heightCm: Value(heightCm),
-        age: Value(int.parse(_ageController.text)),
+        birthdate: Value(_birthdate),
         goalWeightKg: goalWeightKg != null
             ? Value<double?>(goalWeightKg)
             : const Value<double?>(null),
@@ -334,20 +362,52 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               onSelectionChanged: (v) => setState(() => _sex = v.first),
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _ageController,
-              decoration: const InputDecoration(
-                labelText: 'Age',
-                hintText: 'e.g. 25',
+            InputDecorator(
+              decoration: const InputDecoration(labelText: 'Birthdate'),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  _birthdate ?? 'Select your birthdate',
+                  style: TextStyle(
+                    color: _birthdate != null
+                        ? null
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () async {
+                  final now = DateTime.now();
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: now.subtract(const Duration(days: 365 * 25)),
+                    firstDate: now.subtract(const Duration(days: 365 * 120)),
+                    lastDate: now.subtract(const Duration(days: 365 * 12)),
+                  );
+                  if (date != null) {
+                    setState(() {
+                      _birthdate =
+                          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                    });
+                  }
+                },
               ),
-              keyboardType: TextInputType.number,
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Required';
-                final n = int.tryParse(v);
-                if (n == null || n <= 0) return 'Enter a valid age';
-                return null;
-              },
-              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(
+                  value: false,
+                  label: Text('Metric'),
+                  tooltip: 'kg, cm',
+                ),
+                ButtonSegment(
+                  value: true,
+                  label: Text('Imperial'),
+                  tooltip: 'lb, ft/in',
+                ),
+              ],
+              selected: {_useImperial},
+              onSelectionChanged: (v) => _onUnitsChanged(v.first),
             ),
             const SizedBox(height: 12),
             _buildHeightField(),
@@ -367,23 +427,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                 if (n == null || n <= 0) return 'Enter a valid weight';
                 return null;
               },
-            ),
-            const SizedBox(height: 12),
-            SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(
-                  value: false,
-                  label: Text('Metric'),
-                  tooltip: 'kg, cm',
-                ),
-                ButtonSegment(
-                  value: true,
-                  label: Text('Imperial'),
-                  tooltip: 'lb, ft/in',
-                ),
-              ],
-              selected: {_useImperial},
-              onSelectionChanged: (v) => _onUnitsChanged(v.first),
             ),
             const Divider(height: 32),
             _sectionTitle(context, 'Activity Level'),
@@ -438,6 +481,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                   const TextInputType.numberWithOptions(decimal: true),
               onChanged: (_) => setState(() {}),
             ),
+            _calorieWarning(_calorieAdjustmentController.text),
             const Divider(height: 32),
             Text(
               'Protein: ${_proteinGPerLb.toStringAsFixed(1)} g/lb',

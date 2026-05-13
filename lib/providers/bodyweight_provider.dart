@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/database/database.dart';
 import 'database_provider.dart';
+import 'reset_provider.dart';
 
 class BodyweightService {
   final AppDatabase db;
@@ -22,5 +23,6 @@ final bodyweightServiceProvider = Provider<BodyweightService>((ref) {
 });
 
 final bodyweightProvider = FutureProvider<List<BodyweightEntry>>((ref) async {
+  ref.watch(resetTriggerProvider);
   return ref.read(bodyweightServiceProvider).getWeights();
 });

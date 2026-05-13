@@ -17,7 +17,7 @@ void main() {
       double fatCaloriePct = 25.0,
       String? sex = 'male',
       double? heightCm = 178,
-      int? age = 30,
+      String? birthdate = '1996-01-01',
       int activityLevel = 3,
       int onboardingCompleted = 1,
     }) {
@@ -29,7 +29,7 @@ void main() {
         fatCaloriePct: fatCaloriePct,
         sex: sex,
         heightCm: heightCm,
-        age: age,
+        birthdate: birthdate,
         goalWeightKg: null,
         useImperial: 0,
         activityLevel: activityLevel,
@@ -68,7 +68,7 @@ void main() {
         sex: 'male',
         weightKg: 80,
         heightCm: 178,
-        age: 30,
+        birthdate: '1996-01-01',
       );
       expect(targets.targetCalories, closeTo(estimated, 1));
       expect(targets.maintenanceCalories, closeTo(estimated, 1));
@@ -129,7 +129,7 @@ void main() {
         sex: 'female',
         weightKg: 80,
         heightCm: 178,
-        age: 30,
+        birthdate: '1996-01-01',
       );
       expect(targets.targetCalories, closeTo(estimated, 1));
     });
@@ -254,7 +254,7 @@ void main() {
         fatCaloriePct: const Value(25.0),
         sex: const Value('male'),
         heightCm: const Value(178),
-        age: const Value(30),
+        birthdate: const Value('1996-01-01'),
         activityLevel: const Value(3),
         onboardingCompleted: const Value(1),
         updatedAt: Value(DateTime.now().toIso8601String()),

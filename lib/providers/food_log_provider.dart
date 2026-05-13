@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/database/database.dart';
 import 'database_provider.dart';
+import 'reset_provider.dart';
 
 class FoodLogService {
   final AppDatabase db;
@@ -24,6 +25,7 @@ final foodLogProvider = Provider<FoodLogService>((ref) {
 });
 
 final todaysFoodProvider = FutureProvider<List<FoodEntry>>((ref) async {
+  ref.watch(resetTriggerProvider);
   final logService = ref.read(foodLogProvider);
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);

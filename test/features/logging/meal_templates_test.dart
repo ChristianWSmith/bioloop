@@ -102,6 +102,23 @@ void main() {
 
       expect(find.text('Meal Templates'), findsOneWidget);
       expect(find.text('No templates yet'), findsOneWidget);
+      expect(
+        find.byKey(const Key('empty_state_log_food')),
+        findsOneWidget,
+      );
+      expect(find.text('Log a food'), findsOneWidget);
+    });
+
+    testWidgets('empty state button closes the sheet', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      await pumpSheet(tester, db);
+
+      expect(find.text('Meal Templates'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('empty_state_log_food')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Meal Templates'), findsNothing);
     });
 
     testWidgets('shows saved template name and food count',
@@ -224,10 +241,14 @@ void main() {
         'Chicken',
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      // Wait for debounce (400ms) + search to complete
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.pump();
       await tester.tap(find.text('Chicken Breast').last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
 
       expect(
         find.byKey(const Key('save_as_template_button')),
@@ -311,10 +332,14 @@ void main() {
         'Chicken',
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      // Wait for debounce (400ms) + search to complete
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.pump();
       await tester.tap(find.text('Chicken Breast').last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
 
       expect(
         find.byKey(const Key('save_as_template_button')),

@@ -37,6 +37,21 @@ class RecipeListScreen extends ConsumerWidget {
             ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'recipe_add',
+        onPressed: () async {
+          final result = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(
+              builder: (_) => const RecipeFormScreen(),
+            ),
+          );
+          if (result == true) {
+            ref.invalidate(recipeListProvider);
+          }
+        },
+        tooltip: 'New recipe',
+        child: const Icon(Icons.add),
+      ),
       body: recipesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Error: $err')),

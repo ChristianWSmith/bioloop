@@ -41,13 +41,13 @@ class MacroTargets {
     } else if (goals?.onboardingCompleted == 1 &&
         goals?.sex != null &&
         goals?.heightCm != null &&
-        goals?.age != null &&
+        goals?.birthdate != null &&
         weightKg != null) {
       final estimated = estimateMaintenance(
         sex: goals!.sex!,
         weightKg: weightKg,
         heightCm: goals.heightCm!,
-        age: goals.age!,
+        birthdate: goals.birthdate,
         activityLevel: goals.activityLevel,
       );
       targetCalories = estimated + adjustment;

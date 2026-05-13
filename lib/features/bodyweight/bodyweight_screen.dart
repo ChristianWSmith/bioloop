@@ -35,19 +35,40 @@ class BodyweightScreen extends ConsumerWidget {
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert),
                   onSelected: (value) async {
-                    if (value == 'export_weight') {
-                      final db = ref.read(databaseProvider);
-                      final entries =
-                          await db.select(db.bodyweightEntries).get();
-                      if (!context.mounted) return;
-                      final csv = exportBodyweightToCsv(entries);
+                    final db = ref.read(databaseProvider);
+                    final entries =
+                        await db.select(db.bodyweightEntries).get();
+                    if (!context.mounted) return;
+                    final csv = exportBodyweightToCsv(entries);
+                    if (value == 'share_weight') {
                       await shareCsv(csv, 'bodyweight.csv');
+                    } else if (value == 'save_weight') {
+                      final path = await saveCsvToDownloads(
+                        csv,
+                        'bodyweight.csv',
+                      );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Saved to $path')),
+                      );
                     }
                   },
                   itemBuilder: (_) => [
                     const PopupMenuItem(
-                      value: 'export_weight',
-                      child: Text('Export CSV'),
+                      value: 'share_weight',
+                      child: ListTile(
+                        leading: Icon(Icons.share),
+                        title: Text('Share CSV'),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'save_weight',
+                      child: ListTile(
+                        leading: Icon(Icons.save_alt),
+                        title: Text('Save to device'),
+                        contentPadding: EdgeInsets.zero,
+                      ),
                     ),
                   ],
                 ),

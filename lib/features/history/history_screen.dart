@@ -139,19 +139,40 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert),
                   onSelected: (value) async {
-                    if (value == 'export_food') {
-                      final db = ref.read(databaseProvider);
-                      final entries =
-                          await db.select(db.foodEntries).get();
-                      if (!context.mounted) return;
-                      final csv = exportFoodEntriesToCsv(entries);
+                    final db = ref.read(databaseProvider);
+                    final entries =
+                        await db.select(db.foodEntries).get();
+                    if (!context.mounted) return;
+                    final csv = exportFoodEntriesToCsv(entries);
+                    if (value == 'share_food') {
                       await shareCsv(csv, 'food_entries.csv');
+                    } else if (value == 'save_food') {
+                      final path = await saveCsvToDownloads(
+                        csv,
+                        'food_entries.csv',
+                      );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Saved to $path')),
+                      );
                     }
                   },
                   itemBuilder: (_) => [
                     const PopupMenuItem(
-                      value: 'export_food',
-                      child: Text('Export CSV'),
+                      value: 'share_food',
+                      child: ListTile(
+                        leading: Icon(Icons.share),
+                        title: Text('Share CSV'),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'save_food',
+                      child: ListTile(
+                        leading: Icon(Icons.save_alt),
+                        title: Text('Save to device'),
+                        contentPadding: EdgeInsets.zero,
+                      ),
                     ),
                   ],
                 ),
