@@ -102,7 +102,7 @@ void main() {
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
-      final scaffold = tester.element(find.byType(Scaffold));
+      final scaffold = tester.element(find.byType(Scaffold).first);
       final theme = Theme.of(scaffold);
       expect(theme.brightness, Brightness.light);
       expect(theme.useMaterial3, true);

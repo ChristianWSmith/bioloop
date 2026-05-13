@@ -8,6 +8,7 @@ import 'features/history/history_screen.dart';
 import 'features/logging/log_food_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'providers/database_provider.dart';
+import 'providers/reset_provider.dart';
 import 'theme/theme.dart';
 
 class App extends ConsumerStatefulWidget {
@@ -48,6 +49,10 @@ class _AppState extends ConsumerState<App> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(resetTriggerProvider, (_, _) {
+      _checkOnboarding();
+    });
+
     return MaterialApp(
       title: 'bioloop',
       themeMode: ThemeMode.system,

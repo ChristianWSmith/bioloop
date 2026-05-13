@@ -167,4 +167,175 @@ class AppDatabase extends _$AppDatabase {
       mealType: Value(entry.mealType),
     ));
   }
+
+  // ── Meal Templates DAO ─────────────────────────────────────
+
+  Future<int> insertTemplate(MealTemplatesCompanion template) async {
+    return await into(mealTemplates).insert(template);
+  }
+
+  Future<List<MealTemplate>> getAllTemplates() async {
+    return await (select(mealTemplates)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)
+          ]))
+        .get();
+  }
+
+  Future<MealTemplate?> getTemplate(int id) async {
+    return await (select(mealTemplates)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  Future<void> updateTemplate(int id, MealTemplatesCompanion template) async {
+    await (update(mealTemplates)..where((t) => t.id.equals(id)))
+        .write(template);
+  }
+
+  Future<int> deleteTemplate(int id) async {
+    return await (delete(mealTemplates)..where((t) => t.id.equals(id))).go();
+  }
+
+  // ── Recipes DAO ─────────────────────────────────────────────
+
+  Future<int> insertRecipe(RecipesCompanion recipe) async {
+    return await into(recipes).insert(recipe);
+  }
+
+  Future<Recipe?> getRecipe(int id) async {
+    return await (select(recipes)..where((r) => r.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  Future<List<Recipe>> getAllRecipes() async {
+    return await (select(recipes)
+          ..orderBy([
+            (r) => OrderingTerm(expression: r.name, mode: OrderingMode.asc)
+          ]))
+        .get();
+  }
+
+  Future<void> updateRecipe(int id, RecipesCompanion recipe) async {
+    await (update(recipes)..where((r) => r.id.equals(id))).write(recipe);
+  }
+
+  Future<void> deleteRecipe(int id) async {
+    await (delete(recipes)..where((r) => r.id.equals(id))).go();
+  }
+
+  // ── Recipe Ingredients DAO ──────────────────────────────────
+
+  Future<int> insertIngredient(RecipeIngredientsCompanion ingredient) async {
+    return await into(recipeIngredients).insert(ingredient);
+  }
+
+  Future<List<IngredientWithFood>> getIngredientsWithFood(int recipeId) async {
+    final query = select(recipeIngredients).join([
+      innerJoin(foods, foods.id.equalsExp(recipeIngredients.foodId)),
+    ]);
+    query.where(recipeIngredients.recipeId.equals(recipeId));
+    final rows = await query.get();
+
+    return rows.map((row) {
+      return IngredientWithFood(
+        ingredient: row.readTable(recipeIngredients),
+        food: row.readTable(foods),
+      );
+    }).toList();
+  }
+
+  Future<void> updateIngredient(RecipeIngredientsCompanion ingredient, int id) async {
+    await (update(recipeIngredients)..where((i) => i.id.equals(id)))
+        .write(ingredient);
+  }
+
+  Future<void> deleteIngredient(int id) async {
+    await (delete(recipeIngredients)..where((i) => i.id.equals(id))).go();
+  }
+
+  Future<void> deleteIngredientsForRecipe(int recipeId) async {
+    await (delete(recipeIngredients)..where((i) => i.recipeId.equals(recipeId)))
+        .go();
+  }
+
+  Future<RecipeMacros> computeRecipeMacros(int recipeId) async {
+    final recipe = await getRecipe(recipeId);
+    if (recipe == null) {
+      return RecipeMacros(
+        calories: 0,
+        proteinGrams: 0,
+        carbsGrams: 0,
+        fatGrams: 0,
+        perUnitCalories: 0,
+        perUnitProtein: 0,
+        perUnitCarbs: 0,
+        perUnitFat: 0,
+      );
+    }
+
+    final ingredients = await getIngredientsWithFood(recipeId);
+    double totalCals = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+
+    for (final item in ingredients) {
+      final qty = item.ingredient.quantity;
+      totalCals += item.food.caloriesPerServing * qty;
+      totalProtein += item.food.proteinPerServing * qty;
+      totalCarbs += item.food.carbsPerServing * qty;
+      totalFat += item.food.fatPerServing * qty;
+    }
+
+    final perUnit = recipe.servingSize > 0 ? recipe.servingSize : 1;
+    return RecipeMacros(
+      calories: totalCals,
+      proteinGrams: totalProtein,
+      carbsGrams: totalCarbs,
+      fatGrams: totalFat,
+      perUnitCalories: totalCals / perUnit,
+      perUnitProtein: totalProtein / perUnit,
+      perUnitCarbs: totalCarbs / perUnit,
+      perUnitFat: totalFat / perUnit,
+    );
+  }
+
+  // ── Data Reset ──────────────────────────────────────────────
+
+  Future<void> resetAll() async {
+    await transaction(() async {
+      await delete(recipeIngredients).go();
+      await delete(foodEntries).go();
+      await delete(mealTemplates).go();
+      await delete(recipes).go();
+      await delete(bodyweightEntries).go();
+      await delete(userGoals).go();
+      await delete(foods).go();
+    });
+  }
+}
+
+class IngredientWithFood {
+  final RecipeIngredient ingredient;
+  final Food food;
+  const IngredientWithFood({required this.ingredient, required this.food});
+}
+
+class RecipeMacros {
+  final double calories;
+  final double proteinGrams;
+  final double carbsGrams;
+  final double fatGrams;
+  final double perUnitCalories;
+  final double perUnitProtein;
+  final double perUnitCarbs;
+  final double perUnitFat;
+
+  const RecipeMacros({
+    required this.calories,
+    required this.proteinGrams,
+    required this.carbsGrams,
+    required this.fatGrams,
+    required this.perUnitCalories,
+    required this.perUnitProtein,
+    required this.perUnitCarbs,
+    required this.perUnitFat,
+  });
 }

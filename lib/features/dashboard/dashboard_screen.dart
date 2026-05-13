@@ -7,6 +7,7 @@ import '../../providers/bodyweight_provider.dart';
 import '../../providers/food_log_provider.dart';
 import '../../providers/goals_provider.dart';
 import '../../providers/macro_targets_provider.dart';
+import '../settings/settings_screen.dart';
 import 'widgets/bodyweight_sparkline.dart';
 import 'widgets/macro_ring.dart';
 import 'widgets/maintenance_card.dart';
@@ -27,17 +28,23 @@ class DashboardScreen extends ConsumerWidget {
         targetsAsync.isLoading ||
         weightsAsync.isLoading ||
         goalsAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Scaffold(
+        appBar: _buildAppBar(context),
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
     if (entriesAsync.hasError ||
         targetsAsync.hasError ||
         weightsAsync.hasError ||
         goalsAsync.hasError) {
-      return Center(
-        child: Text(
-          'Something went wrong',
-          style: Theme.of(context).textTheme.bodyLarge,
+      return Scaffold(
+        appBar: _buildAppBar(context),
+        body: Center(
+          child: Text(
+            'Something went wrong',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
         ),
       );
     }
@@ -48,7 +55,10 @@ class DashboardScreen extends ConsumerWidget {
     final goals = goalsAsync.value;
 
     if (entries.isEmpty && weights.isEmpty && goals == null) {
-      return _buildOnboarding(context);
+      return Scaffold(
+        appBar: _buildAppBar(context),
+        body: _buildOnboarding(context),
+      );
     }
 
     final consumedCals = entries.fold(0.0, (s, e) => s + e.calories);
@@ -58,13 +68,15 @@ class DashboardScreen extends ConsumerWidget {
 
     final latestWeight = weights.isNotEmpty ? weights.first.weightKg : null;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildHeader(context),
-          if (goals?.goalWeightKg != null && latestWeight != null)
+    return Scaffold(
+      appBar: _buildAppBar(context),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildHeader(context),
+            if (goals?.goalWeightKg != null && latestWeight != null)
             _buildGoalWeightCard(
               context,
               currentKg: latestWeight,
@@ -139,8 +151,23 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
           BodyweightSparkline(entries: weights),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppBar(
+      title: const Text('Dashboard'),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.settings),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+          ),
+        ),
+      ],
     );
   }
 

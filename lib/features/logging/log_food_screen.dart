@@ -1,12 +1,17 @@
 import 'package:drift/drift.dart' hide Column;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/api/models/food_result.dart';
 import '../../core/database/database.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/food_log_provider.dart';
 import '../../providers/food_search_provider.dart';
+import '../recipes/recipe_list_screen.dart';
+import 'widgets/barcode_scanner.dart';
 import 'widgets/food_search_delegate.dart';
 import 'widgets/manual_food_form.dart';
+import 'widgets/meal_templates.dart';
 import 'widgets/meal_type_selector.dart';
 import 'widgets/serving_size_picker.dart';
 
@@ -68,6 +73,108 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
     );
     if (food != null && mounted) {
       _selectFood(FoodSearchItem.fromFood(food));
+    }
+  }
+
+  Future<void> _onSaveAsTemplate() async {
+    final db = ref.read(databaseProvider);
+    final food = _selectedFood!;
+    await saveCurrentFoodsAsTemplate(
+      context,
+      db,
+      (_) => FoodEntry(
+        id: 0,
+        name: food.name,
+        calories: food.caloriesPerServing * _servings,
+        proteinGrams: food.proteinPerServing * _servings,
+        carbsGrams: food.carbsPerServing * _servings,
+        fatGrams: food.fatPerServing * _servings,
+        servings: _servings,
+        servingLabel: food.servingLabel,
+        mealType: _mealType ?? '',
+        loggedAt: '',
+      ),
+      1,
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Template saved!')),
+    );
+  }
+
+  Future<void> _openTemplates() async {
+    final foods = await showModalBottomSheet<List<TemplateFood>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const MealTemplatesSheet(),
+    );
+    if (foods == null || !mounted) return;
+
+    final db = ref.read(databaseProvider);
+    final now = DateTime.now().toIso8601String();
+    try {
+      for (final f in foods) {
+        await db.insertEntry(FoodEntriesCompanion.insert(
+          name: f.name,
+          calories: f.calories,
+          proteinGrams: f.proteinGrams,
+          carbsGrams: f.carbsGrams,
+          fatGrams: f.fatGrams,
+          servings: f.servings,
+          servingLabel: f.servingLabel,
+          mealType: 'snack',
+          loggedAt: now,
+        ));
+      }
+      ref.invalidate(todaysFoodProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Template foods added!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Error'),
+            content: Text('Failed to add template foods: $e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _onBarcodeScan() async {
+    if (kIsWeb) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Barcode scanning is not supported on web'),
+        ),
+      );
+      return;
+    }
+
+    final apiClient = ref.read(openFoodFactsClientProvider);
+    final result = await Navigator.of(context).push<Object?>(
+      MaterialPageRoute(
+        builder: (_) => BarcodeScannerScreen(apiClient: apiClient),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (result is FoodResult) {
+      _selectFood(FoodSearchItem.fromFoodResult(result));
+    } else if (result == 'manual') {
+      _openCreateCustom();
     }
   }
 
@@ -182,44 +289,77 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Column(
               children: [
-                TextField(
-                  key: const Key('food_search_field'),
-                  readOnly: true,
-                  onTap: _onSearch,
-                  decoration: InputDecoration(
-                    hintText: _selectedFood != null
-                        ? _selectedFood!.name
-                        : 'Search foods...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _selectedFood != null
-                        ? IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => setState(() {
-                              _selectedFood = null;
-                              _servings = 1.0;
-                              _mealType = null;
-                              _gramController.clear();
-                            }),
-                          )
-                        : null,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const Key('food_search_field'),
+                        readOnly: true,
+                        onTap: _onSearch,
+                        decoration: InputDecoration(
+                          hintText: _selectedFood != null
+                              ? _selectedFood!.name
+                              : 'Search foods...',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _selectedFood != null
+                              ? IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () => setState(() {
+                                    _selectedFood = null;
+                                    _servings = 1.0;
+                                    _mealType = null;
+                                    _gramController.clear();
+                                  }),
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                    if (_selectedFood != null)
+                      IconButton(
+                        key: const Key('save_as_template_button'),
+                        icon: const Icon(Icons.bookmark_add_outlined),
+                        onPressed: _onSaveAsTemplate,
+                        tooltip: 'Save as template',
+                      ),
+                    IconButton(
+                      key: const Key('barcode_scan_button'),
+                      icon: const Icon(Icons.qr_code_scanner),
+                      onPressed: _onBarcodeScan,
+                      tooltip: 'Scan barcode',
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Recipes — coming in a future update',
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.book),
-                    label: const Text('Recipes'),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child:                       OutlinedButton.icon(
+                        onPressed: () async {
+                          final result = await Navigator.of(context).push<bool>(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const RecipeListScreen(pickerMode: true),
+                            ),
+                          );
+                          if (result == true && mounted) {
+                            ref.invalidate(todaysFoodProvider);
+                          }
+                        },
+                        icon: const Icon(Icons.book),
+                        label: const Text('Recipes'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        key: const Key('templates_button'),
+                        onPressed: () => _openTemplates(),
+                        icon: const Icon(Icons.content_paste),
+                        label: const Text('Templates'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

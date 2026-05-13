@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/database.dart';
+import '../../providers/database_provider.dart';
 import '../../providers/food_log_provider.dart';
+import 'export.dart';
 import 'widgets/edit_entry_sheet.dart';
 
 const _monthNames = [
@@ -127,9 +129,33 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(
-              'History',
-              style: Theme.of(context).textTheme.headlineSmall,
+            child: Row(
+              children: [
+                Text(
+                  'History',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const Spacer(),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (value) async {
+                    if (value == 'export_food') {
+                      final db = ref.read(databaseProvider);
+                      final entries =
+                          await db.select(db.foodEntries).get();
+                      if (!context.mounted) return;
+                      final csv = exportFoodEntriesToCsv(entries);
+                      await shareCsv(csv, 'food_entries.csv');
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: 'export_food',
+                      child: Text('Export CSV'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           const Divider(height: 1),

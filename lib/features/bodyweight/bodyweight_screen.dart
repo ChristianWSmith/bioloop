@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/database.dart';
 import '../../providers/bodyweight_provider.dart';
+import '../../providers/database_provider.dart';
+import '../history/export.dart';
 import 'widgets/add_weight_sheet.dart';
 
 class BodyweightScreen extends ConsumerWidget {
@@ -29,6 +31,25 @@ class BodyweightScreen extends ConsumerWidget {
                   onPressed: () => _showSheet(context, ref),
                   icon: const Icon(Icons.add),
                   label: const Text('Log weight'),
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (value) async {
+                    if (value == 'export_weight') {
+                      final db = ref.read(databaseProvider);
+                      final entries =
+                          await db.select(db.bodyweightEntries).get();
+                      if (!context.mounted) return;
+                      final csv = exportBodyweightToCsv(entries);
+                      await shareCsv(csv, 'bodyweight.csv');
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: 'export_weight',
+                      child: Text('Export CSV'),
+                    ),
+                  ],
                 ),
               ],
             ),
