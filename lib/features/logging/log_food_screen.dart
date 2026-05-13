@@ -96,7 +96,7 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
       ),
       1,
     );
-    if (!context.mounted) return;
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Template saved!')),
     );

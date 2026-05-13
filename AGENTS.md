@@ -85,6 +85,6 @@ lib/
 
 ## Important notes
 
-- `flutter analyze` should always pass with zero errors (one pre-existing info-level lint: `use_build_context_synchronously`)
+- `flutter analyze` should always pass with zero issues
 - In-memory drift DBs don't enforce foreign keys; rely on explicit delete ordering or explicit cascade deletes in tests
 - `databaseProvider` is intentionally un-implemented at declaration site (throws `UnimplementedError`); `main.dart` creates the real DB and overrides it
