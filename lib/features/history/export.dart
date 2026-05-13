@@ -39,5 +39,16 @@ Future<void> shareCsv(String content, String filename) async {
   final dir = await getTemporaryDirectory();
   final file = File('${dir.path}/$filename');
   await file.writeAsString(content);
-  await Share.shareXFiles([XFile(file.path)], text: filename);
+  await Share.shareXFiles(
+    [XFile(file.path, mimeType: 'text/csv')],
+    text: filename,
+  );
+}
+
+Future<String> saveCsvToDownloads(String content, String filename) async {
+  final dir = await getDownloadsDirectory()
+      ?? await getApplicationDocumentsDirectory();
+  final file = File('${dir.path}/$filename');
+  await file.writeAsString(content);
+  return file.path;
 }

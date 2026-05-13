@@ -16,7 +16,7 @@
 - [x] **#008** Recipes screen missing "+" button
 - [x] **#009** Templates empty state add button
 - [x] **#010** Food search debouncing
-- [ ] **#011** CSV export direct save
+- [x] **#011** CSV export direct save
 
 ## Phase 4 — Polish
 - [ ] **#012** Generate and apply custom app icon
