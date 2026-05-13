@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/algorithms/mifflin_st_jeor.dart';
 import '../../core/database/database.dart';
 import '../../providers/database_provider.dart';
 
@@ -51,11 +52,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.dispose();
   }
 
+  String _formatRate(double value) {
+    final s = value.toStringAsFixed(1);
+    if (s.endsWith('.0')) return s.substring(0, s.length - 2);
+    return s;
+  }
+
   String _ratePreview(String adjustmentText) {
     final adjustment = double.tryParse(adjustmentText);
     if (adjustment == null) return '';
     final rate = adjustment * 7 / 3500;
-    final absRate = rate.abs().toStringAsFixed(1);
+    final absRate = _formatRate(rate.abs());
     if (rate < 0) return '~$absRate lb/week loss';
     if (rate > 0) return '~$absRate lb/week gain';
     return 'Maintenance';
@@ -89,6 +96,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       );
     }
     return const SizedBox.shrink();
+  }
+
+  void _onGoalTypeChanged(String type) {
+    setState(() {
+      _goalType = type;
+      if (type == 'cut') {
+        _calorieAdjustmentController.text = '-500';
+      } else if (type == 'maintain') {
+        _calorieAdjustmentController.text = '0';
+      } else {
+        _calorieAdjustmentController.text = '300';
+      }
+    });
   }
 
   void _onUnitsChanged(bool imperial) {
@@ -141,8 +161,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _sex != null &&
       _birthdate != null &&
       (_useImperial
-          ? _heightFeetController.text.isNotEmpty &&
-              _heightInchesController.text.isNotEmpty
+          ? _heightFeetController.text.isNotEmpty
           : _heightController.text.isNotEmpty) &&
       _weightController.text.isNotEmpty;
 
@@ -156,7 +175,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     final heightCm = _useImperial
         ? double.parse(_heightFeetController.text) * 30.48 +
-            double.parse(_heightInchesController.text) * 2.54
+            (double.tryParse(_heightInchesController.text) ?? 0) * 2.54
         : double.parse(_heightController.text);
 
     final weightKg = _useImperial
@@ -215,6 +234,37 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         );
       }
     }
+  }
+
+  String _onboardingFatGramPreview() {
+    final weightText = _weightController.text;
+    final rawWeight = double.tryParse(weightText);
+    if (rawWeight == null || rawWeight <= 0) return '';
+    if (_sex == null) return '';
+    if (_birthdate == null) return '';
+    final heightCm = _useImperial
+        ? (double.tryParse(_heightFeetController.text) ?? 0) * 30.48 +
+            (double.tryParse(_heightInchesController.text) ?? 0) * 2.54
+        : double.tryParse(_heightController.text);
+    if (heightCm == null || heightCm <= 0) return '';
+
+    final weightKg = _useImperial ? rawWeight / 2.20462 : rawWeight;
+    final maintenance = estimateMaintenance(
+      sex: _sex!,
+      weightKg: weightKg,
+      heightCm: heightCm,
+      birthdate: _birthdate,
+      activityLevel: _activityLevel,
+    );
+    final adjustment = double.tryParse(_calorieAdjustmentController.text) ?? 0;
+    final targetCals = maintenance + adjustment;
+    final fatCals = targetCals * (_fatCaloriePct / 100);
+    final fatGrams = fatCals / 9;
+    return '${_fatCaloriePct.toStringAsFixed(0)}% = ${fatGrams.toStringAsFixed(0)}g';
+  }
+
+  Widget _sectionTitle(BuildContext context, String title) {
+    return Text(title, style: Theme.of(context).textTheme.titleMedium);
   }
 
   Future<void> _showDiscardDialog() async {
@@ -311,8 +361,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text('Personal Info',
-                  style: Theme.of(context).textTheme.titleMedium),
+              _sectionTitle(context, 'Profile'),
               const SizedBox(height: 8),
               SegmentedButton<String>(
                 segments: const [
@@ -374,8 +423,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               const SizedBox(height: 12),
               _buildHeightField(),
               const Divider(height: 32),
-              Text('Starting Weight',
-                  style: Theme.of(context).textTheme.titleMedium),
+              _sectionTitle(context, 'Starting Weight'),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _weightController,
@@ -395,8 +443,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 onChanged: (_) => setState(() {}),
               ),
               const Divider(height: 32),
-              Text('Preferences',
-                  style: Theme.of(context).textTheme.titleMedium),
+              _sectionTitle(context, 'Goal Weight'),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _goalWeightController,
@@ -415,8 +462,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 },
               ),
               const Divider(height: 32),
-              Text('Activity Level',
-                  style: Theme.of(context).textTheme.titleMedium),
+              _sectionTitle(context, 'Activity Level'),
               const SizedBox(height: 4),
               ..._activityLevels.map(
                 (level) => ListTile(
@@ -434,8 +480,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ),
               ),
               const Divider(height: 32),
-              Text('Initial Goals',
-                  style: Theme.of(context).textTheme.titleMedium),
+              _sectionTitle(context, 'Goal Type'),
               const SizedBox(height: 8),
               SegmentedButton<String>(
                 segments: const [
@@ -456,18 +501,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                 ],
                 selected: {_goalType},
-                onSelectionChanged: (v) {
-                  setState(() {
-                    _goalType = v.first;
-                    if (_goalType == 'cut') {
-                      _calorieAdjustmentController.text = '-500';
-                    } else if (_goalType == 'maintain') {
-                      _calorieAdjustmentController.text = '0';
-                    } else {
-                      _calorieAdjustmentController.text = '300';
-                    }
-                  });
-                },
+                onSelectionChanged: (v) => _onGoalTypeChanged(v.first),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -486,6 +520,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               const SizedBox(height: 12),
               Text(
                 'Protein: ${_proteinGPerLb.toStringAsFixed(1)} g/lb',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
               Slider(
                 value: _proteinGPerLb,
@@ -504,6 +539,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               const SizedBox(height: 16),
               Text(
                 'Fat: ${_fatCaloriePct.toStringAsFixed(0)}% of calories',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _onboardingFatGramPreview(),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               Slider(
                 value: _fatCaloriePct,
@@ -516,6 +559,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               Text(
                 'Recommended: 20\u201335% of calories',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _sectionTitle(context, 'Carbs'),
+              const SizedBox(height: 4),
+              Text(
+                'Fills remaining calories',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),

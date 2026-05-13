@@ -9,7 +9,7 @@
 - [x] **#004** Disable save button until fields filled
 - [x] **#005** Slider recommended ranges
 - [x] **#006** Calorie adjustment warnings
-- [ ] **#014** Onboarding vs goals parity audit
+- [x] **#014** Onboarding vs goals parity audit
 
 ## Phase 3 — Bug Fixes
 - [x] **#007** Stale dashboard after reset

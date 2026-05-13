@@ -226,7 +226,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
 
     final heightCm = _useImperial
         ? double.parse(_heightFeetController.text) * 30.48 +
-            double.parse(_heightInchesController.text) * 2.54
+            (double.tryParse(_heightInchesController.text) ?? 0) * 2.54
         : double.parse(_heightController.text);
 
     final goalWeightKg = _goalWeightController.text.isNotEmpty
@@ -393,6 +393,23 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               ),
             ),
             const SizedBox(height: 12),
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(
+                  value: false,
+                  label: Text('Metric'),
+                  tooltip: 'kg, cm',
+                ),
+                ButtonSegment(
+                  value: true,
+                  label: Text('Imperial'),
+                  tooltip: 'lb, ft/in',
+                ),
+              ],
+              selected: {_useImperial},
+              onSelectionChanged: (v) => _onUnitsChanged(v.first),
+            ),
+            const SizedBox(height: 12),
             _buildHeightField(),
             const SizedBox(height: 12),
             TextFormField(
@@ -410,23 +427,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                 if (n == null || n <= 0) return 'Enter a valid weight';
                 return null;
               },
-            ),
-            const SizedBox(height: 12),
-            SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(
-                  value: false,
-                  label: Text('Metric'),
-                  tooltip: 'kg, cm',
-                ),
-                ButtonSegment(
-                  value: true,
-                  label: Text('Imperial'),
-                  tooltip: 'lb, ft/in',
-                ),
-              ],
-              selected: {_useImperial},
-              onSelectionChanged: (v) => _onUnitsChanged(v.first),
             ),
             const Divider(height: 32),
             _sectionTitle(context, 'Activity Level'),
