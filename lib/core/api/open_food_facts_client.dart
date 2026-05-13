@@ -20,7 +20,7 @@ class OpenFoodFactsClient {
   Future<List<FoodResult>> search(String query) async {
     try {
       final uri = Uri.parse(
-        '$baseUrl/cgi/search.pl?search_terms=${Uri.encodeQueryComponent(query)}&json=true&page_size=25',
+        '$baseUrl/cgi/search.pl?search_terms=${Uri.encodeQueryComponent(query)}&json=true&page_size=25&lc=en&cc=US',
       );
       final response = await _client
           .get(uri, headers: {'User-Agent': userAgent})
