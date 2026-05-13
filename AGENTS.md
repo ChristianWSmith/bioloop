@@ -37,6 +37,7 @@ Standard Flutter app (default `flutter create` template). Minimal custom code.
 | T11 — Dashboard: summary + progress rings | ✅ Complete | 2026-05-12 | AI |
 | T12 — Bodyweight chart | ✅ Complete | 2026-05-12 | AI |
 | T13 — Maintenance calculator algorithm | ✅ Complete | 2026-05-12 | AI |
+| T14 — Dashboard: full integration | ✅ Complete | 2026-05-12 | AI |
 
 After completing each ticket, the agent working on it appends a new row here. This table
 is the single source of truth for what has been built.

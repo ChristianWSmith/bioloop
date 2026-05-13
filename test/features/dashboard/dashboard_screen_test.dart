@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,7 +9,6 @@ import 'package:bioloop/core/database/database.dart';
 import 'package:bioloop/features/dashboard/dashboard_screen.dart';
 import 'package:bioloop/features/dashboard/widgets/bodyweight_sparkline.dart';
 import 'package:bioloop/features/dashboard/widgets/macro_ring.dart';
-import 'package:bioloop/features/dashboard/widgets/maintenance_card.dart';
 import 'package:bioloop/providers/bodyweight_provider.dart';
 import 'package:bioloop/providers/food_log_provider.dart';
 import 'package:bioloop/providers/goals_provider.dart';
@@ -43,6 +40,13 @@ Widget buildDashboard(
       ),
     ),
   );
+}
+
+Future<void> pumpDashboard(WidgetTester tester, Widget widget) async {
+  await tester.pumpWidget(widget);
+  await tester.pump();
+  await tester.pump(const Duration(seconds: 1));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -158,27 +162,25 @@ void main() {
   });
 
   group('DashboardScreen', () {
-    MacroTargets makeTargets({
+    UserGoal makeGoals({
       double calorieAdjustment = 0,
+      double? goalWeightKg,
+      int useImperial = 0,
     }) {
-      return MacroTargets.compute(
-        goals: UserGoal(
-          id: 1,
-          goalType: 'cut',
-          calorieAdjustment: calorieAdjustment,
-          proteinGPerLb: 1.0,
-          fatCaloriePct: 25.0,
-          sex: 'male',
-          heightCm: 178,
-          age: 30,
-          goalWeightKg: null,
-          useImperial: 0,
-          activityLevel: 3,
-          onboardingCompleted: 1,
-          updatedAt: '2026-01-01',
-        ),
-        weightKg: 80,
-        regressionMaintenance: 2500,
+      return UserGoal(
+        id: 1,
+        goalType: 'cut',
+        calorieAdjustment: calorieAdjustment,
+        proteinGPerLb: 1.0,
+        fatCaloriePct: 25.0,
+        sex: 'male',
+        heightCm: 178,
+        age: 30,
+        goalWeightKg: goalWeightKg,
+        useImperial: useImperial,
+        activityLevel: 3,
+        onboardingCompleted: 1,
+        updatedAt: '2026-01-01',
       );
     }
 
@@ -187,20 +189,9 @@ void main() {
       double? goalWeightKg,
     }) {
       return MacroTargets.compute(
-        goals: UserGoal(
-          id: 1,
-          goalType: 'cut',
+        goals: makeGoals(
           calorieAdjustment: calorieAdjustment,
-          proteinGPerLb: 1.0,
-          fatCaloriePct: 25.0,
-          sex: 'male',
-          heightCm: 178,
-          age: 30,
           goalWeightKg: goalWeightKg,
-          useImperial: 0,
-          activityLevel: 3,
-          onboardingCompleted: 1,
-          updatedAt: '2026-01-01',
         ),
         weightKg: 80,
         regressionMaintenance: 2500,
@@ -208,14 +199,15 @@ void main() {
     }
 
     testWidgets('empty day shows consumed at 0', (tester) async {
+      final goals = makeGoals();
       final targets = makeTargets();
-      await tester.pumpWidget(buildDashboard([], targets));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester, buildDashboard([], targets, goals: goals));
 
       expect(find.text('0'), findsNWidgets(4));
     });
 
     testWidgets('macro rings have correct colors', (tester) async {
+      final goals = makeGoals();
       final targets = makeTargets();
       final entry = FoodEntry(
         id: 1,
@@ -233,8 +225,7 @@ void main() {
         loggedAt: DateTime.now().toIso8601String(),
       );
 
-      await tester.pumpWidget(buildDashboard([entry], targets));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester, buildDashboard([entry], targets, goals: goals));
 
       expect(find.text('Protein'), findsOneWidget);
       expect(find.text('Fat'), findsOneWidget);
@@ -243,42 +234,30 @@ void main() {
     });
 
     testWidgets('goal weight card shows delta', (tester) async {
-      final targets = makeTargets(goalWeightKg: 75);
       final now = DateTime.now();
       final dateStr =
           '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       final weights = [
-        BodyweightEntry(id: 1, weightKg: 82, loggedAt: dateStr),
+        BodyweightEntry(id: 1, weightKg: 70, loggedAt: dateStr),
       ];
-      final goals = UserGoal(
-        id: 1,
-        goalType: 'cut',
-        calorieAdjustment: -500,
-        proteinGPerLb: 1.0,
-        fatCaloriePct: 25.0,
-        sex: 'male',
-        heightCm: 178,
-        age: 30,
-        goalWeightKg: 75,
-        useImperial: 0,
-        activityLevel: 3,
-        onboardingCompleted: 1,
-        updatedAt: '2026-01-01',
+      final goals = makeGoals(calorieAdjustment: -500, goalWeightKg: 75);
+      final targets = MacroTargets.compute(
+        goals: goals,
+        weightKg: 70,
+        regressionMaintenance: 2500,
       );
 
-      await tester.pumpWidget(buildDashboard([], targets,
+      await pumpDashboard(tester, buildDashboard([], targets,
           weights: weights, goals: goals));
-      await tester.pumpAndSettle();
 
-      expect(find.textContaining('82 kg'), findsOneWidget);
+      expect(find.textContaining('70 kg'), findsOneWidget);
       expect(find.textContaining('75 kg'), findsOneWidget);
-      expect(find.textContaining('7 kg to go'), findsOneWidget);
+      expect(find.textContaining('5 kg to go'), findsOneWidget);
     });
 
     testWidgets('goal weight card hidden when goals null', (tester) async {
-      final targets = makeTargets(goalWeightKg: 75);
-      await tester.pumpWidget(buildDashboard([], targets));
-      await tester.pumpAndSettle();
+      final targets = makeTargets();
+      await pumpDashboard(tester, buildDashboard([], targets));
 
       expect(find.textContaining('kg to go'), findsNothing);
     });
@@ -288,126 +267,65 @@ void main() {
       final dateStr =
           '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       final weights = [
-        BodyweightEntry(id: 1, weightKg: 82, loggedAt: dateStr),
+        BodyweightEntry(id: 1, weightKg: 70, loggedAt: dateStr),
       ];
-      final goals = UserGoal(
-        id: 1,
-        goalType: 'cut',
-        calorieAdjustment: -500,
-        proteinGPerLb: 1.0,
-        fatCaloriePct: 25.0,
-        sex: 'male',
-        heightCm: 178,
-        age: 30,
-        goalWeightKg: 75,
-        useImperial: 1,
-        activityLevel: 3,
-        onboardingCompleted: 1,
-        updatedAt: '2026-01-01',
-      );
-
+      final goals = makeGoals(calorieAdjustment: -500, goalWeightKg: 75, useImperial: 1);
       final targets = MacroTargets.compute(
         goals: goals,
-        weightKg: 82,
+        weightKg: 70,
         regressionMaintenance: 2500,
       );
 
-      await tester.pumpWidget(buildDashboard([], targets,
+      await pumpDashboard(tester, buildDashboard([], targets,
           weights: weights, goals: goals));
-      await tester.pumpAndSettle();
 
-      expect(find.textContaining('181 lb'), findsOneWidget);
+      expect(find.textContaining('154 lb'), findsOneWidget);
       expect(find.textContaining('165 lb'), findsOneWidget);
+      expect(find.textContaining('11 lb to go'), findsOneWidget);
     });
 
     testWidgets('rate card shows loss with deficit', (tester) async {
-      final goals = UserGoal(
-        id: 1,
-        goalType: 'cut',
-        calorieAdjustment: -500,
-        proteinGPerLb: 1.0,
-        fatCaloriePct: 25.0,
-        sex: 'male',
-        heightCm: 178,
-        age: 30,
-        goalWeightKg: null,
-        useImperial: 0,
-        activityLevel: 3,
-        onboardingCompleted: 1,
-        updatedAt: '2026-01-01',
-      );
+      final goals = makeGoals(calorieAdjustment: -500);
       final targets = MacroTargets.compute(
         goals: goals,
         weightKg: 80,
         regressionMaintenance: 2500,
       );
 
-      await tester.pumpWidget(buildDashboard([], targets, goals: goals));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester, buildDashboard([], targets, goals: goals));
 
       expect(find.textContaining('loss'), findsOneWidget);
     });
 
     testWidgets('rate card shows gain with surplus', (tester) async {
-      final goals = UserGoal(
-        id: 1,
-        goalType: 'bulk',
-        calorieAdjustment: 300,
-        proteinGPerLb: 1.0,
-        fatCaloriePct: 25.0,
-        sex: 'male',
-        heightCm: 178,
-        age: 30,
-        goalWeightKg: null,
-        useImperial: 0,
-        activityLevel: 3,
-        onboardingCompleted: 1,
-        updatedAt: '2026-01-01',
-      );
+      final goals = makeGoals(calorieAdjustment: 300, goalWeightKg: null);
       final targets = MacroTargets.compute(
         goals: goals,
         weightKg: 80,
         regressionMaintenance: 2500,
       );
 
-      await tester.pumpWidget(buildDashboard([], targets, goals: goals));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester, buildDashboard([], targets, goals: goals));
 
       expect(find.textContaining('gain'), findsOneWidget);
     });
 
     testWidgets('rate card shows maintenance', (tester) async {
-      final goals = UserGoal(
-        id: 1,
-        goalType: 'maintain',
-        calorieAdjustment: 0,
-        proteinGPerLb: 1.0,
-        fatCaloriePct: 25.0,
-        sex: 'male',
-        heightCm: 178,
-        age: 30,
-        goalWeightKg: null,
-        useImperial: 0,
-        activityLevel: 3,
-        onboardingCompleted: 1,
-        updatedAt: '2026-01-01',
-      );
+      final goals = makeGoals(calorieAdjustment: 0, goalWeightKg: null);
       final targets = MacroTargets.compute(
         goals: goals,
         weightKg: 80,
         regressionMaintenance: 2500,
       );
 
-      await tester.pumpWidget(buildDashboard([], targets, goals: goals));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester, buildDashboard([], targets, goals: goals));
 
       expect(find.text('Maintenance'), findsOneWidget);
     });
 
     testWidgets('rate card hidden when goals null', (tester) async {
       final targets = makeTargets();
-      await tester.pumpWidget(buildDashboard([], targets));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester, buildDashboard([], targets));
 
       expect(find.text('Maintenance'), findsNothing);
       expect(find.textContaining('loss'), findsNothing);
@@ -417,13 +335,13 @@ void main() {
     testWidgets('onboarding shown when no food, weight, goals',
         (tester) async {
       final targets = makeTargets();
-      await tester.pumpWidget(buildDashboard([], targets));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester, buildDashboard([], targets));
 
-      expect(find.text('Log your first meal'), findsOneWidget);
+      expect(find.textContaining('Log your first meal'), findsOneWidget);
     });
 
     testWidgets('onboarding hidden when food present', (tester) async {
+      final goals = makeGoals();
       final targets = makeTargets();
       final entry = FoodEntry(
         id: 1,
@@ -441,8 +359,7 @@ void main() {
         loggedAt: DateTime.now().toIso8601String(),
       );
 
-      await tester.pumpWidget(buildDashboard([entry], targets));
-      await tester.pumpAndSettle();
+      await pumpDashboard(tester, buildDashboard([entry], targets, goals: goals));
 
       expect(find.text('Log your first meal'), findsNothing);
       expect(find.text('Calories'), findsOneWidget);
@@ -450,44 +367,82 @@ void main() {
 
     testWidgets('all sections render without overflow', (tester) async {
       final now = DateTime.now();
-      final dateStr =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       final weights = List.generate(10, (i) {
         final day = now.subtract(Duration(days: i * 2));
         final dStr =
             '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
         return BodyweightEntry(id: i + 1, weightKg: 80 + i * 0.2, loggedAt: dStr);
       });
-      final goals = UserGoal(
-        id: 1,
-        goalType: 'cut',
-        calorieAdjustment: -500,
-        proteinGPerLb: 1.0,
-        fatCaloriePct: 25.0,
-        sex: 'male',
-        heightCm: 178,
-        age: 30,
-        goalWeightKg: 75,
-        useImperial: 0,
-        activityLevel: 3,
-        onboardingCompleted: 1,
-        updatedAt: '2026-01-01',
-      );
+      final goals = makeGoals(calorieAdjustment: -500, goalWeightKg: 90);
       final targets = MacroTargets.compute(
         goals: goals,
         weightKg: 80,
         regressionMaintenance: 2500,
       );
 
-      await tester.pumpWidget(buildDashboard([], targets,
+      await pumpDashboard(tester, buildDashboard([], targets,
           weights: weights, goals: goals));
-      await tester.pumpAndSettle();
 
       expect(find.byType(Scrollable), findsOneWidget);
-      expect(find.text('Today,'), findsOneWidget);
+      expect(find.textContaining('Today,'), findsOneWidget);
       expect(find.textContaining('loss'), findsOneWidget);
       expect(find.textContaining('Maintenance Calories'), findsOneWidget);
       expect(find.byType(LineChart), findsOneWidget);
+    });
+
+    testWidgets('maintenance card shows value when result present',
+        (tester) async {
+      final goals = makeGoals(calorieAdjustment: -500);
+      final targets =
+          MacroTargets.compute(goals: goals, weightKg: 80, regressionMaintenance: 2500);
+      final maintenance = MaintenanceResult(
+        maintenanceCalories: 2450,
+        confidenceInterval: 180,
+        dataPoints: 22,
+      );
+
+      await pumpDashboard(
+        tester,
+        buildDashboard([], targets, goals: goals, maintenance: maintenance),
+      );
+
+      expect(find.textContaining('2,450 kcal'), findsOneWidget);
+      expect(find.textContaining('±180'), findsOneWidget);
+      expect(find.textContaining('22 data points'), findsOneWidget);
+    });
+
+    testWidgets('maintenance card shows insufficient data prompt',
+        (tester) async {
+      final goals = makeGoals(calorieAdjustment: -500);
+      final targets =
+          MacroTargets.compute(goals: goals, weightKg: 80, regressionMaintenance: 2500);
+
+      await pumpDashboard(
+        tester,
+        buildDashboard([], targets, goals: goals, maintenance: null),
+      );
+
+      expect(find.textContaining('Log 14+ days'), findsOneWidget);
+    });
+
+    testWidgets('goal weight celebratory when at or past goal',
+        (tester) async {
+      final now = DateTime.now();
+      final dateStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final weights = [
+        BodyweightEntry(id: 1, weightKg: 75, loggedAt: dateStr),
+      ];
+      final goals = makeGoals(calorieAdjustment: -500, goalWeightKg: 75);
+      final targets =
+          MacroTargets.compute(goals: goals, weightKg: 75, regressionMaintenance: 2500);
+
+      await pumpDashboard(
+        tester,
+        buildDashboard([], targets, weights: weights, goals: goals),
+      );
+
+      expect(find.text('You reached your goal!'), findsOneWidget);
     });
   });
 

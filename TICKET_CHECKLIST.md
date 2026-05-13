@@ -25,7 +25,7 @@
 **Phase 4 — Maintenance Algorithm**
 
 - [x] T13 — Maintenance calculator
-- [ ] T14 — Dashboard full integration
+- [x] T14 — Dashboard full integration
 
 **Phase 5 — Polish**
 
