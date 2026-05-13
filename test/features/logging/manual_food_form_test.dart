@@ -1,0 +1,201 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bioloop/core/database/database.dart';
+import 'package:bioloop/features/logging/widgets/manual_food_form.dart';
+import 'package:bioloop/providers/database_provider.dart';
+
+void main() {
+  group('ManualFoodForm', () {
+    AppDatabase createDb() => AppDatabase.createInMemory();
+
+    Future<void> pushForm(WidgetTester tester, AppDatabase db) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ProviderScope(
+                    overrides: [databaseProvider.overrideWithValue(db)],
+                    child: const ManualFoodForm(),
+                  ),
+                ),
+              ),
+              child: const Text('Open Form'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Form'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> fillRequiredFields(WidgetTester tester) async {
+      await tester.enterText(find.byType(TextFormField).at(0), 'Test Food');
+      await tester.enterText(find.byType(TextFormField).at(1), '1 cup');
+      await tester.enterText(find.byType(TextFormField).at(2), '200');
+      await tester.enterText(find.byType(TextFormField).at(3), '10');
+      await tester.enterText(find.byType(TextFormField).at(4), '20');
+      await tester.enterText(find.byType(TextFormField).at(5), '5');
+    }
+
+    testWidgets('validation: empty name shows error', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await tester.enterText(find.byType(TextFormField).at(1), '1 cup');
+      await tester.enterText(find.byType(TextFormField).at(2), '200');
+      await tester.enterText(find.byType(TextFormField).at(3), '10');
+      await tester.enterText(find.byType(TextFormField).at(4), '20');
+      await tester.enterText(find.byType(TextFormField).at(5), '5');
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Custom Food'), findsOneWidget);
+    });
+
+    testWidgets('validation: negative calories shows error', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'Test Food');
+      await tester.enterText(find.byType(TextFormField).at(1), '1 cup');
+      await tester.enterText(find.byType(TextFormField).at(2), '-1');
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Custom Food'), findsOneWidget);
+    });
+
+    testWidgets('save: creates food with source=manual and barcode=null',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await fillRequiredFields(tester);
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Open Form'), findsOneWidget);
+      expect(find.text('Custom Food'), findsNothing);
+
+      final foods = await (db.select(db.foods)).get();
+      expect(foods.length, 1);
+      expect(foods.first.name, 'Test Food');
+      expect(foods.first.source, 'manual');
+      expect(foods.first.barcode, isNull);
+    });
+
+    testWidgets('cancel: pops without saving', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Open Form'), findsOneWidget);
+      expect(find.text('Custom Food'), findsNothing);
+
+      final foods = await (db.select(db.foods)).get();
+      expect(foods, isEmpty);
+    });
+
+    testWidgets('optional gram weight: empty does not block save',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await fillRequiredFields(tester);
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      final foods = await (db.select(db.foods)).get();
+      expect(foods.length, 1);
+      expect(foods.first.servingSizeGrams, isNull);
+    });
+
+    testWidgets('gram weight: entering a value stores it', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await fillRequiredFields(tester);
+      await tester.enterText(find.byType(TextFormField).at(6), '240');
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      final foods = await (db.select(db.foods)).get();
+      expect(foods.length, 1);
+      expect(foods.first.servingSizeGrams, 240);
+    });
+
+    testWidgets(
+        'field defaults: macros start empty, serving label has placeholder',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      expect(
+          find.widgetWithText(TextFormField, 'Name'), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, 'Serving label'),
+          findsOneWidget);
+      expect(
+          find.widgetWithText(TextFormField, 'Calories per serving'),
+          findsOneWidget);
+      expect(
+          find.widgetWithText(TextFormField, 'Protein per serving (g)'),
+          findsOneWidget);
+      expect(
+          find.widgetWithText(TextFormField, 'Carbs per serving (g)'),
+          findsOneWidget);
+      expect(find.widgetWithText(TextFormField, 'Fat per serving (g)'),
+          findsOneWidget);
+      expect(
+        find.widgetWithText(
+            TextFormField, 'Serving size in grams (optional)'),
+        findsOneWidget,
+      );
+
+      expect(find.text('e.g. 1 cup, 1 slice'), findsOneWidget);
+      expect(find.text('e.g. 100'), findsOneWidget);
+
+      final caloriesField = tester.widget<TextField>(
+        find.descendant(
+          of: find.widgetWithText(TextFormField, 'Calories per serving'),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(caloriesField.controller?.text, '');
+    });
+
+    testWidgets('integration: created food appears in local search',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await fillRequiredFields(tester);
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      final results = await db.searchByName('Test');
+      expect(results.length, 1);
+      expect(results.first.name, 'Test Food');
+      expect(results.first.source, 'manual');
+    });
+  });
+}

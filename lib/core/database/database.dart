@@ -1,0 +1,341 @@
+import 'dart:io';
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:path_provider/path_provider.dart';
+
+import 'tables/foods.dart';
+import 'tables/food_entries.dart';
+import 'tables/bodyweight_entries.dart';
+import 'tables/user_goals.dart';
+import 'tables/meal_templates.dart';
+import 'tables/recipes.dart';
+import 'tables/recipe_ingredients.dart';
+
+part 'database.g.dart';
+
+@DriftDatabase(
+  tables: [
+    Foods,
+    FoodEntries,
+    BodyweightEntries,
+    UserGoals,
+    MealTemplates,
+    Recipes,
+    RecipeIngredients,
+  ],
+)
+class AppDatabase extends _$AppDatabase {
+  AppDatabase(super.e);
+
+  @override
+  int get schemaVersion => 1;
+
+  static Future<AppDatabase> create() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/bioloop.db');
+    return AppDatabase(NativeDatabase(file));
+  }
+
+  static AppDatabase createInMemory() {
+    return AppDatabase(NativeDatabase.memory());
+  }
+
+  // ── User Goals DAO ──────────────────────────────────────────
+
+  Future<UserGoal?> getGoals() {
+    return (select(userGoals)..where((g) => g.id.equals(1))).getSingleOrNull();
+  }
+
+  Future<void> upsertGoals(UserGoalsCompanion goals) async {
+    final existing = await getGoals();
+    if (existing != null) {
+      await (update(userGoals)..where((g) => g.id.equals(1))).write(goals);
+    } else {
+      await into(userGoals).insert(goals);
+    }
+  }
+
+  // ── Bodyweight DAO ──────────────────────────────────────────
+
+  Future<int> insertWeight(BodyweightEntriesCompanion entry) async {
+    return await into(bodyweightEntries).insert(entry);
+  }
+
+  Future<void> updateWeight(BodyweightEntry entry) async {
+    await (update(bodyweightEntries)..where((b) => b.id.equals(entry.id)))
+        .write(BodyweightEntriesCompanion(
+      weightKg: Value(entry.weightKg),
+      loggedAt: Value(entry.loggedAt),
+    ));
+  }
+
+  Future<int> deleteWeight(int id) async {
+    return await (delete(bodyweightEntries)..where((b) => b.id.equals(id)))
+        .go();
+  }
+
+  Future<List<BodyweightEntry>> getWeights({int? limit, DateTime? since}) async {
+    var results = await (select(bodyweightEntries)
+          ..orderBy([
+            (b) =>
+                OrderingTerm(expression: b.loggedAt, mode: OrderingMode.desc)
+          ]))
+        .get();
+    if (since != null) {
+      final sinceStr =
+          '${since.year}-${since.month.toString().padLeft(2, '0')}-${since.day.toString().padLeft(2, '0')}';
+      results = results.where((e) => e.loggedAt.compareTo(sinceStr) >= 0).toList();
+    }
+    if (limit != null) {
+      results = results.take(limit).toList();
+    }
+    return results;
+  }
+
+  // ── Foods DAO ───────────────────────────────────────────────
+
+  Future<int> insertFood(FoodsCompanion food) async {
+    return await into(foods).insert(food);
+  }
+
+  Future<Food?> getByBarcode(String barcode) async {
+    return await (select(foods)..where((f) => f.barcode.equals(barcode)))
+        .getSingleOrNull();
+  }
+
+  Future<List<Food>> searchByName(String query, {int limit = 25}) async {
+    return await (select(foods)
+          ..where((f) => f.name.like('%$query%'))
+          ..limit(limit))
+        .get();
+  }
+
+  Future<void> upsertFood(FoodsCompanion food) async {
+    final barcode = food.barcode.value;
+    if (barcode != null) {
+      final existing = await getByBarcode(barcode);
+      if (existing != null) {
+        await (update(foods)..where((f) => f.barcode.equals(barcode)))
+            .write(food);
+        return;
+      }
+    }
+    await into(foods).insert(food);
+  }
+
+  // ── Food Entries DAO ──────────────────────────────────────────
+
+  Future<int> insertEntry(FoodEntriesCompanion entry) async {
+    return await into(foodEntries).insert(entry);
+  }
+
+  Future<List<FoodEntry>> getEntriesForDate(DateTime date) async {
+    final dateStr =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return await (select(foodEntries)
+          ..where((f) => f.loggedAt.like('$dateStr%'))
+          ..orderBy([
+            (f) => OrderingTerm(expression: f.loggedAt, mode: OrderingMode.desc)
+          ]))
+        .get();
+  }
+
+  Future<int> deleteEntry(int id) async {
+    return await (delete(foodEntries)..where((f) => f.id.equals(id))).go();
+  }
+
+  Future<List<FoodEntry>> getEntriesPaginated(
+      {int offset = 0, int limit = 20}) async {
+    return await (select(foodEntries)
+          ..orderBy([
+            (f) =>
+                OrderingTerm(expression: f.loggedAt, mode: OrderingMode.desc)
+          ])
+          ..limit(limit, offset: offset))
+        .get();
+  }
+
+  Future<void> updateEntry(FoodEntry entry) async {
+    await (update(foodEntries)..where((f) => f.id.equals(entry.id)))
+        .write(FoodEntriesCompanion(
+      name: Value(entry.name),
+      servings: Value(entry.servings),
+      calories: Value(entry.calories),
+      proteinGrams: Value(entry.proteinGrams),
+      carbsGrams: Value(entry.carbsGrams),
+      fatGrams: Value(entry.fatGrams),
+      mealType: Value(entry.mealType),
+    ));
+  }
+
+  // ── Meal Templates DAO ─────────────────────────────────────
+
+  Future<int> insertTemplate(MealTemplatesCompanion template) async {
+    return await into(mealTemplates).insert(template);
+  }
+
+  Future<List<MealTemplate>> getAllTemplates() async {
+    return await (select(mealTemplates)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)
+          ]))
+        .get();
+  }
+
+  Future<MealTemplate?> getTemplate(int id) async {
+    return await (select(mealTemplates)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  Future<void> updateTemplate(int id, MealTemplatesCompanion template) async {
+    await (update(mealTemplates)..where((t) => t.id.equals(id)))
+        .write(template);
+  }
+
+  Future<int> deleteTemplate(int id) async {
+    return await (delete(mealTemplates)..where((t) => t.id.equals(id))).go();
+  }
+
+  // ── Recipes DAO ─────────────────────────────────────────────
+
+  Future<int> insertRecipe(RecipesCompanion recipe) async {
+    return await into(recipes).insert(recipe);
+  }
+
+  Future<Recipe?> getRecipe(int id) async {
+    return await (select(recipes)..where((r) => r.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  Future<List<Recipe>> getAllRecipes() async {
+    return await (select(recipes)
+          ..orderBy([
+            (r) => OrderingTerm(expression: r.name, mode: OrderingMode.asc)
+          ]))
+        .get();
+  }
+
+  Future<void> updateRecipe(int id, RecipesCompanion recipe) async {
+    await (update(recipes)..where((r) => r.id.equals(id))).write(recipe);
+  }
+
+  Future<void> deleteRecipe(int id) async {
+    await (delete(recipes)..where((r) => r.id.equals(id))).go();
+  }
+
+  // ── Recipe Ingredients DAO ──────────────────────────────────
+
+  Future<int> insertIngredient(RecipeIngredientsCompanion ingredient) async {
+    return await into(recipeIngredients).insert(ingredient);
+  }
+
+  Future<List<IngredientWithFood>> getIngredientsWithFood(int recipeId) async {
+    final query = select(recipeIngredients).join([
+      innerJoin(foods, foods.id.equalsExp(recipeIngredients.foodId)),
+    ]);
+    query.where(recipeIngredients.recipeId.equals(recipeId));
+    final rows = await query.get();
+
+    return rows.map((row) {
+      return IngredientWithFood(
+        ingredient: row.readTable(recipeIngredients),
+        food: row.readTable(foods),
+      );
+    }).toList();
+  }
+
+  Future<void> updateIngredient(RecipeIngredientsCompanion ingredient, int id) async {
+    await (update(recipeIngredients)..where((i) => i.id.equals(id)))
+        .write(ingredient);
+  }
+
+  Future<void> deleteIngredient(int id) async {
+    await (delete(recipeIngredients)..where((i) => i.id.equals(id))).go();
+  }
+
+  Future<void> deleteIngredientsForRecipe(int recipeId) async {
+    await (delete(recipeIngredients)..where((i) => i.recipeId.equals(recipeId)))
+        .go();
+  }
+
+  Future<RecipeMacros> computeRecipeMacros(int recipeId) async {
+    final recipe = await getRecipe(recipeId);
+    if (recipe == null) {
+      return RecipeMacros(
+        calories: 0,
+        proteinGrams: 0,
+        carbsGrams: 0,
+        fatGrams: 0,
+        perUnitCalories: 0,
+        perUnitProtein: 0,
+        perUnitCarbs: 0,
+        perUnitFat: 0,
+      );
+    }
+
+    final ingredients = await getIngredientsWithFood(recipeId);
+    double totalCals = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
+
+    for (final item in ingredients) {
+      final qty = item.ingredient.quantity;
+      totalCals += item.food.caloriesPerServing * qty;
+      totalProtein += item.food.proteinPerServing * qty;
+      totalCarbs += item.food.carbsPerServing * qty;
+      totalFat += item.food.fatPerServing * qty;
+    }
+
+    final perUnit = recipe.servingSize > 0 ? recipe.servingSize : 1;
+    return RecipeMacros(
+      calories: totalCals,
+      proteinGrams: totalProtein,
+      carbsGrams: totalCarbs,
+      fatGrams: totalFat,
+      perUnitCalories: totalCals / perUnit,
+      perUnitProtein: totalProtein / perUnit,
+      perUnitCarbs: totalCarbs / perUnit,
+      perUnitFat: totalFat / perUnit,
+    );
+  }
+
+  // ── Data Reset ──────────────────────────────────────────────
+
+  Future<void> resetAll() async {
+    await transaction(() async {
+      await delete(recipeIngredients).go();
+      await delete(foodEntries).go();
+      await delete(mealTemplates).go();
+      await delete(recipes).go();
+      await delete(bodyweightEntries).go();
+      await delete(userGoals).go();
+      await delete(foods).go();
+    });
+  }
+}
+
+class IngredientWithFood {
+  final RecipeIngredient ingredient;
+  final Food food;
+  const IngredientWithFood({required this.ingredient, required this.food});
+}
+
+class RecipeMacros {
+  final double calories;
+  final double proteinGrams;
+  final double carbsGrams;
+  final double fatGrams;
+  final double perUnitCalories;
+  final double perUnitProtein;
+  final double perUnitCarbs;
+  final double perUnitFat;
+
+  const RecipeMacros({
+    required this.calories,
+    required this.proteinGrams,
+    required this.carbsGrams,
+    required this.fatGrams,
+    required this.perUnitCalories,
+    required this.perUnitProtein,
+    required this.perUnitCarbs,
+    required this.perUnitFat,
+  });
+}

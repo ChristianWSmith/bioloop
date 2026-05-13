@@ -1,6 +1,8 @@
 # bioloop — AGENTS.md
 
-Standard Flutter app (default `flutter create` template). Minimal custom code.
+Flutter macro counter that auto-adjusts daily targets based on bodyweight trends. Uses rolling regression to derive maintenance calories from logged food + weight data.
+
+**Tech stack**: Flutter / drift / Riverpod / OpenFoodFacts API
 
 ## Commands
 
@@ -10,60 +12,79 @@ Standard Flutter app (default `flutter create` template). Minimal custom code.
 | Analyze (lint) | `flutter analyze` |
 | Run tests | `flutter test` |
 | Run app | `flutter run` |
+| Generate drift code | `dart run build_runner build` |
 
-## Structure
+## Architecture
 
-- `lib/main.dart` — single app entrypoint
-- `test/widget_test.dart` — default Flutter smoke test; update or remove as feature tests are added per ticket
-- No CI, no custom build tooling, no assets
-- Default `flutter_lints` lint rules via `analysis_options.yaml`
+```
+lib/
+  main.dart             # ProviderScope, runApp
+  app.dart              # MaterialApp + onboarding gate
+  theme/
+    theme.dart          # AppTheme (light + dark, Material 3)
+  core/
+    database/
+      database.dart     # AppDatabase (drift) — all DAO methods
+      tables/           # 7 table definitions (drift .dart files)
+    api/
+      open_food_facts_client.dart
+      models/food_result.dart
+    algorithms/
+      maintenance_calculator.dart   # rolling linear regression
+      mifflin_st_jeor.dart          # BMR estimator
+  providers/            # 10 Riverpod providers
+  features/
+    onboarding/         # first-launch setup flow
+    dashboard/          # summary + progress rings + sparkline
+    logging/            # food search, log, barcode, templates
+    bodyweight/         # weight log + chart
+    history/            # paginated entry list + CSV export
+    goals/              # goal type, calorie adj, sliders
+    recipes/            # create/edit/log composite dishes
+    settings/           # data reset
+```
 
-## App State
+## Key conventions
 
-| Ticket | Status | Date | Agent |
-|--------|--------|------|-------|
-| T0 — Initial scaffold | ✅ Complete | — | Manual |
+### Drift (database)
+- 7 tables: `foods`, `food_entries`, `bodyweight_entries`, `user_goals`, `meal_templates`, `recipes`, `recipe_ingredients`
+- Table definitions in `lib/core/database/tables/` (one file per table)
+- All DAO methods on `AppDatabase` in `lib/core/database/database.dart`
+- Use `AppDatabase.createInMemory()` for tests
+- In-memory DB does NOT enforce FK constraints by default
 
-After completing each ticket, the agent working on it appends a new row here. This table
-is the single source of truth for what has been built.
+### Riverpod
+- `databaseProvider` is a simple `Provider<AppDatabase>` that must be overridden in tests
+- Feature providers in `lib/providers/` — roughly one provider file per domain
+- Async state handled with `AsyncValue` / `AsyncNotifierProvider` where appropriate
+- `ProviderScope` wraps the app in `main.dart`; tests use `ProviderScope(overrides: [...])`
 
-## Ticket Workflow
+### Widgets / screens
+- Every screen is a `ConsumerWidget` or `ConsumerStatefulWidget`
+- Screen/widget files in `lib/features/<feature>/`
+- Shared widgets in `lib/features/<feature>/widgets/`
+- Material 3 throughout; use `Theme.of(context).colorScheme` for colors
 
-When starting work, follow these steps in order:
+### Testing
+- Tests in `test/` mirroring the `lib/` structure
+- For Drift: `AppDatabase.createInMemory()`, insert seed data, add `addTearDown(() => db.close())`
+- For providers: override `databaseProvider` with the in-memory DB
+- For widget tests: `pumpWidget(ProviderScope(...))`, `pumpAndSettle()`
+- All DB operations inside widget tests (even assertions) work because the in-memory DB is synchronous
 
-### 1. Identify the next ticket
-- Open `TICKET_CHECKLIST.md`, find the first unchecked ticket whose dependencies are met.
-- Dependencies are satisfied when the tickets listed as prerequisites in the ticket's spec are marked complete.
-- Confirm with the human before starting implementation.
+## Design rules
 
-### 2. Read all relevant context
-- Read the ticket file in `tickets/<NN>-<name>.md`.
-- Read the relevant sections of `PLAN.md` — schema DDL, architecture tree, feature phases, design rules.
-- Read the existing source files you'll be modifying or adjacent to.
-- Understand conventions by reading neighboring files (provider patterns, widget structure, DAO style).
+- **Disable, don't validate**: keep submit buttons disabled until all conditions are met (never show validation errors after tap)
+- **Errors show dialogs**: network/DB errors show a modal `AlertDialog` (not snackbar or inline text), one "OK" dismiss button
+- **Macro targets**: protein/fat sliders physically clamped (protein 0.5–2.0 g/lb, fat 10–50%)
+- **Recipe macros**: computed dynamically from ingredients (not stored as snapshots); scale = portion / servingSize
+- **Logging a recipe**: creates single `food_entry` with summed macros × scale, sets `recipe_id` FK
+- **Meal templates**: JSON-encoded list of food snapshots stored in `meal_templates.foods` TEXT column
+- **CSV export**: sync (`compute`), writes to temp dir, shares via `share_plus`
+- **Data reset**: `resetAll()` truncates all 7 tables in FK-safe order within a transaction; increments `resetTriggerProvider` → `App` re-checks onboarding
 
-### 3. Implement the ticket
-- Follow Flutter / drift / Riverpod conventions already established in the codebase.
-- Every drift table file lives in `lib/core/database/tables/`.
-- Every Riverpod provider lives in `lib/features/<feature>/providers/` (or `lib/core/providers/` for shared ones).
-- Every screen/widget lives in `lib/features/<feature>/`.
-- Write tests alongside features in `test/` (see existing `widget_test.dart` for setup patterns).
-- Never commit unless explicitly asked.
+## Important notes
 
-### 4. Verify with automated checks
-- Run `flutter analyze` — fix all issues.
-- Run `flutter test` — all tests must pass.
-- If new tests were written, confirm they pass.
-
-### 5. Human verification
-- The ticket spec includes a "Human verification" or acceptance-criteria section.
-- Walk through each item with the human. Do not mark the ticket done until the human confirms each step passes.
-
-### 6. Update tracking files
-- **TICKET_CHECKLIST.md**: mark the ticket as `[x]`.
-- **AGENTS.md App State table**: append a new row with the ticket number, ✅ status, today's date, and agent name (or "Manual" if the human drove).
-
-### 7. Propagate downstream changes
-- If implementation revealed something that changes a downstream ticket's plan (e.g., a different column name, a new provider signature, a different file structure), open and edit that downstream ticket file *before* moving on.
-- Flag the change to the human so they're aware.
-- Never silently diverge from the plan — if in doubt, ask.
+- `flutter analyze` should always pass with zero errors (one pre-existing info-level lint: `use_build_context_synchronously`)
+- In-memory drift DBs don't enforce foreign keys; rely on explicit delete ordering or explicit cascade deletes in tests
+- `databaseProvider` is intentionally un-implemented at declaration site (throws `UnimplementedError`); `main.dart` creates the real DB and overrides it
