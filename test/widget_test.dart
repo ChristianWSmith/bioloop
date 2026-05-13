@@ -558,6 +558,153 @@ void main() {
       );
     });
 
+    testWidgets('calorie warning absent at default -500', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        100,
+        scrollable: _scrollable,
+      );
+
+      expect(
+        find.text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+        ),
+        findsNothing,
+      );
+      expect(
+        find.text(
+          'Surpluses over 300 kcal/day may lead to excess fat gain. Consider a smaller surplus.',
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('calorie warning appears for deficit >500',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        100,
+        scrollable: _scrollable,
+      );
+
+      await tester.enterTextByLabel('Calorie adjustment', '-600');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('calorie warning appears for surplus >300',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        100,
+        scrollable: _scrollable,
+      );
+
+      await tester.enterTextByLabel('Calorie adjustment', '400');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Surpluses over 300 kcal/day may lead to excess fat gain. Consider a smaller surplus.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('calorie warning disappears when corrected', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        100,
+        scrollable: _scrollable,
+      );
+
+      await tester.enterTextByLabel('Calorie adjustment', '-600');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.enterTextByLabel('Calorie adjustment', '-500');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('calorie warning does not block save button',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pumpApp(tester, db);
+
+      await tester.tap(find.text('Male'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Select your birthdate'),
+        100,
+        scrollable: _scrollable,
+      );
+      await tester.tap(find.text('Select your birthdate'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await tester.enterTextByLabel('Height', '175');
+      await tester.pumpAndSettle();
+      await tester.enterTextByLabel('Weight', '75');
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        100,
+        scrollable: _scrollable,
+      );
+
+      await tester.enterTextByLabel('Calorie adjustment', '-1000');
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Save'),
+        100,
+        scrollable: _scrollable,
+      );
+      final saveButton = find.ancestor(
+        of: find.text('Save'),
+        matching: find.byType(FilledButton),
+      );
+      final button = tester.widget<FilledButton>(saveButton);
+      expect(button.onPressed, isNotNull);
+    });
+
     testWidgets('rate preview updates when calorie adjustment changes',
         (tester) async {
       final db = createDb();

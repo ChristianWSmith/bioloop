@@ -136,6 +136,36 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     return '${_fatCaloriePct.toStringAsFixed(0)}% = ${fatGrams.toStringAsFixed(0)}g';
   }
 
+  Widget _calorieWarning(String text) {
+    final adjustment = double.tryParse(text);
+    if (adjustment == null) return const SizedBox.shrink();
+    if (adjustment < -500) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.tertiary,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+    if (adjustment > 300) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          'Surpluses over 300 kcal/day may lead to excess fat gain. Consider a smaller surplus.',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.tertiary,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
   void _onGoalTypeChanged(String type) {
     setState(() {
       _goalType = type;
@@ -451,6 +481,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                   const TextInputType.numberWithOptions(decimal: true),
               onChanged: (_) => setState(() {}),
             ),
+            _calorieWarning(_calorieAdjustmentController.text),
             const Divider(height: 32),
             Text(
               'Protein: ${_proteinGPerLb.toStringAsFixed(1)} g/lb',

@@ -61,6 +61,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return 'Maintenance';
   }
 
+  Widget _calorieWarning(String text) {
+    final adjustment = double.tryParse(text);
+    if (adjustment == null) return const SizedBox.shrink();
+    if (adjustment < -500) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.tertiary,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+    if (adjustment > 300) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          'Surpluses over 300 kcal/day may lead to excess fat gain. Consider a smaller surplus.',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.tertiary,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
   void _onUnitsChanged(bool imperial) {
     setState(() {
       if (imperial && !_useImperial) {
@@ -452,6 +482,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     const TextInputType.numberWithOptions(decimal: true),
                 onChanged: (_) => setState(() {}),
               ),
+              _calorieWarning(_calorieAdjustmentController.text),
               const SizedBox(height: 12),
               Text(
                 'Protein: ${_proteinGPerLb.toStringAsFixed(1)} g/lb',

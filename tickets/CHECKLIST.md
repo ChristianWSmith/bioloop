@@ -8,7 +8,7 @@
 - [x] **#003** Remove date prompt
 - [x] **#004** Disable save button until fields filled
 - [x] **#005** Slider recommended ranges
-- [ ] **#006** Calorie adjustment warnings
+- [x] **#006** Calorie adjustment warnings
 - [ ] **#014** Onboarding vs goals parity audit
 
 ## Phase 3 — Bug Fixes

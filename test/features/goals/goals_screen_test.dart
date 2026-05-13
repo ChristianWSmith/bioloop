@@ -324,6 +324,86 @@ void main() {
       expect(find.text('~0.7 lb/week gain'), findsOneWidget);
     });
 
+    testWidgets('calorie warning absent at default -500', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      await seedGoals(db);
+      await pumpGoals(tester, db);
+
+      expect(
+        find.text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+        ),
+        findsNothing,
+      );
+      expect(
+        find.text(
+          'Surpluses over 300 kcal/day may lead to excess fat gain. Consider a smaller surplus.',
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('calorie warning appears for aggressive deficit',
+        (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      await seedGoals(db);
+      await pumpGoals(tester, db);
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        '-600',
+      );
+      await tester.pump();
+
+      expect(
+        find.text(
+          'Deficits over 500 kcal/day are aggressive. Consider a smaller deficit.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('calorie warning appears for aggressive surplus',
+        (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      await seedGoals(db);
+      await pumpGoals(tester, db);
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        '400',
+      );
+      await tester.pump();
+
+      expect(
+        find.text(
+          'Surpluses over 300 kcal/day may lead to excess fat gain. Consider a smaller surplus.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('calorie warning does not block save', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      await seedGoals(db);
+      await pumpGoals(tester, db);
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Calorie adjustment'),
+        '-600',
+      );
+      await tester.pump();
+
+      var saveButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Save'),
+      );
+      expect(saveButton.onPressed, isNotNull);
+    });
+
     testWidgets('protein slider shows current value', (tester) async {
       final db = AppDatabase.createInMemory();
       addTearDown(() => db.close());
