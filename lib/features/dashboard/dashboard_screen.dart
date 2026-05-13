@@ -7,6 +7,7 @@ import '../../providers/bodyweight_provider.dart';
 import '../../providers/food_log_provider.dart';
 import '../../providers/goals_provider.dart';
 import '../../providers/macro_targets_provider.dart';
+import '../../providers/unit_preferences_provider.dart';
 import '../settings/settings_screen.dart';
 import 'widgets/bodyweight_sparkline.dart';
 import 'widgets/macro_ring.dart';
@@ -23,6 +24,7 @@ class DashboardScreen extends ConsumerWidget {
     final targetsAsync = ref.watch(macroTargetsProvider);
     final weightsAsync = ref.watch(bodyweightProvider);
     final goalsAsync = ref.watch(userGoalsProvider);
+    final unitPrefs = ref.watch(unitPreferencesProvider);
 
     if (entriesAsync.isLoading ||
         targetsAsync.isLoading ||
@@ -81,7 +83,7 @@ class DashboardScreen extends ConsumerWidget {
               context,
               currentKg: latestWeight,
               goalKg: goals!.goalWeightKg!,
-              useImperial: goals.useImperial == 1,
+              useImperial: unitPrefs.useImperial,
             ),
           const SizedBox(height: 16),
           SizedBox(

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/database/database.dart';
-import '../../../providers/goals_provider.dart';
+import '../../../providers/unit_preferences_provider.dart';
 
 class BodyweightSparkline extends ConsumerWidget {
   final List<BodyweightEntry> entries;
@@ -13,8 +13,8 @@ class BodyweightSparkline extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final goalsAsync = ref.watch(userGoalsProvider);
-    final useImperial = goalsAsync.valueOrNull?.useImperial == 1;
+    final prefs = ref.watch(unitPreferencesProvider);
+    final useImperial = prefs.useImperial;
 
     if (entries.isEmpty) {
       return const SizedBox(
