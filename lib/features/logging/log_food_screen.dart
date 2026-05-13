@@ -25,16 +25,13 @@ class LogFoodScreen extends ConsumerStatefulWidget {
 class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
   FoodSearchItem? _selectedFood;
   double _servings = 1.0;
+  String _unit = 'serving';
   String? _mealType;
   bool _saving = false;
   bool _pendingCreateCustom = false;
-  bool _updatingGram = false;
-
-  final _gramController = TextEditingController();
 
   @override
   void dispose() {
-    _gramController.dispose();
     super.dispose();
   }
 
@@ -59,9 +56,9 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
   void _selectFood(FoodSearchItem food) {
     setState(() {
       _selectedFood = food;
-      _servings = 1.0;
+      _servings = food.servingQuantity;
+      _unit = food.servingUnit;
       _mealType = null;
-      _gramController.clear();
     });
   }
 
@@ -90,7 +87,7 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         carbsGrams: food.carbsPerServing * _servings,
         fatGrams: food.fatPerServing * _servings,
         servings: _servings,
-        servingLabel: food.servingLabel,
+        servingLabel: _buildLabel(_servings, _unit),
         mealType: _mealType ?? '',
         loggedAt: '',
       ),
@@ -180,29 +177,17 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
 
   void _onServingsChanged(double value) {
     setState(() => _servings = value);
-    _syncGramFromServings();
   }
 
-  void _onGramChanged(String value) {
-    if (_updatingGram) return;
-    if (_selectedFood?.servingSizeGrams == null) return;
-    if (value.isEmpty) return;
-    final grams = double.tryParse(value);
-    if (grams != null && grams > 0) {
-      final newServings = grams / _selectedFood!.servingSizeGrams!;
-      if ((newServings - _servings).abs() > 0.0001) {
-        setState(() => _servings = newServings);
-      }
-    }
+  void _onUnitChanged(String value) {
+    setState(() => _unit = value);
   }
 
-  void _syncGramFromServings() {
-    if (_selectedFood?.servingSizeGrams != null) {
-      _updatingGram = true;
-      _gramController.text =
-          (_servings * _selectedFood!.servingSizeGrams!).toStringAsFixed(1);
-      _updatingGram = false;
-    }
+  String _buildLabel(double qty, String unit) {
+    final qtyStr = qty == qty.roundToDouble()
+        ? qty.toInt().toString()
+        : qty.toStringAsFixed(1);
+    return '$qtyStr $unit';
   }
 
   Future<void> _save() async {
@@ -240,7 +225,7 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         carbsGrams: food.carbsPerServing * _servings,
         fatGrams: food.fatPerServing * _servings,
         servings: _servings,
-        servingLabel: food.servingLabel,
+        servingLabel: _buildLabel(_servings, _unit),
         barcode: Value(food.barcode),
         foodId: Value(foodId),
         recipeId: const Value(null),
@@ -257,8 +242,8 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         setState(() {
           _selectedFood = null;
           _servings = 1.0;
+          _unit = 'serving';
           _mealType = null;
-          _gramController.clear();
           _saving = false;
         });
       }
@@ -309,8 +294,8 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                                   onPressed: () => setState(() {
                                     _selectedFood = null;
                                     _servings = 1.0;
+                                    _unit = 'serving';
                                     _mealType = null;
-                                    _gramController.clear();
                                   }),
                                 )
                               : null,
@@ -377,11 +362,11 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: ServingSizePicker(
-                      servings: _servings,
-                      onChanged: _onServingsChanged,
+                      quantity: _servings,
+                      unit: _unit,
                       servingSizeGrams: _selectedFood!.servingSizeGrams,
-                      gramController: _gramController,
-                      onGramChanged: _onGramChanged,
+                      onQuantityChanged: _onServingsChanged,
+                      onUnitChanged: _onUnitChanged,
                     ),
                   ),
 
@@ -396,7 +381,7 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Macros for ${_servings.toStringAsFixed(_servings == _servings.roundToDouble() ? 0 : 1)} × ${_selectedFood!.servingLabel}',
+                              'Macros for ${_buildLabel(_servings, _unit)}',
                               style: Theme.of(context).textTheme.titleSmall,
                             ),
                             const SizedBox(height: 8),

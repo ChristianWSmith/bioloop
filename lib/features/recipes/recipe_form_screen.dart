@@ -95,7 +95,10 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
 
     final quantityStr = await showDialog<String>(
       context: context,
-      builder: (ctx) => _QuantityDialog(foodName: food.name),
+      builder: (ctx) => _QuantityDialog(
+        foodName: food.name,
+        unit: food.servingUnit,
+      ),
     );
     if (quantityStr == null || !mounted) return;
     final quantity = double.tryParse(quantityStr) ?? 1;
@@ -149,6 +152,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       context: context,
       builder: (ctx) => _QuantityDialog(
         foodName: item.food.name,
+        unit: item.food.servingUnit,
         initialValue: item.ingredient.quantity.toStringAsFixed(1),
       ),
     );
@@ -411,9 +415,14 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
 
 class _QuantityDialog extends StatefulWidget {
   final String foodName;
+  final String unit;
   final String? initialValue;
 
-  const _QuantityDialog({required this.foodName, this.initialValue});
+  const _QuantityDialog({
+    required this.foodName,
+    required this.unit,
+    this.initialValue,
+  });
 
   @override
   State<_QuantityDialog> createState() => _QuantityDialogState();
@@ -441,7 +450,7 @@ class _QuantityDialogState extends State<_QuantityDialog> {
       content: TextField(
         controller: _controller,
         keyboardType: TextInputType.number,
-        decoration: const InputDecoration(labelText: 'Number of servings'),
+        decoration: InputDecoration(labelText: 'Quantity in ${widget.unit}'),
         autofocus: true,
       ),
       actions: [
