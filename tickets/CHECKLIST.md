@@ -15,7 +15,7 @@
 - [x] **#007** Stale dashboard after reset
 - [x] **#008** Recipes screen missing "+" button
 - [x] **#009** Templates empty state add button
-- [ ] **#010** Food search debouncing
+- [x] **#010** Food search debouncing
 - [ ] **#011** CSV export direct save
 
 ## Phase 4 — Polish

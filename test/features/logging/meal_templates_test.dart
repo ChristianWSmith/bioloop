@@ -241,10 +241,14 @@ void main() {
         'Chicken',
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      // Wait for debounce (400ms) + search to complete
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.pump();
       await tester.tap(find.text('Chicken Breast').last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
 
       expect(
         find.byKey(const Key('save_as_template_button')),
@@ -328,10 +332,14 @@ void main() {
         'Chicken',
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      // Wait for debounce (400ms) + search to complete
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.pump();
       await tester.tap(find.text('Chicken Breast').last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
 
       expect(
         find.byKey(const Key('save_as_template_button')),

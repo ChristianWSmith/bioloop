@@ -52,6 +52,7 @@ class ServingSizePicker extends StatelessWidget {
               ),
             ),
             IconButton(
+              key: const Key('increment_servings'),
               icon: const Icon(Icons.add_circle_outline),
               onPressed: _increment,
             ),

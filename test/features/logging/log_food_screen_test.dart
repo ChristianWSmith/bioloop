@@ -81,11 +81,16 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
       await tester.enterText(_editableTextField(), query);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      // Fire debounce timer (400ms) + let search future complete
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
       await tester.tap(find.text(resultLabel).last);
       // Wait for route pop animation (300ms default) to fully complete
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
     }
 
     Future<void> selectFood(WidgetTester tester) =>
@@ -112,10 +117,67 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
       await tester.enterText(_editableTextField(), 'Oats');
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      // Wait for debounce (400ms) + search to complete
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.pump();
 
       expect(find.text('Oats'), findsAtLeastNWidgets(1));
       expect(find.text('Create custom food'), findsOneWidget);
+    });
+
+    testWidgets('search debounce delays results until typing stops',
+        (tester) async {
+      final db = _createSeedDb();
+      addTearDown(() => db.close());
+      await pumpScreen(tester, db);
+
+      await tester.tap(find.byKey(const Key('food_search_field')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Type a single character and advance only 100ms (before debounce fires)
+      await tester.enterText(_editableTextField(), 'C');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Results should NOT be showing yet (debounce timer hasn't fired)
+      expect(find.text('Chicken Breast'), findsNothing);
+
+      // Wait for debounce to fire + search to complete
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.pump();
+
+      // Now results should appear
+      expect(find.text('Chicken Breast'), findsWidgets);
+    });
+
+    testWidgets('closing search before debounce fires does not crash',
+        (tester) async {
+      final db = _createSeedDb();
+      addTearDown(() => db.close());
+      await pumpScreen(tester, db);
+
+      await tester.tap(find.byKey(const Key('food_search_field')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Type text and close before debounce fires
+      await tester.enterText(_editableTextField(), 'Chicken');
+      await tester.pump();
+
+      // Close search immediately
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
+
+      // Should be back on log screen without crash
+      expect(
+        find.text('Tap the search bar above to find or create a food'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('serving stepper: tap + increases servings, macros double',

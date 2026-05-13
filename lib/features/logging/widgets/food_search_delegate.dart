@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../providers/food_search_provider.dart';
 
@@ -53,52 +54,112 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
         ),
         if (query.isNotEmpty) ...[
           const Divider(),
-          FutureBuilder<List<FoodSearchItem>>(
-            key: ValueKey(query),
-            future: searchService.search(query),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              if (snapshot.hasError) {
-                return Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text('Error: ${snapshot.error}'),
-                );
-              }
-
-              final items = snapshot.data ?? [];
-              if (items.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('No results found'),
-                );
-              }
-
-              return Column(
-                children: items.map((item) {
-                  final macroText =
-                      '${item.caloriesPerServing.toStringAsFixed(0)} cal  '
-                      '• ${item.proteinPerServing.toStringAsFixed(1)}g P  '
-                      '• ${item.carbsPerServing.toStringAsFixed(1)}g C  '
-                      '• ${item.fatPerServing.toStringAsFixed(1)}g F';
-                  return ListTile(
-                    title: Text(item.name),
-                    subtitle: Text(
-                      '$macroText\n${item.servingLabel}',
-                    ),
-                    isThreeLine: true,
-                    onTap: () => close(context, item),
-                  );
-                }).toList(),
-              );
-            },
+          _DebouncedSearch(
+            query: query,
+            searchService: searchService,
+            onSelectItem: (item) => close(context, item),
           ),
         ],
       ],
+    );
+  }
+}
+
+class _DebouncedSearch extends StatefulWidget {
+  final String query;
+  final FoodSearchService searchService;
+  final void Function(FoodSearchItem item) onSelectItem;
+
+  const _DebouncedSearch({
+    required this.query,
+    required this.searchService,
+    required this.onSelectItem,
+  });
+
+  @override
+  State<_DebouncedSearch> createState() => _DebouncedSearchState();
+}
+
+class _DebouncedSearchState extends State<_DebouncedSearch> {
+  Timer? _debounceTimer;
+  String _debouncedQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _startDebounce();
+  }
+
+  @override
+  void didUpdateWidget(_DebouncedSearch oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.query != oldWidget.query) {
+      _startDebounce();
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startDebounce() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        setState(() => _debouncedQuery = widget.query);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_debouncedQuery.isEmpty) return const SizedBox.shrink();
+
+    return FutureBuilder<List<FoodSearchItem>>(
+      key: ValueKey(_debouncedQuery),
+      future: widget.searchService.search(_debouncedQuery),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Error: ${snapshot.error}'),
+          );
+        }
+
+        final items = snapshot.data ?? [];
+        if (items.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('No results found'),
+          );
+        }
+
+        return Column(
+          children: items.map((item) {
+            final macroText =
+                '${item.caloriesPerServing.toStringAsFixed(0)} cal  '
+                '• ${item.proteinPerServing.toStringAsFixed(1)}g P  '
+                '• ${item.carbsPerServing.toStringAsFixed(1)}g C  '
+                '• ${item.fatPerServing.toStringAsFixed(1)}g F';
+            return ListTile(
+              title: Text(item.name),
+              subtitle: Text(
+                '$macroText\n${item.servingLabel}',
+              ),
+              isThreeLine: true,
+              onTap: () => widget.onSelectItem(item),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }
