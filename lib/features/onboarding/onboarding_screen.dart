@@ -19,10 +19,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _saving = false;
 
   String? _sex;
-  final _ageController = TextEditingController();
+  String? _birthdate;
   final _heightController = TextEditingController();
+  final _heightFeetController = TextEditingController();
+  final _heightInchesController = TextEditingController();
   final _weightController = TextEditingController();
-  DateTime _weightDate = DateTime.now();
   final _goalWeightController = TextEditingController();
   bool _useImperial = false;
   int _activityLevel = 3;
@@ -41,8 +42,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   void dispose() {
-    _ageController.dispose();
     _heightController.dispose();
+    _heightFeetController.dispose();
+    _heightInchesController.dispose();
     _weightController.dispose();
     _goalWeightController.dispose();
     _calorieAdjustmentController.dispose();
@@ -59,19 +61,83 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return 'Maintenance';
   }
 
+  void _onUnitsChanged(bool imperial) {
+    setState(() {
+      if (imperial && !_useImperial) {
+        final heightCm = double.tryParse(_heightController.text);
+        if (heightCm != null && heightCm > 0) {
+          final totalInches = heightCm / 2.54;
+          final feet = totalInches ~/ 12;
+          final inches = (totalInches % 12).round();
+          _heightFeetController.text = feet.toString();
+          _heightInchesController.text = inches.toString();
+        }
+        _heightController.clear();
+
+        final weightKg = double.tryParse(_weightController.text);
+        if (weightKg != null && weightKg > 0) {
+          _weightController.text = (weightKg * 2.20462).toStringAsFixed(1);
+        }
+
+        final goalKg = double.tryParse(_goalWeightController.text);
+        if (goalKg != null && goalKg > 0) {
+          _goalWeightController.text = (goalKg * 2.20462).toStringAsFixed(1);
+        }
+      } else if (!imperial && _useImperial) {
+        final feet = double.tryParse(_heightFeetController.text);
+        final inches = double.tryParse(_heightInchesController.text);
+        if (feet != null && inches != null) {
+          final heightCm = feet * 30.48 + inches * 2.54;
+          _heightController.text = heightCm.toStringAsFixed(1);
+        }
+        _heightFeetController.clear();
+        _heightInchesController.clear();
+
+        final weightLb = double.tryParse(_weightController.text);
+        if (weightLb != null && weightLb > 0) {
+          _weightController.text = (weightLb / 2.20462).toStringAsFixed(1);
+        }
+
+        final goalLb = double.tryParse(_goalWeightController.text);
+        if (goalLb != null && goalLb > 0) {
+          _goalWeightController.text = (goalLb / 2.20462).toStringAsFixed(1);
+        }
+      }
+      _useImperial = imperial;
+    });
+  }
+
+  bool get _canSave =>
+      _sex != null &&
+      _birthdate != null &&
+      (_useImperial
+          ? _heightFeetController.text.isNotEmpty &&
+              _heightInchesController.text.isNotEmpty
+          : _heightController.text.isNotEmpty) &&
+      _weightController.text.isNotEmpty;
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_sex == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select your sex')),
-      );
-      return;
-    }
 
     setState(() => _saving = true);
 
     final now = DateTime.now().toIso8601String();
     final db = ref.read(databaseProvider);
+
+    final heightCm = _useImperial
+        ? double.parse(_heightFeetController.text) * 30.48 +
+            double.parse(_heightInchesController.text) * 2.54
+        : double.parse(_heightController.text);
+
+    final weightKg = _useImperial
+        ? double.parse(_weightController.text) / 2.20462
+        : double.parse(_weightController.text);
+
+    final goalWeightKg = _goalWeightController.text.isNotEmpty
+        ? _useImperial
+            ? double.parse(_goalWeightController.text) / 2.20462
+            : double.parse(_goalWeightController.text)
+        : null;
 
     try {
       await db.upsertGoals(UserGoalsCompanion(
@@ -82,10 +148,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         proteinGPerLb: Value(_proteinGPerLb),
         fatCaloriePct: Value(_fatCaloriePct),
         sex: Value(_sex),
-        heightCm: Value(double.parse(_heightController.text)),
-        age: Value(int.parse(_ageController.text)),
-        goalWeightKg: _goalWeightController.text.isNotEmpty
-            ? Value<double?>(double.parse(_goalWeightController.text))
+        heightCm: Value(heightCm),
+        birthdate: Value(_birthdate),
+        goalWeightKg: goalWeightKg != null
+            ? Value<double?>(goalWeightKg)
             : const Value<double?>(null),
         useImperial: Value(_useImperial ? 1 : 0),
         activityLevel: Value(_activityLevel),
@@ -94,8 +160,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ));
 
       await db.insertWeight(BodyweightEntriesCompanion.insert(
-        weightKg: double.parse(_weightController.text),
-        loggedAt: _weightDate.toIso8601String(),
+        weightKg: weightKg,
+        loggedAt: DateTime.now().toIso8601String(),
       ));
 
       if (mounted) {
@@ -146,6 +212,60 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  Widget _buildHeightField() {
+    if (_useImperial) {
+      return Row(
+        children: [
+          Expanded(
+            child: TextFormField(
+              controller: _heightFeetController,
+              decoration: const InputDecoration(
+                labelText: 'Height (ft)',
+                hintText: 'e.g. 5',
+              ),
+              keyboardType: TextInputType.number,
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Required';
+                final n = double.tryParse(v);
+                if (n == null || n < 0) return 'Invalid';
+                return null;
+              },
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextFormField(
+              controller: _heightInchesController,
+              decoration: const InputDecoration(
+                labelText: 'Height (in)',
+                hintText: 'e.g. 10',
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
+        ],
+      );
+    }
+    return TextFormField(
+      controller: _heightController,
+      decoration: const InputDecoration(
+        labelText: 'Height',
+        hintText: 'e.g. 175',
+        suffixText: 'cm',
+      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      validator: (v) {
+        if (v == null || v.isEmpty) return 'Required';
+        final n = double.tryParse(v);
+        if (n == null || n <= 0) return 'Enter a valid height';
+        return null;
+      },
+      onChanged: (_) => setState(() {}),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -174,100 +294,35 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 onSelectionChanged: (v) => setState(() => _sex = v.first),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _ageController,
-                decoration: const InputDecoration(
-                  labelText: 'Age',
-                  hintText: 'e.g. 25',
-                ),
-                keyboardType: TextInputType.number,
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Required';
-                  final n = int.tryParse(v);
-                  if (n == null || n <= 0) return 'Enter a valid age';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _heightController,
-                decoration: const InputDecoration(
-                  labelText: 'Height',
-                  hintText: 'e.g. 175',
-                  suffixText: 'cm',
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Required';
-                  final n = double.tryParse(v);
-                  if (n == null || n <= 0) return 'Enter a valid height';
-                  return null;
-                },
-              ),
-              const Divider(height: 32),
-              Text('Starting Weight',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _weightController,
-                decoration: const InputDecoration(
-                  labelText: 'Weight',
-                  hintText: 'e.g. 75',
-                  suffixText: 'kg',
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Required';
-                  final n = double.tryParse(v);
-                  if (n == null || n <= 0) return 'Enter a valid weight';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
               InputDecorator(
-                decoration: const InputDecoration(labelText: 'Date'),
+                decoration: const InputDecoration(labelText: 'Birthdate'),
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(
-                    '${_weightDate.year}-'
-                    '${_weightDate.month.toString().padLeft(2, '0')}-'
-                    '${_weightDate.day.toString().padLeft(2, '0')}',
+                    _birthdate ?? 'Select your birthdate',
+                    style: TextStyle(
+                      color: _birthdate != null
+                          ? null
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: () async {
+                    final now = DateTime.now();
                     final date = await showDatePicker(
                       context: context,
-                      initialDate: _weightDate,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime.now(),
+                      initialDate: now.subtract(const Duration(days: 365 * 25)),
+                      firstDate: now.subtract(const Duration(days: 365 * 120)),
+                      lastDate: now.subtract(const Duration(days: 365 * 12)),
                     );
                     if (date != null) {
-                      setState(() => _weightDate = date);
+                      setState(() {
+                        _birthdate =
+                            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                      });
                     }
                   },
                 ),
-              ),
-              const Divider(height: 32),
-              Text('Preferences',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _goalWeightController,
-                decoration: const InputDecoration(
-                  labelText: 'Goal weight (optional)',
-                  hintText: 'e.g. 70',
-                  suffixText: 'kg',
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return null;
-                  final n = double.tryParse(v);
-                  if (n == null || n <= 0) return 'Enter a valid weight';
-                  return null;
-                },
               ),
               const SizedBox(height: 12),
               SegmentedButton<bool>(
@@ -284,8 +339,50 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                 ],
                 selected: {_useImperial},
-                onSelectionChanged: (v) =>
-                    setState(() => _useImperial = v.first),
+                onSelectionChanged: (v) => _onUnitsChanged(v.first),
+              ),
+              const SizedBox(height: 12),
+              _buildHeightField(),
+              const Divider(height: 32),
+              Text('Starting Weight',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _weightController,
+                decoration: InputDecoration(
+                  labelText: 'Weight',
+                  hintText: _useImperial ? 'e.g. 165' : 'e.g. 75',
+                  suffixText: _useImperial ? 'lb' : 'kg',
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  final n = double.tryParse(v);
+                  if (n == null || n <= 0) return 'Enter a valid weight';
+                  return null;
+                },
+                onChanged: (_) => setState(() {}),
+              ),
+              const Divider(height: 32),
+              Text('Preferences',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _goalWeightController,
+                decoration: InputDecoration(
+                  labelText: 'Goal weight (optional)',
+                  hintText: _useImperial ? 'e.g. 154' : 'e.g. 70',
+                  suffixText: _useImperial ? 'lb' : 'kg',
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return null;
+                  final n = double.tryParse(v);
+                  if (n == null || n <= 0) return 'Enter a valid weight';
+                  return null;
+                },
               ),
               const Divider(height: 32),
               Text('Activity Level',
@@ -367,7 +464,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 label: '${_proteinGPerLb.toStringAsFixed(1)} g/lb',
                 onChanged: (v) => setState(() => _proteinGPerLb = v),
               ),
-              const SizedBox(height: 12),
+              Text(
+                'Recommended: 0.8\u20131.4 g/lb',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(
                 'Fat: ${_fatCaloriePct.toStringAsFixed(0)}% of calories',
               ),
@@ -379,9 +482,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 label: '${_fatCaloriePct.toStringAsFixed(0)}%',
                 onChanged: (v) => setState(() => _fatCaloriePct = v),
               ),
+              Text(
+                'Recommended: 20\u201335% of calories',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: _saving ? null : _save,
+                onPressed: (!_canSave || _saving) ? null : _save,
                 child: _saving
                     ? const SizedBox(
                         width: 20,

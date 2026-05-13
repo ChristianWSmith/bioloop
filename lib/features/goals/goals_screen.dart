@@ -19,7 +19,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
   bool _saving = false;
 
   String? _sex;
-  final _ageController = TextEditingController();
+  String? _birthdate;
   final _heightController = TextEditingController();
   final _heightFeetController = TextEditingController();
   final _heightInchesController = TextEditingController();
@@ -47,7 +47,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
 
   @override
   void dispose() {
-    _ageController.dispose();
     _heightController.dispose();
     _heightFeetController.dispose();
     _heightInchesController.dispose();
@@ -63,7 +62,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       if (goals != null && mounted) {
         setState(() {
           _sex = goals.sex;
-          _ageController.text = goals.age?.toString() ?? '';
+          _birthdate = goals.birthdate;
           _heightController.text = goals.heightCm?.toString() ?? '';
           _goalWeightController.text = goals.goalWeightKg?.toString() ?? '';
           _useImperial = goals.useImperial == 1;
@@ -85,7 +84,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
 
   bool get _canSave {
     if (_sex == null) return false;
-    if (_ageController.text.trim().isEmpty) return false;
+    if (_birthdate == null) return false;
     if (_useImperial) {
       if (_heightFeetController.text.trim().isEmpty) return false;
     } else {
@@ -114,8 +113,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     final weightKg = ref.read(bodyweightProvider).valueOrNull?.firstOrNull?.weightKg;
     if (weightKg == null) return '';
     if (_sex == null) return '';
-    final age = int.tryParse(_ageController.text);
-    if (age == null) return '';
+    if (_birthdate == null) return '';
     final heightCm = _useImperial
         ? (_heightFeetController.text.isNotEmpty && _heightInchesController.text.isNotEmpty
             ? double.tryParse(_heightFeetController.text)! * 30.48 +
@@ -128,7 +126,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       sex: _sex!,
       weightKg: weightKg,
       heightCm: heightCm,
-      age: age,
+      birthdate: _birthdate,
       activityLevel: _activityLevel,
     );
     final adjustment = double.tryParse(_calorieAdjustmentController.text) ?? 0;
@@ -217,7 +215,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         fatCaloriePct: Value(_fatCaloriePct),
         sex: Value(_sex),
         heightCm: Value(heightCm),
-        age: Value(int.parse(_ageController.text)),
+        birthdate: Value(_birthdate),
         goalWeightKg: goalWeightKg != null
             ? Value<double?>(goalWeightKg)
             : const Value<double?>(null),
@@ -334,20 +332,35 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               onSelectionChanged: (v) => setState(() => _sex = v.first),
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _ageController,
-              decoration: const InputDecoration(
-                labelText: 'Age',
-                hintText: 'e.g. 25',
+            InputDecorator(
+              decoration: const InputDecoration(labelText: 'Birthdate'),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  _birthdate ?? 'Select your birthdate',
+                  style: TextStyle(
+                    color: _birthdate != null
+                        ? null
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () async {
+                  final now = DateTime.now();
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: now.subtract(const Duration(days: 365 * 25)),
+                    firstDate: now.subtract(const Duration(days: 365 * 120)),
+                    lastDate: now.subtract(const Duration(days: 365 * 12)),
+                  );
+                  if (date != null) {
+                    setState(() {
+                      _birthdate =
+                          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                    });
+                  }
+                },
               ),
-              keyboardType: TextInputType.number,
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Required';
-                final n = int.tryParse(v);
-                if (n == null || n <= 0) return 'Enter a valid age';
-                return null;
-              },
-              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 12),
             _buildHeightField(),

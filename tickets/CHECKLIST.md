@@ -1,13 +1,13 @@
 # Ticket Checklist
 
 ## Phase 1 — Database Schema Changes
-- [ ] **#001** Birthdate instead of age
-- [ ] **#002** Fix onboarding metric/imperial toggle
+- [x] **#001** Birthdate instead of age
+- [x] **#002** Fix onboarding metric/imperial toggle
 
 ## Phase 2 — Onboarding Improvements
-- [ ] **#003** Remove date prompt
-- [ ] **#004** Disable save button until fields filled
-- [ ] **#005** Slider recommended ranges
+- [x] **#003** Remove date prompt
+- [x] **#004** Disable save button until fields filled
+- [x] **#005** Slider recommended ranges
 - [ ] **#006** Calorie adjustment warnings
 - [ ] **#014** Onboarding vs goals parity audit
 

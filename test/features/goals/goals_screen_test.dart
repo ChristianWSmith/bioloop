@@ -33,7 +33,7 @@ Future<void> seedGoals(AppDatabase db, {bool imperial = false}) async {
     fatCaloriePct: const Value(25.0),
     sex: const Value('male'),
     heightCm: const Value(175),
-    age: const Value(25),
+    birthdate: const Value('2001-01-01'),
     activityLevel: const Value(3),
     useImperial: Value(imperial ? 1 : 0),
     onboardingCompleted: const Value(1),
@@ -61,7 +61,7 @@ void main() {
         calorieAdjustment: const Value(300),
         sex: const Value('male'),
         heightCm: const Value(180),
-        age: const Value(30),
+        birthdate: const Value('1996-01-01'),
         onboardingCompleted: const Value(1),
         updatedAt: Value(DateTime.now().toIso8601String()),
       ));
@@ -71,7 +71,7 @@ void main() {
       expect(goals.calorieAdjustment, 300);
       expect(goals.sex, 'male');
       expect(goals.heightCm, 180);
-      expect(goals.age, 30);
+      expect(goals.birthdate, '1996-01-01');
     });
 
     test('getGoals returns null when empty', () async {
@@ -99,10 +99,7 @@ void main() {
       await seedGoals(db);
       await pumpGoals(tester, db);
 
-      var ageField = tester.widget<TextFormField>(
-        find.widgetWithText(TextFormField, 'Age'),
-      );
-      expect(ageField.controller?.text, '25');
+      expect(find.text('2001-01-01'), findsOneWidget);
 
       var heightField = tester.widget<TextFormField>(
         find.widgetWithText(TextFormField, 'Height'),
@@ -139,19 +136,19 @@ void main() {
       await seedGoals(db);
       await pumpGoals(tester, db);
 
-      expect(find.byType(TextFormField), findsNWidgets(4));
+      expect(find.byType(TextFormField), findsNWidgets(3));
 
       await tester.tap(find.text('Imperial'));
       await tester.pump();
       await tester.pump();
 
-      expect(find.byType(TextFormField), findsNWidgets(5));
+      expect(find.byType(TextFormField), findsNWidgets(4));
 
       await tester.tap(find.text('Metric'));
       await tester.pump();
       await tester.pump();
 
-      expect(find.byType(TextFormField), findsNWidgets(4));
+      expect(find.byType(TextFormField), findsNWidgets(3));
     });
 
     testWidgets('units persistence: save and reopen shows imperial',
@@ -237,11 +234,6 @@ void main() {
       await tester.tap(find.text('Female'));
       await tester.pump();
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Age'),
-        '30',
-      );
-      await tester.pump();
-      await tester.enterText(
         find.widgetWithText(TextFormField, 'Height'),
         '165',
       );
@@ -267,7 +259,7 @@ void main() {
       final goals = await db.getGoals();
       expect(goals, isNotNull);
       expect(goals!.sex, 'female');
-      expect(goals.age, 30);
+      expect(goals.birthdate, '2001-01-01');
       expect(goals.heightCm, closeTo(165, 0.5));
       expect(goals.goalWeightKg, closeTo(60, 0.5));
       expect(goals.useImperial, 1);
@@ -365,25 +357,28 @@ void main() {
       expect(find.text('Fills remaining calories'), findsOneWidget);
     });
 
-    testWidgets('save disabled when age cleared', (tester) async {
+    testWidgets('save disabled when birthdate not set', (tester) async {
       final db = AppDatabase.createInMemory();
       addTearDown(() => db.close());
-      await seedGoals(db);
+      await db.upsertGoals(UserGoalsCompanion(
+        goalType: const Value('cut'),
+        calorieAdjustment: const Value(-500),
+        proteinGPerLb: const Value(1.0),
+        fatCaloriePct: const Value(25.0),
+        sex: const Value('male'),
+        heightCm: const Value(175),
+        activityLevel: const Value(3),
+        useImperial: const Value(0),
+        onboardingCompleted: const Value(1),
+        updatedAt: Value(DateTime.now().toIso8601String()),
+      ));
+      await db.insertWeight(BodyweightEntriesCompanion.insert(
+        weightKg: 65,
+        loggedAt: DateTime.now().toIso8601String(),
+      ));
       await pumpGoals(tester, db);
 
       var saveButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Save'),
-      );
-      expect(saveButton.onPressed, isNotNull);
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Age'),
-        '',
-      );
-      await tester.pump();
-      await tester.pump();
-
-      saveButton = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'Save'),
       );
       expect(saveButton.onPressed, isNull);

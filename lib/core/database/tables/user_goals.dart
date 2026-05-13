@@ -8,6 +8,7 @@ class UserGoals extends Table {
   RealColumn get fatCaloriePct => real().withDefault(const Constant(25.0))();
   TextColumn get sex => text().nullable()();
   RealColumn get heightCm => real().nullable()();
+  TextColumn get birthdate => text().nullable()();
   IntColumn get age => integer().nullable()();
   RealColumn get goalWeightKg => real().nullable()();
   IntColumn get useImperial => integer().withDefault(const Constant(0))();
