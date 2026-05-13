@@ -12,7 +12,7 @@
 - [ ] **#014** Onboarding vs goals parity audit
 
 ## Phase 3 — Bug Fixes
-- [ ] **#007** Stale dashboard after reset
+- [x] **#007** Stale dashboard after reset
 - [ ] **#008** Recipes screen missing "+" button
 - [ ] **#009** Templates empty state add button
 - [ ] **#010** Food search debouncing

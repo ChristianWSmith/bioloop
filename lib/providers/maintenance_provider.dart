@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/algorithms/maintenance_calculator.dart';
 import 'database_provider.dart';
+import 'reset_provider.dart';
 
 final maintenanceProvider = FutureProvider<MaintenanceResult?>((ref) async {
+  ref.watch(resetTriggerProvider);
   final db = ref.watch(databaseProvider);
   final now = DateTime.now();
   final lookback = 30;

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/database/database.dart';
 import 'database_provider.dart';
+import 'reset_provider.dart';
 
 final goalsProvider = Provider<GoalsService>((ref) {
   final db = ref.watch(databaseProvider);
@@ -8,6 +9,7 @@ final goalsProvider = Provider<GoalsService>((ref) {
 });
 
 final userGoalsProvider = FutureProvider<UserGoal?>((ref) async {
+  ref.watch(resetTriggerProvider);
   return ref.read(goalsProvider).getGoals();
 });
 
