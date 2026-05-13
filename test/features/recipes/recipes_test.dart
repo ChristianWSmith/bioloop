@@ -403,6 +403,48 @@ void main() {
       expect(find.text('400 g'), findsOneWidget);
     });
 
+    testWidgets('FAB is visible in non-picker mode', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+
+      await tester.pumpWidget(buildTestApp(db));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.add), findsAtLeast(1));
+    });
+
+    testWidgets('FAB is visible in picker mode', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+          ],
+          child: const MaterialApp(
+            home: RecipeListScreen(pickerMode: true),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.add), findsAtLeast(1));
+    });
+
+    testWidgets('tapping FAB navigates to RecipeFormScreen', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+
+      await tester.pumpWidget(buildTestApp(db));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RecipeFormScreen), findsOneWidget);
+    });
+
     testWidgets('delete recipe removes from list', (tester) async {
       final db = AppDatabase.createInMemory();
       addTearDown(() => db.close());
