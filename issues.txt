@@ -1,0 +1,8 @@
+- the serving/portion logic is still messed up.  when searching for "riz rond", we find an entry through the API that says serving size is 100g, 6.6g protein, 78.0g carbs, 1.0g fat.  we click on it and quantity is 100, unit is g, but the values of all of the macros/calories are being multiplied by 100 (as if its still internally treating quantity as a number of portions, rather than a proportion of the serving size)
+- the add ingredient flow for the recipes should include recently logged foods
+- similar to above, when adding an ingredient to a recipe, it prompts the user for quantity in g (grams), but the calories/macros are being multiplied by 100 against the original serving size, so its essentially giving us the macros/calories for 10,000 (100 servings of 100 grams each) grams instead of 100g
+- updating protein on the goals screen doesn't refresh the dashboard (target values are stale)
+- updating fat on the goals screen doesn't refresh the dashboard (target values are stale)
+- the meal templates drawer is bugged.  it says "no templates yet, log a food and tap the bookmark icon to save it as a template".
+- in the log a food screen, the recently logged foods should be clickable so that they can be logged again (like if you ate the same food today as yesterday).  this should be true for adding ingredients on the recipe screen as well
+- come to think of it, templates is kind of a redundant feature, lets get rid of it entirely.
