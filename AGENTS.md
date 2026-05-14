@@ -6,13 +6,15 @@ Flutter macro counter that auto-adjusts daily targets based on bodyweight trends
 
 ## Commands
 
-| Action | Command |
-|--------|---------|
-| Get dependencies | `flutter pub get` |
-| Analyze (lint) | `flutter analyze` |
-| Run tests | `flutter test` |
-| Run app | `flutter run` |
-| Generate drift code | `dart run build_runner build` |
+| Action | Command | Notes |
+|--------|---------|-------|
+| Get dependencies | `flutter pub get` | |
+| Analyze (lint) | `flutter analyze > analyze.log 2>&1` | Read `analyze.log` after — do NOT pipe or grep output directly |
+| Run tests | `flutter test > test.log 2>&1` | Read `test.log` after — do NOT pipe or grep output directly |
+| Run app | `flutter run` | |
+| Generate drift code | `dart run build_runner build` | |
+
+**Important:** `flutter analyze` and `flutter test` are slow in this project. Always redirect output to a log file and read the file afterward. Running these commands directly and grepping the output wastes time — they take long enough that it's better to run once, cache the full output, then analyze the cached file.
 
 ## Architecture
 
