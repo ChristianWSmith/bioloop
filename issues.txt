@@ -1,18 +1,4 @@
-- on the custom food screen "grams per serving" adds no value, as if the serving size is measured in grams, that information will be redundant, and if it isn't measured in grams, it's nonsensical
-
-- we need to work with openfoodfacts a little more intelligently.  their serving sizes seem to come in several different formats.  here are a few examples:
-    - "0.25 cup (45g)"
-    - "100g"
-    - "1 portion (45g)"
-    - "1 portion (15 ml)"
-    - "15 ml"
-    - "14 crackers (30 g)"
-    - "100.0g"
-    - "4.7 g (1 SLICE)"
-  these are pretty inconsistent, so we need to devise a strategy for parsing them and fitting them into our paradigm.  we should PREFER ingesting the data as one of the default units in the app (for example, "1 slice (50g)", we should prefer to capture that as grams, not "slice")
-
-- we need to honor the user's imperial/metric decision in ALL displayed values in the app.  for example, the user might have selected metric, but we're still giving them the protein slider in grams of protein per lb of bodyweight.  that's a poor experience.  we're also giving them a weight change rate estimate in lb no matter what (for example -1lb/week).  there may be more examples of displayed values that we should convert for our user.  the ONLY exception to this is that macros should ALWAYS be in grams, regardless of user selection, and calories should similarly ALWAYS be in kcal.
-
-- the maintenance calories estimate on the dashboard is stale after logging bodyweight and at least one food item in a single day, it still shows 0/14
-
-- on the log tab, the user should be able to tap on one of the recent entries to log it again (NOT edit), this is in case the user eats the same foods frequently, they can have fast access to their more popular options.  when adding ingredients to a recipe, we should aim for parity with the log foods tab's default behavior, so we should show the recent foods and those should also be similarly tappable
+- in the "Edit entry" drawer in the history tab, we have "Servings (<quantity> <unit>)", this is odd wording.  It should probably just say "Quantity (<unit>)".  also, values aren't rounded when opening this drawer, so we see some super long decimals that are kind of offputting.
+- editing a food entry results in a stale dashboard (still uses the pre-edited values)
+- on the goals screen, toggling between metric and imperial causes a bad conversion.  starting at 6'4" -> 76cm -> 2'6" -> 30cm.  something is badly bugged with this conversion
+- when creating a recipe and searching for an ingredient, we need to achieve parity with the normal "search food" screen when logging.  the shortfall I've noticed is that recently logged foods aren't displayed when adding an ingredient to the recipe.
