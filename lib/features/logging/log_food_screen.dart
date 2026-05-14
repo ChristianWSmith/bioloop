@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/models/food_result.dart';
 import '../../core/database/database.dart';
+import '../../providers/data_trigger_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/food_log_provider.dart';
 import '../../providers/food_search_provider.dart';
@@ -11,8 +12,8 @@ import '../recipes/recipe_list_screen.dart';
 import 'widgets/barcode_scanner.dart';
 import 'widgets/food_search_delegate.dart';
 import 'widgets/manual_food_form.dart';
-import 'widgets/meal_templates.dart';
 import 'widgets/meal_type_selector.dart';
+import 'widgets/quick_food_log_sheet.dart';
 import 'widgets/serving_size_picker.dart';
 
 class LogFoodScreen extends ConsumerStatefulWidget {
@@ -24,6 +25,7 @@ class LogFoodScreen extends ConsumerStatefulWidget {
 
 class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
   FoodSearchItem? _selectedFood;
+  FoodSearchItem? _quickLogItem;
   double _servings = 1.0;
   String _unit = 'serving';
   String? _mealType;
@@ -42,10 +44,15 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
       delegate: FoodSearchDelegate(
         searchService: searchService,
         onCreateCustomFood: () => _pendingCreateCustom = true,
+        onQuickLog: (item) => _quickLogItem = item,
       ),
     );
 
-    if (result != null) {
+    if (_quickLogItem != null) {
+      final item = _quickLogItem!;
+      _quickLogItem = null;
+      _showQuickLogSheet(item);
+    } else if (result != null) {
       _selectFood(result);
     } else if (_pendingCreateCustom) {
       _pendingCreateCustom = false;
@@ -73,79 +80,29 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
     }
   }
 
-  Future<void> _onSaveAsTemplate() async {
-    final db = ref.read(databaseProvider);
-    final food = _selectedFood!;
-    await saveCurrentFoodsAsTemplate(
-      context,
-      db,
-      (_) => FoodEntry(
-        id: 0,
-        name: food.name,
-        calories: food.caloriesPerServing * _servings,
-        proteinGrams: food.proteinPerServing * _servings,
-        carbsGrams: food.carbsPerServing * _servings,
-        fatGrams: food.fatPerServing * _servings,
-        servings: _servings,
-        servingLabel: _buildLabel(_servings, _unit),
-        mealType: _mealType ?? '',
-        loggedAt: '',
-      ),
-      1,
-    );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Template saved!')),
+  Future<void> _showQuickLogSheet(FoodSearchItem item) async {
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => QuickFoodLogSheet(food: item),
     );
   }
 
-  Future<void> _openTemplates() async {
-    final foods = await showModalBottomSheet<List<TemplateFood>>(
+  Future<void> _onDuplicate(FoodEntry entry) async {
+    final foodId = entry.foodId;
+    if (foodId == null) return;
+    final db = ref.read(databaseProvider);
+    final food = await db.getFoodById(foodId);
+    if (food == null || !mounted) return;
+    final item = FoodSearchItem.fromFood(food);
+    await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => const MealTemplatesSheet(),
+      builder: (_) => QuickFoodLogSheet(
+        food: item,
+        sourceEntry: entry,
+      ),
     );
-    if (foods == null || !mounted) return;
-
-    final db = ref.read(databaseProvider);
-    final now = DateTime.now().toIso8601String();
-    try {
-      for (final f in foods) {
-        await db.insertEntry(FoodEntriesCompanion.insert(
-          name: f.name,
-          calories: f.calories,
-          proteinGrams: f.proteinGrams,
-          carbsGrams: f.carbsGrams,
-          fatGrams: f.fatGrams,
-          servings: f.servings,
-          servingLabel: f.servingLabel,
-          mealType: 'snack',
-          loggedAt: now,
-        ));
-      }
-      ref.invalidate(todaysFoodProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Template foods added!')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Error'),
-            content: Text('Failed to add template foods: $e'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-    }
   }
 
   Future<void> _onBarcodeScan() async {
@@ -205,7 +162,6 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         foodId = await db.insertFood(FoodsCompanion.insert(
           name: food.name,
           servingLabel: food.servingLabel,
-          servingSizeGrams: Value(food.servingSizeGrams),
           servingQuantity: Value(food.servingQuantity),
           servingUnit: Value(food.servingUnit),
           caloriesPerServing: food.caloriesPerServing,
@@ -218,12 +174,13 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         ));
       }
 
+      final sq = food.servingQuantity > 0 ? food.servingQuantity : 1;
       await db.insertEntry(FoodEntriesCompanion.insert(
         name: food.name,
-        calories: food.caloriesPerServing * _servings,
-        proteinGrams: food.proteinPerServing * _servings,
-        carbsGrams: food.carbsPerServing * _servings,
-        fatGrams: food.fatPerServing * _servings,
+        calories: food.caloriesPerServing * (_servings / sq),
+        proteinGrams: food.proteinPerServing * (_servings / sq),
+        carbsGrams: food.carbsPerServing * (_servings / sq),
+        fatGrams: food.fatPerServing * (_servings / sq),
         servings: _servings,
         servingLabel: _buildLabel(_servings, _unit),
         barcode: Value(food.barcode),
@@ -234,6 +191,7 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
       ));
 
       ref.invalidate(todaysFoodProvider);
+      ref.read(dataTriggerProvider.notifier).state++;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -269,6 +227,12 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final sq = _selectedFood != null
+        ? (_selectedFood!.servingQuantity > 0
+            ? _selectedFood!.servingQuantity
+            : 1)
+        : 1;
+
     return SafeArea(
       child: Column(
         children: [
@@ -302,13 +266,6 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                         ),
                       ),
                     ),
-                    if (_selectedFood != null)
-                      IconButton(
-                        key: const Key('save_as_template_button'),
-                        icon: const Icon(Icons.bookmark_add_outlined),
-                        onPressed: _onSaveAsTemplate,
-                        tooltip: 'Save as template',
-                      ),
                     IconButton(
                       key: const Key('barcode_scan_button'),
                       icon: const Icon(Icons.qr_code_scanner),
@@ -331,21 +288,14 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                           );
                           if (result == true && mounted) {
                             ref.invalidate(todaysFoodProvider);
+                            ref.read(dataTriggerProvider.notifier).state++;
                           }
                         },
                         icon: const Icon(Icons.book),
                         label: const Text('Recipes'),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        key: const Key('templates_button'),
-                        onPressed: () => _openTemplates(),
-                        icon: const Icon(Icons.content_paste),
-                        label: const Text('Templates'),
-                      ),
-                    ),
+
                   ],
                 ),
               ],
@@ -364,7 +314,6 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                     child: ServingSizePicker(
                       quantity: _servings,
                       unit: _unit,
-                      servingSizeGrams: _selectedFood!.servingSizeGrams,
                       onQuantityChanged: _onServingsChanged,
                       onUnitChanged: _onUnitChanged,
                     ),
@@ -387,25 +336,25 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                             const SizedBox(height: 8),
                             _macroRow(
                               'Calories',
-                              (_selectedFood!.caloriesPerServing * _servings).toStringAsFixed(0),
+                              (_selectedFood!.caloriesPerServing * (_servings / sq)).toStringAsFixed(0),
                               null,
                             ),
                             const SizedBox(height: 4),
                             _macroRow(
                               'Protein',
-                              (_selectedFood!.proteinPerServing * _servings).toStringAsFixed(1),
+                              (_selectedFood!.proteinPerServing * (_servings / sq)).toStringAsFixed(1),
                               'g',
                             ),
                             const SizedBox(height: 4),
                             _macroRow(
                               'Carbs',
-                              (_selectedFood!.carbsPerServing * _servings).toStringAsFixed(1),
+                              (_selectedFood!.carbsPerServing * (_servings / sq)).toStringAsFixed(1),
                               'g',
                             ),
                             const SizedBox(height: 4),
                             _macroRow(
                               'Fat',
-                              (_selectedFood!.fatPerServing * _servings).toStringAsFixed(1),
+                              (_selectedFood!.fatPerServing * (_servings / sq)).toStringAsFixed(1),
                               'g',
                             ),
                           ],
@@ -447,7 +396,11 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
           ] else
             Expanded(
               child: _TodayEntriesSection(
-                onEdit: () => ref.invalidate(todaysFoodProvider),
+                onEdit: () {
+                  ref.invalidate(todaysFoodProvider);
+                  ref.read(dataTriggerProvider.notifier).state++;
+                },
+                onDuplicate: _onDuplicate,
               ),
             ),
         ],
@@ -473,8 +426,9 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
 
 class _TodayEntriesSection extends ConsumerWidget {
   final VoidCallback onEdit;
+  final ValueChanged<FoodEntry>? onDuplicate;
 
-  const _TodayEntriesSection({required this.onEdit});
+  const _TodayEntriesSection({required this.onEdit, this.onDuplicate});
 
   String? _timeFromLoggedAt(String loggedAt) {
     if (loggedAt.length >= 16) return loggedAt.substring(11, 16);
@@ -546,12 +500,23 @@ class _TodayEntriesSection extends ConsumerWidget {
                   subtitle: Text(
                     '${entry.calories.toInt()} cal  •  P${entry.proteinGrams.toStringAsFixed(0)}g  C${entry.carbsGrams.toStringAsFixed(0)}g  F${entry.fatGrams.toStringAsFixed(0)}g${_timeFromLoggedAt(entry.loggedAt) != null ? '  •  ${_timeFromLoggedAt(entry.loggedAt)}' : ''}',
                   ),
-                  trailing: IconButton(
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    onPressed: () => _deleteEntry(context, ref, entry),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (onDuplicate != null && entry.foodId != null)
+                        IconButton(
+                          icon: const Icon(Icons.replay),
+                          tooltip: 'Duplicate entry',
+                          onPressed: () => onDuplicate!(entry),
+                        ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        onPressed: () => _deleteEntry(context, ref, entry),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -586,10 +551,9 @@ class _TodayEntriesSection extends ConsumerWidget {
       ),
     );
 
-    if (confirmed == true) {
+      if (confirmed == true) {
       try {
         await ref.read(foodLogProvider).deleteEntry(entry.id);
-        ref.invalidate(todaysFoodProvider);
         onEdit();
       } catch (e) {
         if (context.mounted) {

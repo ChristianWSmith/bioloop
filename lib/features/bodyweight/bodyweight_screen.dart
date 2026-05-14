@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/database.dart';
 import '../../providers/bodyweight_provider.dart';
+import '../../providers/data_trigger_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/unit_preferences_provider.dart';
 import '../history/export.dart';
@@ -41,7 +42,7 @@ class BodyweightScreen extends ConsumerWidget {
                     final entries =
                         await db.select(db.bodyweightEntries).get();
                     if (!context.mounted) return;
-                    final csv = exportBodyweightToCsv(entries);
+                    final csv = exportBodyweightToCsv(entries, weightUnit: prefs.weightUnit);
                     if (value == 'share_weight') {
                       await shareCsv(csv, 'bodyweight.csv');
                     } else if (value == 'save_weight') {
@@ -119,6 +120,7 @@ class BodyweightScreen extends ConsumerWidget {
       builder: (_) => AddWeightSheet(entry: entry),
     );
     ref.invalidate(bodyweightProvider);
+    ref.read(dataTriggerProvider.notifier).state++;
   }
 
   Future<void> _confirmDelete(
@@ -148,6 +150,7 @@ class BodyweightScreen extends ConsumerWidget {
       try {
         await ref.read(bodyweightServiceProvider).deleteWeight(entry.id);
         ref.invalidate(bodyweightProvider);
+        ref.read(dataTriggerProvider.notifier).state++;
       } catch (e) {
         if (context.mounted) {
           showDialog(

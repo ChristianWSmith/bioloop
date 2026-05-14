@@ -17,7 +17,8 @@ class RecipeIngredientRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final food = item.food;
     final ingredient = item.ingredient;
-    final cals = food.caloriesPerServing * ingredient.quantity;
+    final sq = food.servingQuantity > 0 ? food.servingQuantity : 1;
+    final cals = food.caloriesPerServing * (ingredient.quantity / sq);
 
     return ListTile(
       leading: const Icon(Icons.restaurant),

@@ -7,7 +7,6 @@ import 'tables/foods.dart';
 import 'tables/food_entries.dart';
 import 'tables/bodyweight_entries.dart';
 import 'tables/user_goals.dart';
-import 'tables/meal_templates.dart';
 import 'tables/recipes.dart';
 import 'tables/recipe_ingredients.dart';
 
@@ -19,7 +18,6 @@ part 'database.g.dart';
     FoodEntries,
     BodyweightEntries,
     UserGoals,
-    MealTemplates,
     Recipes,
     RecipeIngredients,
   ],
@@ -28,7 +26,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -57,7 +55,10 @@ class AppDatabase extends _$AppDatabase {
               WHEN serving_size_grams IS NOT NULL THEN serving_size_grams
               ELSE 1.0
             END
-          ''');
+            ''');
+        }
+        if (from < 3) {
+          await customStatement('ALTER TABLE foods DROP COLUMN serving_size_grams');
         }
       },
     );
@@ -129,6 +130,10 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> insertFood(FoodsCompanion food) async {
     return await into(foods).insert(food);
+  }
+
+  Future<Food?> getFoodById(int id) async {
+    return await (select(foods)..where((f) => f.id.equals(id))).getSingleOrNull();
   }
 
   Future<Food?> getByBarcode(String barcode) async {
@@ -236,34 +241,6 @@ class AppDatabase extends _$AppDatabase {
     ));
   }
 
-  // ── Meal Templates DAO ─────────────────────────────────────
-
-  Future<int> insertTemplate(MealTemplatesCompanion template) async {
-    return await into(mealTemplates).insert(template);
-  }
-
-  Future<List<MealTemplate>> getAllTemplates() async {
-    return await (select(mealTemplates)
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)
-          ]))
-        .get();
-  }
-
-  Future<MealTemplate?> getTemplate(int id) async {
-    return await (select(mealTemplates)..where((t) => t.id.equals(id)))
-        .getSingleOrNull();
-  }
-
-  Future<void> updateTemplate(int id, MealTemplatesCompanion template) async {
-    await (update(mealTemplates)..where((t) => t.id.equals(id)))
-        .write(template);
-  }
-
-  Future<int> deleteTemplate(int id) async {
-    return await (delete(mealTemplates)..where((t) => t.id.equals(id))).go();
-  }
-
   // ── Recipes DAO ─────────────────────────────────────────────
 
   Future<int> insertRecipe(RecipesCompanion recipe) async {
@@ -346,10 +323,11 @@ class AppDatabase extends _$AppDatabase {
 
     for (final item in ingredients) {
       final qty = item.ingredient.quantity;
-      totalCals += item.food.caloriesPerServing * qty;
-      totalProtein += item.food.proteinPerServing * qty;
-      totalCarbs += item.food.carbsPerServing * qty;
-      totalFat += item.food.fatPerServing * qty;
+      final sq = item.food.servingQuantity > 0 ? item.food.servingQuantity : 1;
+      totalCals += item.food.caloriesPerServing * (qty / sq);
+      totalProtein += item.food.proteinPerServing * (qty / sq);
+      totalCarbs += item.food.carbsPerServing * (qty / sq);
+      totalFat += item.food.fatPerServing * (qty / sq);
     }
 
     final perUnit = recipe.servingSize > 0 ? recipe.servingSize : 1;
@@ -371,7 +349,6 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       await delete(recipeIngredients).go();
       await delete(foodEntries).go();
-      await delete(mealTemplates).go();
       await delete(recipes).go();
       await delete(bodyweightEntries).go();
       await delete(userGoals).go();

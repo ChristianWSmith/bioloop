@@ -8,7 +8,6 @@ const _commonUnits = [
 class ServingSizePicker extends StatefulWidget {
   final double quantity;
   final String unit;
-  final double? servingSizeGrams;
   final ValueChanged<double> onQuantityChanged;
   final ValueChanged<String> onUnitChanged;
 
@@ -16,7 +15,6 @@ class ServingSizePicker extends StatefulWidget {
     super.key,
     required this.quantity,
     required this.unit,
-    this.servingSizeGrams,
     required this.onQuantityChanged,
     required this.onUnitChanged,
   });

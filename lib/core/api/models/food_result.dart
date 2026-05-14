@@ -1,7 +1,8 @@
+import 'package:meta/meta.dart';
+
 class FoodResult {
   final String name;
   final String servingLabel;
-  final double? servingSizeGrams;
   final double servingQuantity;
   final String servingUnit;
   final double caloriesPerServing;
@@ -14,7 +15,6 @@ class FoodResult {
   FoodResult({
     required this.name,
     required this.servingLabel,
-    this.servingSizeGrams,
     this.servingQuantity = 1.0,
     this.servingUnit = 'serving',
     required this.caloriesPerServing,
@@ -40,7 +40,6 @@ class FoodResult {
         fatServing != null;
 
     String servingLabel;
-    double? servingSizeGrams;
     double servingQuantity = 1.0;
     String servingUnit = 'serving';
     double calories, protein, carbs, fat;
@@ -48,12 +47,9 @@ class FoodResult {
     if (hasServingFields) {
       servingLabel = rawServingSize ?? '100g';
       if (rawServingSize != null) {
-        final parsed = _parseServingInfo(rawServingSize);
-        if (parsed != null) {
-          servingSizeGrams = parsed.gramEquivalent;
-          servingQuantity = parsed.quantity;
-          servingUnit = parsed.unit;
-        }
+        final parsed = parseServingInfo(rawServingSize);
+        servingQuantity = parsed.quantity;
+        servingUnit = parsed.unit;
       }
       calories = calServing;
       protein = protServing;
@@ -61,7 +57,6 @@ class FoodResult {
       fat = fatServing;
     } else {
       servingLabel = '100g';
-      servingSizeGrams = 100;
       servingQuantity = 100;
       servingUnit = 'g';
       calories = _toDouble(nutriments['energy-kcal_100g']) ?? 0;
@@ -73,7 +68,6 @@ class FoodResult {
     return FoodResult(
       name: json['product_name'] as String? ?? 'Unknown',
       servingLabel: servingLabel,
-      servingSizeGrams: servingSizeGrams,
       servingQuantity: servingQuantity,
       servingUnit: servingUnit,
       caloriesPerServing: calories,
@@ -92,22 +86,85 @@ class FoodResult {
     return null;
   }
 
-  static ({double quantity, String unit, double? gramEquivalent})? _parseServingInfo(String label) {
-    final fullMatch = RegExp(r'^([\d./]+)\s+(\w+)(?:\s*\((\d+(?:\.\d+)?)\s*\w*\))?$').firstMatch(label);
-    if (fullMatch != null) {
-      final qty = _parseFraction(fullMatch.group(1)!);
-      final unit = fullMatch.group(2)!;
-      final gramEq = fullMatch.group(3) != null ? double.parse(fullMatch.group(3)!) : null;
-      return (quantity: qty, unit: unit, gramEquivalent: gramEq);
+  @visibleForTesting
+  static ({double quantity, String unit}) parseServingInfo(String label) {
+    final s = label.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    if (s.isEmpty) return (quantity: 1, unit: 'serving');
+
+    final parenMatch = RegExp(r'\(([^)]*)\)').firstMatch(s);
+    String mainText = s;
+    String? parenContent;
+    if (parenMatch != null) {
+      parenContent = parenMatch.group(1)!.trim();
+      mainText = s.replaceAll(RegExp(r'\s*\([^)]*\)'), '').trim();
     }
 
-    final simpleGrams = RegExp(r'^(\d+(?:\.\d+)?)\s*g$').firstMatch(label);
-    if (simpleGrams != null) {
-      final qty = double.parse(simpleGrams.group(1)!);
-      return (quantity: qty, unit: 'g', gramEquivalent: qty);
+    if (parenContent != null && parenContent.isNotEmpty) {
+      final parenGrams =
+          RegExp(r'^(\d+(?:\.\d+)?)\s*g(?:rams?)?$')
+              .firstMatch(parenContent);
+      if (parenGrams != null) {
+        return (quantity: double.parse(parenGrams.group(1)!), unit: 'g');
+      }
+
+      final parenOz =
+          RegExp(r'^(\d+(?:\.\d+)?)\s*oz$').firstMatch(parenContent);
+      if (parenOz != null) {
+        final grams = double.parse(parenOz.group(1)!) * 28.35;
+        return (quantity: grams.roundToDouble(), unit: 'g');
+      }
+
+      final parenVolume = RegExp(
+        r'^(\d+(?:\.\d+)?)\s*(ml|milliliters?|millilitres?|liters?|litres?)$',
+      ).firstMatch(parenContent);
+      if (parenVolume != null) {
+        final qty = double.parse(parenVolume.group(1)!);
+        final unit = parenVolume.group(2)!;
+        return (quantity: qty, unit: unit.startsWith('ml') || unit.startsWith('milli') ? 'ml' : 'l');
+      }
     }
 
-    return null;
+    final mainGrams =
+        RegExp(r'(\d+(?:\.\d+)?)\s*g(?:rams?)?$').firstMatch(mainText);
+    if (mainGrams != null) {
+      return (quantity: double.parse(mainGrams.group(1)!), unit: 'g');
+    }
+
+    final mainVolume = RegExp(
+      r'(\d+(?:\.\d+)?)\s*(ml|milliliters?|millilitres?|liters?|litres?)$',
+    ).firstMatch(mainText);
+    if (mainVolume != null) {
+      final qty = double.parse(mainVolume.group(1)!);
+      final unit = mainVolume.group(2)!;
+      return (quantity: qty, unit: unit.startsWith('ml') || unit.startsWith('milli') ? 'ml' : 'l');
+    }
+
+    final mainOz = RegExp(r'(\d+(?:\.\d+)?)\s*oz$').firstMatch(mainText);
+    if (mainOz != null) {
+      final grams = double.parse(mainOz.group(1)!) * 28.35;
+      return (quantity: grams.roundToDouble(), unit: 'g');
+    }
+
+    final qtyUnit =
+        RegExp(r'^(\d[\d./]*)\s+(.+)$').firstMatch(mainText);
+    if (qtyUnit != null) {
+      double qty;
+      try {
+        qty = _parseFraction(qtyUnit.group(1)!);
+      } catch (_) {
+        return (quantity: 1, unit: 'serving');
+      }
+      String unit = qtyUnit.group(2)!.trim();
+      if (unit == 'grams' || unit == 'gram') unit = 'g';
+      return (quantity: qty, unit: unit);
+    }
+
+    final justNumber = RegExp(r'^(\d+(?:\.\d+)?)$').firstMatch(mainText);
+    if (justNumber != null) {
+      return (quantity: double.parse(justNumber.group(1)!), unit: 'g');
+    }
+
+    return (quantity: 1, unit: 'serving');
   }
 
   static double _parseFraction(String s) {

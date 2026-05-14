@@ -21,6 +21,17 @@ class UnitPreferences {
   double displayWeight(double kg) => kg * weightFactor;
   double kgWeight(double display) => display / weightFactor;
 
+  double displayHeight(double cm) => cm * heightFactor;
+  double heightCm(double display) => display / heightFactor;
+
+  double get rateFactor => useImperial ? 1.0 : (1.0 / 2.20462);
+  String get rateUnit => useImperial ? 'lb/week' : 'kg/week';
+
+  double get proteinDisplayFactor => useImperial ? 1.0 : 2.20462;
+  String get proteinUnit => useImperial ? 'g/lb' : 'g/kg';
+  double displayProteinGPerLb(double gPerLb) => gPerLb * proteinDisplayFactor;
+  double proteinGPerLbFromDisplay(double display) => display / proteinDisplayFactor;
+
   factory UnitPreferences.metric() => const UnitPreferences(
         useImperial: false,
         weightFactor: 1.0,

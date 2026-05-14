@@ -18,7 +18,6 @@ AppDatabase _createSeedDb() {
   db.into(db.foods).insert(FoodsCompanion.insert(
     name: 'Oats',
     servingLabel: '100g',
-    servingSizeGrams: Value(100),
     caloriesPerServing: 389,
     proteinPerServing: 16.9,
     carbsPerServing: 66.3,
@@ -29,7 +28,6 @@ AppDatabase _createSeedDb() {
   db.into(db.foods).insert(FoodsCompanion.insert(
     name: 'Chicken Breast',
     servingLabel: '100g',
-    servingSizeGrams: Value(100),
     caloriesPerServing: 165,
     proteinPerServing: 31,
     carbsPerServing: 0,

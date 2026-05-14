@@ -144,11 +144,58 @@ void main() {
 
       expect(find.byType(TextFormField), findsNWidgets(4));
 
+      // Change height from seeded (5'9") to 6'4"
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Height (ft)'),
+        '6',
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Height (in)'),
+        '4',
+      );
+      await tester.pump();
+
+      // Toggle to Metric — conversion must preserve 6'4" = 193 cm
       await tester.tap(find.text('Metric'));
       await tester.pump();
       await tester.pump();
 
       expect(find.byType(TextFormField), findsNWidgets(3));
+      expect(
+        tester.widget<TextField>(
+          find.descendant(
+            of: find.widgetWithText(TextFormField, 'Height'),
+            matching: find.byType(TextField),
+          ),
+        ).controller?.text,
+        '193.0',
+      );
+
+      // Toggle back to Imperial — round-trip preserves 6'4"
+      await tester.tap(find.text('Imperial'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(TextFormField), findsNWidgets(4));
+      expect(
+        tester.widget<TextField>(
+          find.descendant(
+            of: find.widgetWithText(TextFormField, 'Height (ft)'),
+            matching: find.byType(TextField),
+          ),
+        ).controller?.text,
+        '6',
+      );
+      expect(
+        tester.widget<TextField>(
+          find.descendant(
+            of: find.widgetWithText(TextFormField, 'Height (in)'),
+            matching: find.byType(TextField),
+          ),
+        ).controller?.text,
+        '4',
+      );
     });
 
     testWidgets('units persistence: save and reopen shows imperial',
@@ -307,21 +354,21 @@ void main() {
       await seedGoals(db);
       await pumpGoals(tester, db);
 
-      expect(find.text('~1 lb/week loss'), findsOneWidget);
+      expect(find.text('~0.5 kg/week loss'), findsOneWidget);
 
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Calorie adjustment'),
         '-1000',
       );
       await tester.pump();
-      expect(find.text('~2 lb/week loss'), findsOneWidget);
+      expect(find.text('~0.9 kg/week loss'), findsOneWidget);
 
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Calorie adjustment'),
         '350',
       );
       await tester.pump();
-      expect(find.text('~0.7 lb/week gain'), findsOneWidget);
+      expect(find.text('~0.3 kg/week gain'), findsOneWidget);
     });
 
     testWidgets('calorie warning absent at default -500', (tester) async {
@@ -410,9 +457,9 @@ void main() {
       await seedGoals(db);
       await pumpGoals(tester, db);
 
-      expect(find.text('Protein: 1.0 g/lb'), findsOneWidget);
+      expect(find.text('Protein: 2.2 g/kg'), findsOneWidget);
       expect(find.byType(Slider), findsAtLeastNWidgets(1));
-      expect(find.text('Recommended: 0.8\u20131.4 g/lb'), findsOneWidget);
+      expect(find.text('Recommended: 1.8\u20133.1 g/kg'), findsOneWidget);
     });
 
     testWidgets('fat slider shows % and gram equivalent',

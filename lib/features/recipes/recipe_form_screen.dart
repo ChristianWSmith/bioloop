@@ -116,7 +116,6 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
           id: food.localId ?? -1,
           name: food.name,
           servingLabel: food.servingLabel,
-          servingSizeGrams: food.servingSizeGrams,
           servingQuantity: food.servingQuantity,
           servingUnit: food.servingUnit,
           caloriesPerServing: food.caloriesPerServing,
@@ -282,10 +281,11 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
     double totalCals = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
     for (final item in _ingredients) {
       final qty = item.ingredient.quantity;
-      totalCals += item.food.caloriesPerServing * qty;
-      totalProtein += item.food.proteinPerServing * qty;
-      totalCarbs += item.food.carbsPerServing * qty;
-      totalFat += item.food.fatPerServing * qty;
+      final sq = item.food.servingQuantity > 0 ? item.food.servingQuantity : 1;
+      totalCals += item.food.caloriesPerServing * (qty / sq);
+      totalProtein += item.food.proteinPerServing * (qty / sq);
+      totalCarbs += item.food.carbsPerServing * (qty / sq);
+      totalFat += item.food.fatPerServing * (qty / sq);
     }
     final perUnit = servingSize > 0 ? servingSize : 1;
 

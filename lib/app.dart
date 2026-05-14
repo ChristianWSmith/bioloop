@@ -8,6 +8,7 @@ import 'features/history/history_screen.dart';
 import 'features/logging/log_food_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'providers/bodyweight_provider.dart';
+import 'providers/data_trigger_provider.dart';
 import 'providers/database_provider.dart';
 import 'providers/food_log_provider.dart';
 import 'providers/goals_provider.dart';
@@ -50,6 +51,7 @@ class _AppState extends ConsumerState<App> {
     ref.invalidate(bodyweightProvider);
     ref.invalidate(todaysFoodProvider);
     ref.invalidate(userGoalsProvider);
+    ref.read(dataTriggerProvider.notifier).state++;
     setState(() => _onboardingCompleted = true);
   }
 

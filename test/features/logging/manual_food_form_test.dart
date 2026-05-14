@@ -133,23 +133,6 @@ void main() {
 
       final foods = await (db.select(db.foods)).get();
       expect(foods.length, 1);
-      expect(foods.first.servingSizeGrams, isNull);
-    });
-
-    testWidgets('gram weight: entering a value stores it', (tester) async {
-      final db = createDb();
-      addTearDown(() => db.close());
-      await pushForm(tester, db);
-
-      await fillRequiredFields(tester);
-      await tester.enterText(find.byType(TextFormField).at(6), '240');
-
-      await tapSave(tester);
-      await tester.pumpAndSettle();
-
-      final foods = await (db.select(db.foods)).get();
-      expect(foods.length, 1);
-      expect(foods.first.servingSizeGrams, 240);
     });
 
     testWidgets(
@@ -174,14 +157,8 @@ void main() {
           findsOneWidget);
       expect(find.widgetWithText(TextFormField, 'Fat per serving (g)'),
           findsOneWidget);
-      expect(
-        find.widgetWithText(
-            TextFormField, 'Grams per serving (optional)'),
-        findsOneWidget,
-      );
 
       expect(find.text('Label: 1 g'), findsOneWidget);
-      expect(find.text('e.g. 100'), findsOneWidget);
 
       final caloriesField = tester.widget<TextField>(
         find.descendant(
@@ -207,6 +184,83 @@ void main() {
       expect(results.length, 1);
       expect(results.first.name, 'Test Food');
       expect(results.first.source, 'manual');
+    });
+
+    testWidgets('auto-compute calories from protein/carbs/fat',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'Test');
+      await tester.enterText(find.byType(TextFormField).at(1), '1');
+      await tester.enterText(find.byType(TextFormField).at(3), '20');
+      await tester.enterText(find.byType(TextFormField).at(4), '30');
+      await tester.enterText(find.byType(TextFormField).at(5), '10');
+
+      final caloriesField = tester.widget<TextField>(
+        find.descendant(
+          of: find.widgetWithText(TextFormField, 'Calories per serving'),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(caloriesField.controller?.text, '290');
+    });
+
+    testWidgets('manual calories override is not overwritten',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'Test');
+      await tester.enterText(find.byType(TextFormField).at(1), '1');
+      await tester.enterText(find.byType(TextFormField).at(3), '20');
+      await tester.enterText(find.byType(TextFormField).at(4), '30');
+      await tester.enterText(find.byType(TextFormField).at(5), '10');
+
+      await tester.enterText(find.byType(TextFormField).at(2), '300');
+
+      await tester.enterText(find.byType(TextFormField).at(3), '25');
+
+      final caloriesField = tester.widget<TextField>(
+        find.descendant(
+          of: find.widgetWithText(TextFormField, 'Calories per serving'),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(caloriesField.controller?.text, '300');
+    });
+
+    testWidgets('auto-compute resumes after clearing all macros',
+        (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'Test');
+      await tester.enterText(find.byType(TextFormField).at(1), '1');
+      await tester.enterText(find.byType(TextFormField).at(3), '20');
+      await tester.enterText(find.byType(TextFormField).at(4), '30');
+      await tester.enterText(find.byType(TextFormField).at(5), '10');
+
+      await tester.enterText(find.byType(TextFormField).at(2), '300');
+
+      await tester.enterText(find.byType(TextFormField).at(3), '');
+      await tester.enterText(find.byType(TextFormField).at(4), '');
+      await tester.enterText(find.byType(TextFormField).at(5), '');
+
+      await tester.enterText(find.byType(TextFormField).at(3), '10');
+      await tester.enterText(find.byType(TextFormField).at(4), '10');
+      await tester.enterText(find.byType(TextFormField).at(5), '10');
+
+      final caloriesField = tester.widget<TextField>(
+        find.descendant(
+          of: find.widgetWithText(TextFormField, 'Calories per serving'),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(caloriesField.controller?.text, '170');
     });
   });
 }

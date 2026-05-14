@@ -25,12 +25,13 @@ String exportFoodEntriesToCsv(List<FoodEntry> entries) {
   return buf.toString();
 }
 
-String exportBodyweightToCsv(List<BodyweightEntry> entries) {
+String exportBodyweightToCsv(List<BodyweightEntry> entries, {String weightUnit = 'kg'}) {
   final buf = StringBuffer();
-  buf.writeln('date,weight_kg,unit');
+  final factor = weightUnit == 'lb' ? 2.20462 : 1.0;
+  buf.writeln('date,weight,$weightUnit');
   for (final e in entries) {
     final date = e.loggedAt.substring(0, 10);
-    buf.writeln('${_csvEscape(date)},${e.weightKg},kg');
+    buf.writeln('${_csvEscape(date)},${(e.weightKg * factor).toStringAsFixed(1)},$weightUnit');
   }
   return buf.toString();
 }

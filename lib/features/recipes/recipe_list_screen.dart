@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/database.dart';
+import '../../providers/data_trigger_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/food_log_provider.dart';
 import '../../providers/recipe_provider.dart';
@@ -106,6 +107,7 @@ class RecipeListScreen extends ConsumerWidget {
       );
       if (result == true && context.mounted) {
         ref.invalidate(todaysFoodProvider);
+        ref.read(dataTriggerProvider.notifier).state++;
         Navigator.of(context).pop(true);
       }
     } else {
