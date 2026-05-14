@@ -1,0 +1,19 @@
+- when the user logs a new food, and then adds a recipe, that new food doesn't appear among recent foods in the recipe add ingredient screen until the app is restarted.
+
+- after adding an ingredient to a recipe, the displayed line item looks a little strange.  I added 100g of white rice, and it says:
+  White Rice
+  100.00 x 1 portion (46g) - 370 kcal
+
+  The calculated calories are correct, but it should simply display as 100g.  This is because the entry for the serving size of white rice from openfoodfacts is formatted oddly and inconsistently.  we already have some robust logic for dealing with that in the logging logic, so we need to intelligently apply that to format it properly here.
+
+- the individual lines representing logged foods on the history tab should include the quantity and unit logged
+
+- we need to add a way to edit recipes
+
+- we need to add a way to duplicate recipes
+
+- on all food search screens, "create custom food" should always appear before the list of recent foods
+
+- when adding a custom food, the calculated calories should re-calculate each time one of the macros are edited.  the user should still be able to edit the calories directly after the fact, but subsequent changes to the macros should re-calculate the calories and overwrite that.  this should only happen when the macro fields are manually edited
+
+- 
