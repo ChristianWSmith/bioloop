@@ -50,6 +50,7 @@ Future<void> pumpDashboard(WidgetTester tester, Widget widget) async {
 }
 
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   group('MacroRing', () {
     testWidgets('renders with consumed and target values', (tester) async {
       await tester.pumpWidget(MaterialApp(

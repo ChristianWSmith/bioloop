@@ -63,7 +63,7 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(4), '20');
       await tester.enterText(find.byType(TextFormField).at(5), '5');
 
-      await tester.tap(find.text('Save'));
+      await tapSave(tester);
       await tester.pumpAndSettle();
 
       expect(find.text('Custom Food'), findsOneWidget);
@@ -78,7 +78,7 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(1), '1');
       await tester.enterText(find.byType(TextFormField).at(2), '-1');
 
-      await tester.tap(find.text('Save'));
+      await tapSave(tester);
       await tester.pumpAndSettle();
 
       expect(find.text('Custom Food'), findsOneWidget);

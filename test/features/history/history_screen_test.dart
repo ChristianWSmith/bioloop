@@ -61,16 +61,32 @@ void main() {
       final db = createDb();
       addTearDown(() => db.close());
 
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+      final twoDaysAgo = today.subtract(const Duration(days: 2));
+
+      String fmt(DateTime d) =>
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
       await _insertEntry(db,
-          name: 'Meal 1', loggedAt: '2026-05-10T08:00:00');
+          name: 'Meal 1', loggedAt: '${fmt(twoDaysAgo)}T08:00:00');
       await _insertEntry(db,
-          name: 'Meal 2', loggedAt: '2026-05-11T12:00:00');
+          name: 'Meal 2', loggedAt: '${fmt(yesterday)}T12:00:00');
       await _insertEntry(db,
-          name: 'Meal 3', loggedAt: '2026-05-12T18:00:00');
+          name: 'Meal 3', loggedAt: '${fmt(today)}T18:00:00');
 
       await pumpScreen(tester, db);
 
-      expect(find.text('May 10, 2026'), findsOneWidget);
+      const monthNames = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      ];
+      expect(
+        find.text(
+            '${monthNames[twoDaysAgo.month - 1]} ${twoDaysAgo.day}, ${twoDaysAgo.year}'),
+        findsOneWidget,
+      );
       expect(find.text('Yesterday'), findsOneWidget);
       expect(find.text('Today'), findsOneWidget);
       expect(find.text('Meal 1'), findsOneWidget);

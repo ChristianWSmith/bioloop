@@ -323,7 +323,6 @@ void main() {
 
       // Select Extra active (level 5)
       await tester.scrollUntilVisible(find.text('Extra active'), 100, scrollable: _scrollable);
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, -80));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Extra active'));
       await tester.pumpAndSettle();
