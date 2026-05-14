@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/food_search_provider.dart';
+import '../../../providers/recent_foods_provider.dart';
 
 class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   final FoodSearchService searchService;
@@ -44,6 +46,10 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   Widget _buildContent(BuildContext context) {
     return ListView(
       children: [
+        if (query.isEmpty)
+          _RecentFoodsSection(
+            onSelectItem: (item) => close(context, item),
+          ),
         ListTile(
           leading: const Icon(Icons.add_circle_outline),
           title: const Text('Create custom food'),
@@ -61,6 +67,71 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _RecentFoodsSection extends ConsumerWidget {
+  final void Function(FoodSearchItem item) onSelectItem;
+
+  const _RecentFoodsSection({required this.onSelectItem});
+
+  String _formatLastUsed(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(dt.year, dt.month, dt.day);
+    final diff = today.difference(date).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    if (diff < 7) return '$diff days ago';
+    return '${date.month}/${date.day}/${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recentFoods = ref.watch(recentFoodsProvider);
+    return recentFoods.when(
+      data: (items) {
+        if (items.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Text(
+                'Recent Foods',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+            ),
+            ...items.map((item) {
+              final macroText =
+                  '${item.food.caloriesPerServing.toStringAsFixed(0)} cal  '
+                  '• ${item.food.proteinPerServing.toStringAsFixed(1)}g P  '
+                  '• ${item.food.carbsPerServing.toStringAsFixed(1)}g C  '
+                  '• ${item.food.fatPerServing.toStringAsFixed(1)}g F';
+              return ListTile(
+                title: Text(item.food.name),
+                subtitle: Text(
+                  '$macroText\n${item.food.servingLabel}  •  ${_formatLastUsed(item.lastUsed)}',
+                ),
+                isThreeLine: true,
+                onTap: () => onSelectItem(item.food),
+              );
+            }),
+            const Divider(),
+          ],
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('Could not load recent foods'),
+      ),
     );
   }
 }

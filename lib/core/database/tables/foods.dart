@@ -6,6 +6,8 @@ class Foods extends Table {
   TextColumn get name => text()();
   TextColumn get servingLabel => text()();
   RealColumn get servingSizeGrams => real().nullable()();
+  RealColumn get servingQuantity => real().withDefault(const Constant(1.0))();
+  TextColumn get servingUnit => text().withDefault(const Constant('serving'))();
   RealColumn get caloriesPerServing => real()();
   RealColumn get proteinPerServing => real()();
   RealColumn get carbsPerServing => real()();

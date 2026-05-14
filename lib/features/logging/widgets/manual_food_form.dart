@@ -4,6 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/database.dart';
 import '../../../providers/database_provider.dart';
 
+const _commonUnits = [
+  'g', 'ml', 'fl oz', 'oz', 'cups', 'tbsp', 'tsp',
+  'slices', 'pieces', 'bars', 'servings',
+];
+
 class ManualFoodForm extends ConsumerStatefulWidget {
   const ManualFoodForm({super.key});
 
@@ -16,23 +21,69 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
   bool _saving = false;
 
   final _nameController = TextEditingController();
-  final _servingLabelController = TextEditingController();
+  final _qtyController = TextEditingController(text: '1');
   final _caloriesController = TextEditingController();
   final _proteinController = TextEditingController();
   final _carbsController = TextEditingController();
   final _fatController = TextEditingController();
   final _servingSizeController = TextEditingController();
+  String _selectedUnit = 'g';
+  String? _customUnit;
 
   @override
   void dispose() {
     _nameController.dispose();
-    _servingLabelController.dispose();
+    _qtyController.dispose();
     _caloriesController.dispose();
     _proteinController.dispose();
     _carbsController.dispose();
     _fatController.dispose();
     _servingSizeController.dispose();
     super.dispose();
+  }
+
+  String get _unit => _customUnit ?? _selectedUnit;
+
+  bool get _unitIsCommon => _commonUnits.contains(_unit);
+
+  String _buildLabel() {
+    final qty = double.tryParse(_qtyController.text) ?? 1;
+    final qtyStr = qty == qty.roundToDouble()
+        ? qty.toInt().toString()
+        : qty.toStringAsFixed(1);
+    return '$qtyStr $_unit';
+  }
+
+  Future<void> _openCustomUnitDialog() async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Custom unit'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Unit name',
+            hintText: 'e.g. portions, packets',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result != null && result.isNotEmpty && mounted) {
+      setState(() => _customUnit = result);
+    }
   }
 
   Future<void> _save() async {
@@ -42,14 +93,19 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
 
     final db = ref.read(databaseProvider);
     final now = DateTime.now().toIso8601String();
+    final qty = double.tryParse(_qtyController.text) ?? 1;
 
     try {
+      final servingLabel = _buildLabel();
+
       final id = await db.insertFood(FoodsCompanion.insert(
         name: _nameController.text.trim(),
-        servingLabel: _servingLabelController.text.trim(),
+        servingLabel: servingLabel,
         servingSizeGrams: _servingSizeController.text.isNotEmpty
             ? Value(double.parse(_servingSizeController.text))
             : const Value(null),
+        servingQuantity: Value(qty),
+        servingUnit: Value(_unit),
         caloriesPerServing: double.parse(_caloriesController.text),
         proteinPerServing: double.parse(_proteinController.text),
         carbsPerServing: double.parse(_carbsController.text),
@@ -63,10 +119,12 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
         final food = Food(
           id: id,
           name: _nameController.text.trim(),
-          servingLabel: _servingLabelController.text.trim(),
+          servingLabel: servingLabel,
           servingSizeGrams: _servingSizeController.text.isNotEmpty
               ? double.parse(_servingSizeController.text)
               : null,
+          servingQuantity: qty,
+          servingUnit: _unit,
           caloriesPerServing: double.parse(_caloriesController.text),
           proteinPerServing: double.parse(_proteinController.text),
           carbsPerServing: double.parse(_carbsController.text),
@@ -118,16 +176,72 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
               },
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _servingLabelController,
-              decoration: const InputDecoration(
-                labelText: 'Serving label',
-                hintText: 'e.g. 1 cup, 1 slice',
-              ),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Required';
-                return null;
-              },
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: TextFormField(
+                    controller: _qtyController,
+                    decoration: const InputDecoration(labelText: 'Quantity'),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (_) => setState(() {}),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Required';
+                      final n = double.tryParse(v);
+                      if (n == null || n <= 0) return 'Invalid';
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Unit',
+                      isDense: true,
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _unitIsCommon ? _selectedUnit : null,
+                        isDense: true,
+                        hint: Text(_unit),
+                        onChanged: (v) {
+                          if (v == '__custom__') {
+                            _openCustomUnitDialog();
+                          } else if (v != null) {
+                            setState(() {
+                              _selectedUnit = v;
+                              _customUnit = null;
+                            });
+                          }
+                        },
+                        items: [
+                          ..._commonUnits.map((u) => DropdownMenuItem(
+                                value: u,
+                                child: Text(u),
+                              )),
+                          const DropdownMenuItem(
+                            value: '__custom__',
+                            child: Text('Custom\u2026'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Label: ${_buildLabel()}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -193,7 +307,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
             TextFormField(
               controller: _servingSizeController,
               decoration: const InputDecoration(
-                labelText: 'Serving size in grams (optional)',
+                labelText: 'Grams per serving (optional)',
                 hintText: 'e.g. 100',
               ),
               keyboardType:

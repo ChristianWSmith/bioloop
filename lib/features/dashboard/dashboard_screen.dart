@@ -7,6 +7,7 @@ import '../../providers/bodyweight_provider.dart';
 import '../../providers/food_log_provider.dart';
 import '../../providers/goals_provider.dart';
 import '../../providers/macro_targets_provider.dart';
+import '../../providers/unit_preferences_provider.dart';
 import '../settings/settings_screen.dart';
 import 'widgets/bodyweight_sparkline.dart';
 import 'widgets/macro_ring.dart';
@@ -23,6 +24,7 @@ class DashboardScreen extends ConsumerWidget {
     final targetsAsync = ref.watch(macroTargetsProvider);
     final weightsAsync = ref.watch(bodyweightProvider);
     final goalsAsync = ref.watch(userGoalsProvider);
+    final unitPrefs = ref.watch(unitPreferencesProvider);
 
     if (entriesAsync.isLoading ||
         targetsAsync.isLoading ||
@@ -81,7 +83,7 @@ class DashboardScreen extends ConsumerWidget {
               context,
               currentKg: latestWeight,
               goalKg: goals!.goalWeightKg!,
-              useImperial: goals.useImperial == 1,
+              useImperial: unitPrefs.useImperial,
             ),
           const SizedBox(height: 16),
           SizedBox(
@@ -185,7 +187,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Welcome to bioloop',
+              'Welcome to BioLoop',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -248,7 +250,7 @@ class DashboardScreen extends ConsumerWidget {
                     )
                   : Text.rich(
                       TextSpan(
-                        text: '${current.toStringAsFixed(0)} $unit',
+                        text: '${current.toStringAsFixed(2)} $unit',
                         style: Theme.of(context)
                             .textTheme
                             .titleLarge
@@ -259,7 +261,7 @@ class DashboardScreen extends ConsumerWidget {
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           TextSpan(
-                            text: '${goal.toStringAsFixed(0)} $unit',
+                            text: '${goal.toStringAsFixed(2)} $unit',
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge
@@ -269,7 +271,7 @@ class DashboardScreen extends ConsumerWidget {
                             child: Padding(
                               padding: const EdgeInsets.only(left: 8),
                               child: Text(
-                                '(${diff.toStringAsFixed(0)} $unit to go)',
+                                '(${diff.toStringAsFixed(2)} $unit to go)',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium

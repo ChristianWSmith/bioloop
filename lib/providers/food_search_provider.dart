@@ -14,6 +14,8 @@ class FoodSearchItem {
   final String name;
   final String servingLabel;
   final double? servingSizeGrams;
+  final double servingQuantity;
+  final String servingUnit;
   final double caloriesPerServing;
   final double proteinPerServing;
   final double carbsPerServing;
@@ -26,6 +28,8 @@ class FoodSearchItem {
     required this.name,
     required this.servingLabel,
     this.servingSizeGrams,
+    this.servingQuantity = 1.0,
+    this.servingUnit = 'serving',
     required this.caloriesPerServing,
     required this.proteinPerServing,
     required this.carbsPerServing,
@@ -39,6 +43,8 @@ class FoodSearchItem {
         name: food.name,
         servingLabel: food.servingLabel,
         servingSizeGrams: food.servingSizeGrams,
+        servingQuantity: food.servingQuantity,
+        servingUnit: food.servingUnit,
         caloriesPerServing: food.caloriesPerServing,
         proteinPerServing: food.proteinPerServing,
         carbsPerServing: food.carbsPerServing,
@@ -51,6 +57,8 @@ class FoodSearchItem {
         name: result.name,
         servingLabel: result.servingLabel,
         servingSizeGrams: result.servingSizeGrams,
+        servingQuantity: result.servingQuantity,
+        servingUnit: result.servingUnit,
         caloriesPerServing: result.caloriesPerServing,
         proteinPerServing: result.proteinPerServing,
         carbsPerServing: result.carbsPerServing,
@@ -90,18 +98,20 @@ class FoodSearchService {
   }
 
   Future<int> saveApiResult(FoodSearchItem item) async {
-    return await db.insertFood(FoodsCompanion.insert(
-      name: item.name,
-      servingLabel: item.servingLabel,
-      servingSizeGrams: Value(item.servingSizeGrams),
-      caloriesPerServing: item.caloriesPerServing,
-      proteinPerServing: item.proteinPerServing,
-      carbsPerServing: item.carbsPerServing,
-      fatPerServing: item.fatPerServing,
-      barcode: Value(item.barcode),
-      source: Value(item.source),
-      createdAt: DateTime.now().toIso8601String(),
-    ));
+      return await db.insertFood(FoodsCompanion.insert(
+        name: item.name,
+        servingLabel: item.servingLabel,
+        servingSizeGrams: Value(item.servingSizeGrams),
+        servingQuantity: Value(item.servingQuantity),
+        servingUnit: Value(item.servingUnit),
+        caloriesPerServing: item.caloriesPerServing,
+        proteinPerServing: item.proteinPerServing,
+        carbsPerServing: item.carbsPerServing,
+        fatPerServing: item.fatPerServing,
+        barcode: Value(item.barcode),
+        source: Value(item.source),
+        createdAt: DateTime.now().toIso8601String(),
+      ));
   }
 }
 

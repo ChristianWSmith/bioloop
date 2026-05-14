@@ -25,16 +25,13 @@ class LogFoodScreen extends ConsumerStatefulWidget {
 class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
   FoodSearchItem? _selectedFood;
   double _servings = 1.0;
+  String _unit = 'serving';
   String? _mealType;
   bool _saving = false;
   bool _pendingCreateCustom = false;
-  bool _updatingGram = false;
-
-  final _gramController = TextEditingController();
 
   @override
   void dispose() {
-    _gramController.dispose();
     super.dispose();
   }
 
@@ -59,9 +56,9 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
   void _selectFood(FoodSearchItem food) {
     setState(() {
       _selectedFood = food;
-      _servings = 1.0;
+      _servings = food.servingQuantity;
+      _unit = food.servingUnit;
       _mealType = null;
-      _gramController.clear();
     });
   }
 
@@ -90,13 +87,13 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         carbsGrams: food.carbsPerServing * _servings,
         fatGrams: food.fatPerServing * _servings,
         servings: _servings,
-        servingLabel: food.servingLabel,
+        servingLabel: _buildLabel(_servings, _unit),
         mealType: _mealType ?? '',
         loggedAt: '',
       ),
       1,
     );
-    if (!context.mounted) return;
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Template saved!')),
     );
@@ -180,29 +177,17 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
 
   void _onServingsChanged(double value) {
     setState(() => _servings = value);
-    _syncGramFromServings();
   }
 
-  void _onGramChanged(String value) {
-    if (_updatingGram) return;
-    if (_selectedFood?.servingSizeGrams == null) return;
-    if (value.isEmpty) return;
-    final grams = double.tryParse(value);
-    if (grams != null && grams > 0) {
-      final newServings = grams / _selectedFood!.servingSizeGrams!;
-      if ((newServings - _servings).abs() > 0.0001) {
-        setState(() => _servings = newServings);
-      }
-    }
+  void _onUnitChanged(String value) {
+    setState(() => _unit = value);
   }
 
-  void _syncGramFromServings() {
-    if (_selectedFood?.servingSizeGrams != null) {
-      _updatingGram = true;
-      _gramController.text =
-          (_servings * _selectedFood!.servingSizeGrams!).toStringAsFixed(1);
-      _updatingGram = false;
-    }
+  String _buildLabel(double qty, String unit) {
+    final qtyStr = qty == qty.roundToDouble()
+        ? qty.toInt().toString()
+        : qty.toStringAsFixed(1);
+    return '$qtyStr $unit';
   }
 
   Future<void> _save() async {
@@ -221,6 +206,8 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
           name: food.name,
           servingLabel: food.servingLabel,
           servingSizeGrams: Value(food.servingSizeGrams),
+          servingQuantity: Value(food.servingQuantity),
+          servingUnit: Value(food.servingUnit),
           caloriesPerServing: food.caloriesPerServing,
           proteinPerServing: food.proteinPerServing,
           carbsPerServing: food.carbsPerServing,
@@ -238,7 +225,7 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         carbsGrams: food.carbsPerServing * _servings,
         fatGrams: food.fatPerServing * _servings,
         servings: _servings,
-        servingLabel: food.servingLabel,
+        servingLabel: _buildLabel(_servings, _unit),
         barcode: Value(food.barcode),
         foodId: Value(foodId),
         recipeId: const Value(null),
@@ -255,8 +242,8 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         setState(() {
           _selectedFood = null;
           _servings = 1.0;
+          _unit = 'serving';
           _mealType = null;
-          _gramController.clear();
           _saving = false;
         });
       }
@@ -307,8 +294,8 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                                   onPressed: () => setState(() {
                                     _selectedFood = null;
                                     _servings = 1.0;
+                                    _unit = 'serving';
                                     _mealType = null;
-                                    _gramController.clear();
                                   }),
                                 )
                               : null,
@@ -375,11 +362,11 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: ServingSizePicker(
-                      servings: _servings,
-                      onChanged: _onServingsChanged,
+                      quantity: _servings,
+                      unit: _unit,
                       servingSizeGrams: _selectedFood!.servingSizeGrams,
-                      gramController: _gramController,
-                      onGramChanged: _onGramChanged,
+                      onQuantityChanged: _onServingsChanged,
+                      onUnitChanged: _onUnitChanged,
                     ),
                   ),
 
@@ -394,7 +381,7 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Macros for ${_servings.toStringAsFixed(_servings == _servings.roundToDouble() ? 0 : 1)} × ${_selectedFood!.servingLabel}',
+                              'Macros for ${_buildLabel(_servings, _unit)}',
                               style: Theme.of(context).textTheme.titleSmall,
                             ),
                             const SizedBox(height: 8),
@@ -457,20 +444,12 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                 ),
               ),
             ),
-          ] else ...[
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                'Tap the search bar above to find or create a food',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+          ] else
+            Expanded(
+              child: _TodayEntriesSection(
+                onEdit: () => ref.invalidate(todaysFoodProvider),
               ),
             ),
-            const Spacer(),
-          ],
         ],
       ),
     );
@@ -489,5 +468,146 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         ),
       ],
     );
+  }
+}
+
+class _TodayEntriesSection extends ConsumerWidget {
+  final VoidCallback onEdit;
+
+  const _TodayEntriesSection({required this.onEdit});
+
+  String? _timeFromLoggedAt(String loggedAt) {
+    if (loggedAt.length >= 16) return loggedAt.substring(11, 16);
+    return null;
+  }
+
+  Map<String, List<FoodEntry>> _groupByMealType(List<FoodEntry> entries) {
+    final map = <String, List<FoodEntry>>{};
+    for (final entry in entries) {
+      map.putIfAbsent(entry.mealType.isNotEmpty ? entry.mealType : 'other', () => []).add(entry);
+    }
+    return map;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final todayEntries = ref.watch(todaysFoodProvider);
+    return todayEntries.when(
+      data: (entries) {
+        if (entries.isEmpty) {
+          return Center(
+            child: Text(
+              'No entries logged today',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          );
+        }
+
+        final groups = _groupByMealType(entries);
+        final mealOrder = ['breakfast', 'lunch', 'dinner', 'snack'];
+        final sortedMeals = groups.keys.toList()
+          ..sort((a, b) {
+            final ai = mealOrder.indexOf(a);
+            final bi = mealOrder.indexOf(b);
+            if (ai == -1 && bi == -1) return a.compareTo(b);
+            if (ai == -1) return 1;
+            if (bi == -1) return -1;
+            return ai.compareTo(bi);
+          });
+
+        return ListView(
+          padding: const EdgeInsets.only(top: 8, bottom: 16),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Text(
+                "Today's Entries",
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+            ),
+            for (final mealType in sortedMeals) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 2),
+                child: Text(
+                  mealType[0].toUpperCase() + mealType.substring(1),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+              for (final entry in groups[mealType]!) ...[
+                ListTile(
+                  title: Text(entry.name),
+                  subtitle: Text(
+                    '${entry.calories.toInt()} cal  •  P${entry.proteinGrams.toStringAsFixed(0)}g  C${entry.carbsGrams.toStringAsFixed(0)}g  F${entry.fatGrams.toStringAsFixed(0)}g${_timeFromLoggedAt(entry.loggedAt) != null ? '  •  ${_timeFromLoggedAt(entry.loggedAt)}' : ''}',
+                  ),
+                  trailing: IconButton(
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    onPressed: () => _deleteEntry(context, ref, entry),
+                  ),
+                ),
+              ],
+            ],
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+        child: Text('Failed to load today\'s entries'),
+      ),
+    );
+  }
+
+  Future<void> _deleteEntry(
+      BuildContext context, WidgetRef ref, FoodEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete entry?'),
+        content: Text('Delete "${entry.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ref.read(foodLogProvider).deleteEntry(entry.id);
+        ref.invalidate(todaysFoodProvider);
+        onEdit();
+      } catch (e) {
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Error'),
+              content: Text('Failed to delete: $e'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    }
   }
 }

@@ -34,11 +34,22 @@ void main() {
 
     Future<void> fillRequiredFields(WidgetTester tester) async {
       await tester.enterText(find.byType(TextFormField).at(0), 'Test Food');
-      await tester.enterText(find.byType(TextFormField).at(1), '1 cup');
+      await tester.enterText(find.byType(TextFormField).at(1), '1');
       await tester.enterText(find.byType(TextFormField).at(2), '200');
       await tester.enterText(find.byType(TextFormField).at(3), '10');
       await tester.enterText(find.byType(TextFormField).at(4), '20');
       await tester.enterText(find.byType(TextFormField).at(5), '5');
+    }
+
+    Future<void> tapSave(WidgetTester tester) async {
+      final saveButton = find.text('Save');
+      await tester.dragUntilVisible(
+        saveButton,
+        find.byType(ListView),
+        const Offset(0, -100),
+      );
+      await tester.pump();
+      await tester.tap(saveButton);
     }
 
     testWidgets('validation: empty name shows error', (tester) async {
@@ -46,7 +57,7 @@ void main() {
       addTearDown(() => db.close());
       await pushForm(tester, db);
 
-      await tester.enterText(find.byType(TextFormField).at(1), '1 cup');
+      await tester.enterText(find.byType(TextFormField).at(1), '1');
       await tester.enterText(find.byType(TextFormField).at(2), '200');
       await tester.enterText(find.byType(TextFormField).at(3), '10');
       await tester.enterText(find.byType(TextFormField).at(4), '20');
@@ -64,7 +75,7 @@ void main() {
       await pushForm(tester, db);
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Test Food');
-      await tester.enterText(find.byType(TextFormField).at(1), '1 cup');
+      await tester.enterText(find.byType(TextFormField).at(1), '1');
       await tester.enterText(find.byType(TextFormField).at(2), '-1');
 
       await tester.tap(find.text('Save'));
@@ -81,7 +92,7 @@ void main() {
 
       await fillRequiredFields(tester);
 
-      await tester.tap(find.text('Save'));
+      await tapSave(tester);
       await tester.pumpAndSettle();
 
       expect(find.text('Open Form'), findsOneWidget);
@@ -117,7 +128,7 @@ void main() {
 
       await fillRequiredFields(tester);
 
-      await tester.tap(find.text('Save'));
+      await tapSave(tester);
       await tester.pumpAndSettle();
 
       final foods = await (db.select(db.foods)).get();
@@ -133,7 +144,7 @@ void main() {
       await fillRequiredFields(tester);
       await tester.enterText(find.byType(TextFormField).at(6), '240');
 
-      await tester.tap(find.text('Save'));
+      await tapSave(tester);
       await tester.pumpAndSettle();
 
       final foods = await (db.select(db.foods)).get();
@@ -142,7 +153,7 @@ void main() {
     });
 
     testWidgets(
-        'field defaults: macros start empty, serving label has placeholder',
+        'field defaults: macros start empty, quantity defaults to 1, unit shows g',
         (tester) async {
       final db = createDb();
       addTearDown(() => db.close());
@@ -150,8 +161,8 @@ void main() {
 
       expect(
           find.widgetWithText(TextFormField, 'Name'), findsOneWidget);
-      expect(find.widgetWithText(TextFormField, 'Serving label'),
-          findsOneWidget);
+      expect(
+          find.widgetWithText(TextFormField, 'Quantity'), findsOneWidget);
       expect(
           find.widgetWithText(TextFormField, 'Calories per serving'),
           findsOneWidget);
@@ -165,11 +176,11 @@ void main() {
           findsOneWidget);
       expect(
         find.widgetWithText(
-            TextFormField, 'Serving size in grams (optional)'),
+            TextFormField, 'Grams per serving (optional)'),
         findsOneWidget,
       );
 
-      expect(find.text('e.g. 1 cup, 1 slice'), findsOneWidget);
+      expect(find.text('Label: 1 g'), findsOneWidget);
       expect(find.text('e.g. 100'), findsOneWidget);
 
       final caloriesField = tester.widget<TextField>(
@@ -189,7 +200,7 @@ void main() {
 
       await fillRequiredFields(tester);
 
-      await tester.tap(find.text('Save'));
+      await tapSave(tester);
       await tester.pumpAndSettle();
 
       final results = await db.searchByName('Test');

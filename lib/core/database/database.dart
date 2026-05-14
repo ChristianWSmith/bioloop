@@ -28,7 +28,40 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (m) async {
+        await m.createAll();
+      },
+      onUpgrade: (m, from, to) async {
+        if (from < 2) {
+          await m.addColumn(foods, foods.servingUnit);
+          await m.addColumn(foods, foods.servingQuantity);
+          await customStatement('''
+            UPDATE foods
+            SET serving_unit = CASE
+              WHEN serving_label LIKE '%cup%' THEN 'cup'
+              WHEN serving_label LIKE '%slice%' THEN 'slice'
+              WHEN serving_label LIKE '%bar%' THEN 'bar'
+              WHEN serving_label LIKE '%oz%' THEN 'oz'
+              WHEN serving_label LIKE '%packet%' THEN 'packet'
+              WHEN serving_label LIKE '%piece%' THEN 'piece'
+              WHEN serving_label LIKE '%serving%' THEN 'serving'
+              WHEN serving_size_grams IS NOT NULL THEN 'g'
+              ELSE 'serving'
+            END,
+            serving_quantity = CASE
+              WHEN serving_size_grams IS NOT NULL THEN serving_size_grams
+              ELSE 1.0
+            END
+          ''');
+        }
+      },
+    );
+  }
 
   static Future<AppDatabase> create() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -142,6 +175,41 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteEntry(int id) async {
     return await (delete(foodEntries)..where((f) => f.id.equals(id))).go();
+  }
+
+  Future<List<({Food food, String lastUsed})>> getRecentFoods({int limit = 10}) async {
+    final allEntries = await (select(foodEntries)
+          ..where((f) => f.foodId.isNotNull())
+          ..orderBy([
+            (f) => OrderingTerm(expression: f.loggedAt, mode: OrderingMode.desc)
+          ]))
+        .get();
+
+    final seenIds = <int>{};
+    final recentIds = <int>[];
+    final lastUsedMap = <int, String>{};
+    for (final entry in allEntries) {
+      if (entry.foodId != null && seenIds.add(entry.foodId!)) {
+        recentIds.add(entry.foodId!);
+        lastUsedMap[entry.foodId!] = entry.loggedAt;
+        if (recentIds.length >= limit) break;
+      }
+    }
+
+    if (recentIds.isEmpty) return [];
+
+    final foodList = await (select(foods)
+          ..where((f) => f.id.isIn(recentIds)))
+        .get();
+
+    final foodMap = {for (final f in foodList) f.id: f};
+
+    return recentIds
+        .map((id) => (
+              food: foodMap[id]!,
+              lastUsed: lastUsedMap[id]!,
+            ))
+        .toList();
   }
 
   Future<List<FoodEntry>> getEntriesPaginated(

@@ -126,31 +126,31 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
         final weightKg = double.tryParse(_weightController.text);
         if (weightKg != null && weightKg > 0) {
-          _weightController.text = (weightKg * 2.20462).toStringAsFixed(1);
+          _weightController.text = (weightKg * 2.20462).toStringAsFixed(2);
         }
 
         final goalKg = double.tryParse(_goalWeightController.text);
         if (goalKg != null && goalKg > 0) {
-          _goalWeightController.text = (goalKg * 2.20462).toStringAsFixed(1);
+          _goalWeightController.text = (goalKg * 2.20462).toStringAsFixed(2);
         }
       } else if (!imperial && _useImperial) {
         final feet = double.tryParse(_heightFeetController.text);
         final inches = double.tryParse(_heightInchesController.text);
         if (feet != null && inches != null) {
           final heightCm = feet * 30.48 + inches * 2.54;
-          _heightController.text = heightCm.toStringAsFixed(1);
+          _heightController.text = heightCm.toStringAsFixed(2);
         }
         _heightFeetController.clear();
         _heightInchesController.clear();
 
         final weightLb = double.tryParse(_weightController.text);
         if (weightLb != null && weightLb > 0) {
-          _weightController.text = (weightLb / 2.20462).toStringAsFixed(1);
+          _weightController.text = (weightLb / 2.20462).toStringAsFixed(2);
         }
 
         final goalLb = double.tryParse(_goalWeightController.text);
         if (goalLb != null && goalLb > 0) {
-          _goalWeightController.text = (goalLb / 2.20462).toStringAsFixed(1);
+          _goalWeightController.text = (goalLb / 2.20462).toStringAsFixed(2);
         }
       }
       _useImperial = imperial;

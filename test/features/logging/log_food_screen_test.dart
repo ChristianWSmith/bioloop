@@ -96,13 +96,13 @@ void main() {
     Future<void> selectFood(WidgetTester tester) =>
         searchAndTapResult(tester, 'Chicken', 'Chicken Breast');
 
-    testWidgets('empty state shows prompt text', (tester) async {
+    testWidgets('empty state shows no entries today text', (tester) async {
       final db = _createSeedDb();
       addTearDown(() => db.close());
       await pumpScreen(tester, db);
 
       expect(
-        find.text('Tap the search bar above to find or create a food'),
+        find.text('No entries logged today'),
         findsOneWidget,
       );
     });
@@ -175,12 +175,12 @@ void main() {
 
       // Should be back on log screen without crash
       expect(
-        find.text('Tap the search bar above to find or create a food'),
+        find.text('No entries logged today'),
         findsOneWidget,
       );
     });
 
-    testWidgets('serving stepper: tap + increases servings, macros double',
+    testWidgets('quantity input: typing doubles macros',
         (tester) async {
       final db = _createSeedDb();
       addTearDown(() => db.close());
@@ -189,28 +189,29 @@ void main() {
 
       expect(find.text('165'), findsOneWidget);
 
-      // Tap the + icon (only one in tree after delegate is gone)
-      await tester.tap(find.byIcon(Icons.add_circle_outline));
+      // After selectFood the only editable TextField is the quantity input
+      await tester.enterText(_editableTextField(), '2');
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
-      expect(find.text('248'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.add_circle_outline));
+      expect(find.text('330'), findsOneWidget);
+
+      await tester.enterText(_editableTextField(), '3');
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
-      expect(find.text('330'), findsOneWidget);
+
+      expect(find.text('495'), findsOneWidget);
     });
 
     testWidgets(
-        'gram input: entering grams converts to fractional servings',
+        'quantity input: fractional value scales macros correctly',
         (tester) async {
       final db = _createSeedDb();
       addTearDown(() => db.close());
       await pumpScreen(tester, db);
       await selectFood(tester);
 
-      // After selectFood the only non-readOnly TextField is the gram input
-      await tester.enterText(_editableTextField(), '150');
+      await tester.enterText(_editableTextField(), '1.5');
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
@@ -356,7 +357,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
 
       expect(
-        find.text('Tap the search bar above to find or create a food'),
+        find.text('No entries logged today'),
         findsOneWidget,
       );
     });
@@ -411,10 +412,7 @@ void main() {
       expect(find.textContaining('3.6'), findsAtLeastNWidgets(1));
 
       // 2 servings
-      await tester.tap(find.byIcon(Icons.add_circle_outline));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.tap(find.byIcon(Icons.add_circle_outline));
+      await tester.enterText(_editableTextField(), '2');
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 

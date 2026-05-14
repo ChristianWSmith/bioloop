@@ -63,9 +63,23 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         setState(() {
           _sex = goals.sex;
           _birthdate = goals.birthdate;
-          _heightController.text = goals.heightCm?.toString() ?? '';
-          _goalWeightController.text = goals.goalWeightKg?.toString() ?? '';
           _useImperial = goals.useImperial == 1;
+          if (_useImperial) {
+            if (goals.heightCm != null) {
+              final totalInches = goals.heightCm! / 2.54;
+              _heightFeetController.text = (totalInches ~/ 12).toString();
+              _heightInchesController.text =
+                  (totalInches % 12).round().toString();
+            }
+            if (goals.goalWeightKg != null) {
+              _goalWeightController.text =
+                  (goals.goalWeightKg! * 2.20462).toStringAsFixed(2);
+            }
+          } else {
+            _heightController.text = goals.heightCm?.toString() ?? '';
+            _goalWeightController.text =
+                goals.goalWeightKg?.toString() ?? '';
+          }
           _activityLevel = goals.activityLevel;
           _goalType = goals.goalType;
           _calorieAdjustmentController.text =
@@ -195,7 +209,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         final goalKg = double.tryParse(_goalWeightController.text);
         if (goalKg != null && goalKg > 0) {
           _goalWeightController.text =
-              (goalKg * 2.20462).toStringAsFixed(1);
+              (goalKg * 2.20462).toStringAsFixed(2);
         }
       } else if (!imperial && _useImperial) {
         final feet = double.tryParse(_heightFeetController.text);
@@ -210,7 +224,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         final goalLb = double.tryParse(_goalWeightController.text);
         if (goalLb != null && goalLb > 0) {
           _goalWeightController.text =
-              (goalLb / 2.20462).toStringAsFixed(1);
+              (goalLb / 2.20462).toStringAsFixed(2);
         }
       }
       _useImperial = imperial;

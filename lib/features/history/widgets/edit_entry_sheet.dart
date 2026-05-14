@@ -158,8 +158,8 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
             key: const Key('edit_servings_field'),
             controller: _servingsController,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              labelText: 'Servings',
+            decoration: InputDecoration(
+              labelText: 'Servings (${widget.entry.servingLabel})',
             ),
             keyboardType:
                 const TextInputType.numberWithOptions(decimal: true),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/database.dart';
 import '../../providers/bodyweight_provider.dart';
 import '../../providers/database_provider.dart';
+import '../../providers/unit_preferences_provider.dart';
 import '../history/export.dart';
 import 'widgets/add_weight_sheet.dart';
 
@@ -12,6 +13,7 @@ class BodyweightScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final weightsAsync = ref.watch(bodyweightProvider);
+    final prefs = ref.watch(unitPreferencesProvider);
 
     return SafeArea(
       child: Column(
@@ -83,7 +85,7 @@ class BodyweightScreen extends ConsumerWidget {
                   : ListView.builder(
                       itemCount: weights.length,
                       itemBuilder: (ctx, i) =>
-                          _buildEntry(context, ref, weights[i]),
+                          _buildEntry(context, ref, prefs, weights[i]),
                     ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(child: Text('Error: $e')),
@@ -94,14 +96,15 @@ class BodyweightScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEntry(
-      BuildContext context, WidgetRef ref, BodyweightEntry entry) {
+  Widget _buildEntry(BuildContext context, WidgetRef ref,
+      UnitPreferences prefs, BodyweightEntry entry) {
     final date = DateTime.parse(entry.loggedAt);
     final dateStr =
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final displayWeight = prefs.displayWeight(entry.weightKg).toStringAsFixed(2);
 
     return ListTile(
-      title: Text('${entry.weightKg} kg'),
+      title: Text('$displayWeight ${prefs.weightUnit}'),
       subtitle: Text(dateStr),
       onTap: () => _showSheet(context, ref, entry: entry),
       onLongPress: () => _confirmDelete(context, ref, entry),
@@ -120,12 +123,14 @@ class BodyweightScreen extends ConsumerWidget {
 
   Future<void> _confirmDelete(
       BuildContext context, WidgetRef ref, BodyweightEntry entry) async {
+    final prefs = ref.read(unitPreferencesProvider);
+    final displayWeight = prefs.displayWeight(entry.weightKg).toStringAsFixed(2);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete entry?'),
-        content:
-            Text('Delete weight ${entry.weightKg} kg from ${entry.loggedAt}?'),
+        content: Text(
+            'Delete weight $displayWeight ${prefs.weightUnit} from ${entry.loggedAt}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
