@@ -29,6 +29,8 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
   final _servingSizeController = TextEditingController();
   String _selectedUnit = 'g';
   String? _customUnit;
+  bool _caloriesManuallyEdited = false;
+  bool _settingCalories = false;
 
   @override
   void dispose() {
@@ -84,6 +86,31 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
     if (result != null && result.isNotEmpty && mounted) {
       setState(() => _customUnit = result);
     }
+  }
+
+  void _autoComputeCalories() {
+    final pText = _proteinController.text;
+    final cText = _carbsController.text;
+    final fText = _fatController.text;
+    final p = double.tryParse(pText);
+    final c = double.tryParse(cText);
+    final f = double.tryParse(fText);
+    final allZero =
+        (p == null || p == 0) && (c == null || c == 0) && (f == null || f == 0);
+    if (allZero) {
+      _caloriesManuallyEdited = false;
+      return;
+    }
+    if (_caloriesManuallyEdited) return;
+    if (p == null || c == null || f == null) return;
+    if (p < 0 || c < 0 || f < 0) return;
+    final computed = (p * 4) + (c * 4) + (f * 9);
+    final text = computed == computed.roundToDouble()
+        ? computed.toInt().toString()
+        : computed.toStringAsFixed(1);
+    _settingCalories = true;
+    _caloriesController.text = text;
+    _settingCalories = false;
   }
 
   Future<void> _save() async {
@@ -251,6 +278,9 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) {
+                if (!_settingCalories) _caloriesManuallyEdited = true;
+              },
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Required';
                 final n = double.tryParse(v);
@@ -266,6 +296,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => _autoComputeCalories(),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Required';
                 final n = double.tryParse(v);
@@ -281,6 +312,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => _autoComputeCalories(),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Required';
                 final n = double.tryParse(v);
@@ -296,6 +328,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => _autoComputeCalories(),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Required';
                 final n = double.tryParse(v);

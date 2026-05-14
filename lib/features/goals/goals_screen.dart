@@ -5,6 +5,7 @@ import '../../core/algorithms/mifflin_st_jeor.dart';
 import '../../core/database/database.dart';
 import '../../providers/bodyweight_provider.dart';
 import '../../providers/database_provider.dart';
+import '../../providers/goals_provider.dart';
 
 class GoalsScreen extends ConsumerStatefulWidget {
   const GoalsScreen({super.key});
@@ -267,6 +268,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         activityLevel: Value(_activityLevel),
         updatedAt: Value(now),
       ));
+      ref.invalidate(userGoalsProvider);
 
       if (mounted) {
         setState(() => _saving = false);

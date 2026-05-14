@@ -30,10 +30,6 @@ void main() {
       await expectLater(db.select(db.userGoals).get(), completes);
     });
 
-    test('meal_templates table is queryable', () async {
-      await expectLater(db.select(db.mealTemplates).get(), completes);
-    });
-
     test('recipes table is queryable', () async {
       await expectLater(db.select(db.recipes).get(), completes);
     });
@@ -119,22 +115,6 @@ void main() {
       expect(goal.activityLevel, 3);
       expect(goal.onboardingCompleted, 0);
       expect(goal.id, 1);
-    });
-
-    test('meal_templates: insert and read back', () async {
-      final now = DateTime.now().toIso8601String();
-      final foodsJson = '[{"name":"Oats","calories":150}]';
-      final id = await db.into(db.mealTemplates).insert(
-        MealTemplatesCompanion.insert(
-          name: 'Breakfast',
-          foods: foodsJson,
-          createdAt: now,
-        ),
-      );
-      final template = await db.select(db.mealTemplates).getSingle();
-      expect(template.id, id);
-      expect(template.name, 'Breakfast');
-      expect(template.foods, foodsJson);
     });
 
     test('recipes: insert and read back', () async {

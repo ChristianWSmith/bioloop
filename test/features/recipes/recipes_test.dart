@@ -267,6 +267,150 @@ void main() {
     });
   });
 
+    test('compute macros with per-100g ingredient (servingQuantity=100)', () async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      final now = DateTime.now().toIso8601String();
+
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Oats (per 100g)',
+        servingLabel: '100g',
+        servingSizeGrams: Value(100),
+        servingQuantity: const Value(100),
+        servingUnit: const Value('g'),
+        caloriesPerServing: 389,
+        proteinPerServing: 16.9,
+        carbsPerServing: 66,
+        fatPerServing: 6.9,
+        createdAt: now,
+      ));
+
+      final recipeId = await db.insertRecipe(RecipesCompanion.insert(
+        name: 'Oatmeal',
+        servingSize: 300,
+        servingLabel: 'g',
+        createdAt: now,
+        updatedAt: now,
+      ));
+
+      final oats = await (db.select(db.foods)
+            ..where((f) => f.name.equals('Oats (per 100g)')))
+          .getSingle();
+
+      // Log 200g of oats
+      await db.insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: recipeId,
+        foodId: oats.id,
+        quantity: 200,
+        createdAt: now,
+      ));
+
+      final macros = await db.computeRecipeMacros(recipeId);
+      // 389 * (200 / 100) = 389 * 2 = 778
+      expect(macros.calories, closeTo(778, 0.01));
+      expect(macros.proteinGrams, closeTo(33.8, 0.01));
+      expect(macros.carbsGrams, closeTo(132, 0.01));
+      expect(macros.fatGrams, closeTo(13.8, 0.01));
+      // perUnit = 300g → 778 / 300 = 2.593
+      expect(macros.perUnitCalories, closeTo(2.593, 0.01));
+    });
+
+    test('compute macros backward-compatible with servingQuantity=1', () async {
+      final db = createSeedDb();
+      addTearDown(() => db.close());
+      final now = DateTime.now().toIso8601String();
+
+      final recipeId = await db.insertRecipe(RecipesCompanion.insert(
+        name: 'Chicken',
+        servingSize: 200,
+        servingLabel: 'g',
+        createdAt: now,
+        updatedAt: now,
+      ));
+
+      final chicken = await (db.select(db.foods)
+            ..where((f) => f.name.equals('Chicken Breast')))
+          .getSingle();
+
+      await db.insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: recipeId,
+        foodId: chicken.id,
+        quantity: 2,
+        createdAt: now,
+      ));
+
+      final macros = await db.computeRecipeMacros(recipeId);
+      // 165 * (2 / 1) = 330 (same as old formula)
+      expect(macros.calories, closeTo(330, 0.01));
+      expect(macros.proteinGrams, closeTo(62, 0.01));
+    });
+
+    test('compute macros per-100g vs per-serving produce same total for same mass', () async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      final now = DateTime.now().toIso8601String();
+
+      // Per-serving food: 165 kcal per 1 serving (= 100g)
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Per Serving',
+        servingLabel: '100g',
+        servingSizeGrams: Value(100),
+        caloriesPerServing: 165,
+        proteinPerServing: 31,
+        carbsPerServing: 0,
+        fatPerServing: 3.6,
+        createdAt: now,
+      ));
+
+      // Per-100g food: 165 kcal per 100g
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Per 100g',
+        servingLabel: '100g',
+        servingSizeGrams: Value(100),
+        servingQuantity: const Value(100),
+        servingUnit: const Value('g'),
+        caloriesPerServing: 165,
+        proteinPerServing: 31,
+        carbsPerServing: 0,
+        fatPerServing: 3.6,
+        createdAt: now,
+      ));
+
+      final recipeId = await db.insertRecipe(RecipesCompanion.insert(
+        name: 'Test',
+        servingSize: 100,
+        servingLabel: 'g',
+        createdAt: now,
+        updatedAt: now,
+      ));
+
+      final perServingFood = await (db.select(db.foods)
+            ..where((f) => f.name.equals('Per Serving')))
+          .getSingle();
+      final per100gFood = await (db.select(db.foods)
+            ..where((f) => f.name.equals('Per 100g')))
+          .getSingle();
+
+      // Both represent 200g of the same food
+      await db.insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: recipeId,
+        foodId: perServingFood.id,
+        quantity: 2,  // 2 servings × 100g = 200g
+        createdAt: now,
+      ));
+      await db.insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: recipeId,
+        foodId: per100gFood.id,
+        quantity: 200,  // 200g
+        createdAt: now,
+      ));
+
+      final macros = await db.computeRecipeMacros(recipeId);
+      // Both should be 330 kcal total (2 × 165)
+      expect(macros.calories, closeTo(660, 0.01));
+      expect(macros.proteinGrams, closeTo(124, 0.01));
+    });
+
   group('Recipe service', () {
     test('getAllRecipes returns sorted by name', () async {
       final db = createSeedDb();

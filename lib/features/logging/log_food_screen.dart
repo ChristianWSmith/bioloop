@@ -11,7 +11,6 @@ import '../recipes/recipe_list_screen.dart';
 import 'widgets/barcode_scanner.dart';
 import 'widgets/food_search_delegate.dart';
 import 'widgets/manual_food_form.dart';
-import 'widgets/meal_templates.dart';
 import 'widgets/meal_type_selector.dart';
 import 'widgets/serving_size_picker.dart';
 
@@ -70,81 +69,6 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
     );
     if (food != null && mounted) {
       _selectFood(FoodSearchItem.fromFood(food));
-    }
-  }
-
-  Future<void> _onSaveAsTemplate() async {
-    final db = ref.read(databaseProvider);
-    final food = _selectedFood!;
-    await saveCurrentFoodsAsTemplate(
-      context,
-      db,
-      (_) => FoodEntry(
-        id: 0,
-        name: food.name,
-        calories: food.caloriesPerServing * _servings,
-        proteinGrams: food.proteinPerServing * _servings,
-        carbsGrams: food.carbsPerServing * _servings,
-        fatGrams: food.fatPerServing * _servings,
-        servings: _servings,
-        servingLabel: _buildLabel(_servings, _unit),
-        mealType: _mealType ?? '',
-        loggedAt: '',
-      ),
-      1,
-    );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Template saved!')),
-    );
-  }
-
-  Future<void> _openTemplates() async {
-    final foods = await showModalBottomSheet<List<TemplateFood>>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => const MealTemplatesSheet(),
-    );
-    if (foods == null || !mounted) return;
-
-    final db = ref.read(databaseProvider);
-    final now = DateTime.now().toIso8601String();
-    try {
-      for (final f in foods) {
-        await db.insertEntry(FoodEntriesCompanion.insert(
-          name: f.name,
-          calories: f.calories,
-          proteinGrams: f.proteinGrams,
-          carbsGrams: f.carbsGrams,
-          fatGrams: f.fatGrams,
-          servings: f.servings,
-          servingLabel: f.servingLabel,
-          mealType: 'snack',
-          loggedAt: now,
-        ));
-      }
-      ref.invalidate(todaysFoodProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Template foods added!')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Error'),
-            content: Text('Failed to add template foods: $e'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
     }
   }
 
@@ -218,12 +142,13 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         ));
       }
 
+      final sq = food.servingQuantity > 0 ? food.servingQuantity : 1;
       await db.insertEntry(FoodEntriesCompanion.insert(
         name: food.name,
-        calories: food.caloriesPerServing * _servings,
-        proteinGrams: food.proteinPerServing * _servings,
-        carbsGrams: food.carbsPerServing * _servings,
-        fatGrams: food.fatPerServing * _servings,
+        calories: food.caloriesPerServing * (_servings / sq),
+        proteinGrams: food.proteinPerServing * (_servings / sq),
+        carbsGrams: food.carbsPerServing * (_servings / sq),
+        fatGrams: food.fatPerServing * (_servings / sq),
         servings: _servings,
         servingLabel: _buildLabel(_servings, _unit),
         barcode: Value(food.barcode),
@@ -269,6 +194,12 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final sq = _selectedFood != null
+        ? (_selectedFood!.servingQuantity > 0
+            ? _selectedFood!.servingQuantity
+            : 1)
+        : 1;
+
     return SafeArea(
       child: Column(
         children: [
@@ -302,13 +233,6 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                         ),
                       ),
                     ),
-                    if (_selectedFood != null)
-                      IconButton(
-                        key: const Key('save_as_template_button'),
-                        icon: const Icon(Icons.bookmark_add_outlined),
-                        onPressed: _onSaveAsTemplate,
-                        tooltip: 'Save as template',
-                      ),
                     IconButton(
                       key: const Key('barcode_scan_button'),
                       icon: const Icon(Icons.qr_code_scanner),
@@ -337,15 +261,7 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                         label: const Text('Recipes'),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        key: const Key('templates_button'),
-                        onPressed: () => _openTemplates(),
-                        icon: const Icon(Icons.content_paste),
-                        label: const Text('Templates'),
-                      ),
-                    ),
+
                   ],
                 ),
               ],
@@ -387,25 +303,25 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                             const SizedBox(height: 8),
                             _macroRow(
                               'Calories',
-                              (_selectedFood!.caloriesPerServing * _servings).toStringAsFixed(0),
+                              (_selectedFood!.caloriesPerServing * (_servings / sq)).toStringAsFixed(0),
                               null,
                             ),
                             const SizedBox(height: 4),
                             _macroRow(
                               'Protein',
-                              (_selectedFood!.proteinPerServing * _servings).toStringAsFixed(1),
+                              (_selectedFood!.proteinPerServing * (_servings / sq)).toStringAsFixed(1),
                               'g',
                             ),
                             const SizedBox(height: 4),
                             _macroRow(
                               'Carbs',
-                              (_selectedFood!.carbsPerServing * _servings).toStringAsFixed(1),
+                              (_selectedFood!.carbsPerServing * (_servings / sq)).toStringAsFixed(1),
                               'g',
                             ),
                             const SizedBox(height: 4),
                             _macroRow(
                               'Fat',
-                              (_selectedFood!.fatPerServing * _servings).toStringAsFixed(1),
+                              (_selectedFood!.fatPerServing * (_servings / sq)).toStringAsFixed(1),
                               'g',
                             ),
                           ],
