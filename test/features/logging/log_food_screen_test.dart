@@ -96,13 +96,13 @@ void main() {
     Future<void> selectFood(WidgetTester tester) =>
         searchAndTapResult(tester, 'Chicken', 'Chicken Breast');
 
-    testWidgets('empty state shows prompt text', (tester) async {
+    testWidgets('empty state shows no entries today text', (tester) async {
       final db = _createSeedDb();
       addTearDown(() => db.close());
       await pumpScreen(tester, db);
 
       expect(
-        find.text('Tap the search bar above to find or create a food'),
+        find.text('No entries logged today'),
         findsOneWidget,
       );
     });
@@ -175,7 +175,7 @@ void main() {
 
       // Should be back on log screen without crash
       expect(
-        find.text('Tap the search bar above to find or create a food'),
+        find.text('No entries logged today'),
         findsOneWidget,
       );
     });
@@ -357,7 +357,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
 
       expect(
-        find.text('Tap the search bar above to find or create a food'),
+        find.text('No entries logged today'),
         findsOneWidget,
       );
     });

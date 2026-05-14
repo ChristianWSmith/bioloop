@@ -177,6 +177,41 @@ class AppDatabase extends _$AppDatabase {
     return await (delete(foodEntries)..where((f) => f.id.equals(id))).go();
   }
 
+  Future<List<({Food food, String lastUsed})>> getRecentFoods({int limit = 10}) async {
+    final allEntries = await (select(foodEntries)
+          ..where((f) => f.foodId.isNotNull())
+          ..orderBy([
+            (f) => OrderingTerm(expression: f.loggedAt, mode: OrderingMode.desc)
+          ]))
+        .get();
+
+    final seenIds = <int>{};
+    final recentIds = <int>[];
+    final lastUsedMap = <int, String>{};
+    for (final entry in allEntries) {
+      if (entry.foodId != null && seenIds.add(entry.foodId!)) {
+        recentIds.add(entry.foodId!);
+        lastUsedMap[entry.foodId!] = entry.loggedAt;
+        if (recentIds.length >= limit) break;
+      }
+    }
+
+    if (recentIds.isEmpty) return [];
+
+    final foodList = await (select(foods)
+          ..where((f) => f.id.isIn(recentIds)))
+        .get();
+
+    final foodMap = {for (final f in foodList) f.id: f};
+
+    return recentIds
+        .map((id) => (
+              food: foodMap[id]!,
+              lastUsed: lastUsedMap[id]!,
+            ))
+        .toList();
+  }
+
   Future<List<FoodEntry>> getEntriesPaginated(
       {int offset = 0, int limit = 20}) async {
     return await (select(foodEntries)

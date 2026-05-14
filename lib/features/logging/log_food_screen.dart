@@ -444,20 +444,12 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                 ),
               ),
             ),
-          ] else ...[
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                'Tap the search bar above to find or create a food',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+          ] else
+            Expanded(
+              child: _TodayEntriesSection(
+                onEdit: () => ref.invalidate(todaysFoodProvider),
               ),
             ),
-            const Spacer(),
-          ],
         ],
       ),
     );
@@ -476,5 +468,146 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         ),
       ],
     );
+  }
+}
+
+class _TodayEntriesSection extends ConsumerWidget {
+  final VoidCallback onEdit;
+
+  const _TodayEntriesSection({required this.onEdit});
+
+  String? _timeFromLoggedAt(String loggedAt) {
+    if (loggedAt.length >= 16) return loggedAt.substring(11, 16);
+    return null;
+  }
+
+  Map<String, List<FoodEntry>> _groupByMealType(List<FoodEntry> entries) {
+    final map = <String, List<FoodEntry>>{};
+    for (final entry in entries) {
+      map.putIfAbsent(entry.mealType.isNotEmpty ? entry.mealType : 'other', () => []).add(entry);
+    }
+    return map;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final todayEntries = ref.watch(todaysFoodProvider);
+    return todayEntries.when(
+      data: (entries) {
+        if (entries.isEmpty) {
+          return Center(
+            child: Text(
+              'No entries logged today',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          );
+        }
+
+        final groups = _groupByMealType(entries);
+        final mealOrder = ['breakfast', 'lunch', 'dinner', 'snack'];
+        final sortedMeals = groups.keys.toList()
+          ..sort((a, b) {
+            final ai = mealOrder.indexOf(a);
+            final bi = mealOrder.indexOf(b);
+            if (ai == -1 && bi == -1) return a.compareTo(b);
+            if (ai == -1) return 1;
+            if (bi == -1) return -1;
+            return ai.compareTo(bi);
+          });
+
+        return ListView(
+          padding: const EdgeInsets.only(top: 8, bottom: 16),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Text(
+                "Today's Entries",
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+            ),
+            for (final mealType in sortedMeals) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 2),
+                child: Text(
+                  mealType[0].toUpperCase() + mealType.substring(1),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+              for (final entry in groups[mealType]!) ...[
+                ListTile(
+                  title: Text(entry.name),
+                  subtitle: Text(
+                    '${entry.calories.toInt()} cal  •  P${entry.proteinGrams.toStringAsFixed(0)}g  C${entry.carbsGrams.toStringAsFixed(0)}g  F${entry.fatGrams.toStringAsFixed(0)}g${_timeFromLoggedAt(entry.loggedAt) != null ? '  •  ${_timeFromLoggedAt(entry.loggedAt)}' : ''}',
+                  ),
+                  trailing: IconButton(
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    onPressed: () => _deleteEntry(context, ref, entry),
+                  ),
+                ),
+              ],
+            ],
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+        child: Text('Failed to load today\'s entries'),
+      ),
+    );
+  }
+
+  Future<void> _deleteEntry(
+      BuildContext context, WidgetRef ref, FoodEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete entry?'),
+        content: Text('Delete "${entry.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ref.read(foodLogProvider).deleteEntry(entry.id);
+        ref.invalidate(todaysFoodProvider);
+        onEdit();
+      } catch (e) {
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Error'),
+              content: Text('Failed to delete: $e'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    }
   }
 }
