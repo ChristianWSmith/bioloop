@@ -677,5 +677,58 @@ void main() {
       expect(find.textContaining('Edit Me'), findsAtLeast(1));
       expect(find.byIcon(Icons.playlist_add_check), findsOneWidget);
     });
+
+    testWidgets('ingredient search shows recent foods', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      final now = DateTime.now().toIso8601String();
+
+      // Seed a food and log it so it appears in recent foods
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Chicken Breast',
+        servingLabel: '100g',
+        caloriesPerServing: 165,
+        proteinPerServing: 31,
+        carbsPerServing: 0,
+        fatPerServing: 3.6,
+        createdAt: now,
+      ));
+      final chicken = await (db.select(db.foods)
+            ..where((f) => f.name.equals('Chicken Breast')))
+          .getSingle();
+      await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
+        name: 'Chicken Breast',
+        calories: 330,
+        proteinGrams: 62,
+        carbsGrams: 0,
+        fatGrams: 7.2,
+        servings: 2,
+        servingLabel: '2 100g',
+        foodId: Value(chicken.id),
+        mealType: 'lunch',
+        loggedAt: now,
+      ));
+
+      // Start from RecipeListScreen (as in real app flow)
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [databaseProvider.overrideWithValue(db)],
+          child: const MaterialApp(home: RecipeListScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Navigate to RecipeFormScreen via FAB
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      // Tap "Add ingredient" → showSearch opens
+      await tester.tap(find.text('Add ingredient'));
+      await tester.pumpAndSettle();
+
+      // Recent foods section should appear with "Chicken Breast"
+      expect(find.text('Recent Foods'), findsOneWidget);
+      expect(find.text('Chicken Breast'), findsOneWidget);
+    });
   });
 }

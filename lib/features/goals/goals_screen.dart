@@ -221,7 +221,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         final feet = double.tryParse(_heightFeetController.text);
         final inches = double.tryParse(_heightInchesController.text);
         if (feet != null && inches != null) {
-          final heightCm = UnitPreferences.metric().heightCm(feet * 12 + inches);
+          final heightCm = UnitPreferences.imperial().heightCm(feet * 12 + inches);
           _heightController.text = heightCm.toStringAsFixed(1);
         }
         _heightFeetController.clear();

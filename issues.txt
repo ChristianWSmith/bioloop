@@ -1,4 +1,0 @@
-- in the "Edit entry" drawer in the history tab, we have "Servings (<quantity> <unit>)", this is odd wording.  It should probably just say "Quantity (<unit>)".  also, values aren't rounded when opening this drawer, so we see some super long decimals that are kind of offputting.
-- editing a food entry results in a stale dashboard (still uses the pre-edited values)
-- on the goals screen, toggling between metric and imperial causes a bad conversion.  starting at 6'4" -> 76cm -> 2'6" -> 30cm.  something is badly bugged with this conversion
-- when creating a recipe and searching for an ingredient, we need to achieve parity with the normal "search food" screen when logging.  the shortfall I've noticed is that recently logged foods aren't displayed when adding an ingredient to the recipe.

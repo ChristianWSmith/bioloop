@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/database.dart';
+import '../../../providers/data_trigger_provider.dart';
 import '../../../providers/food_log_provider.dart';
 
 class EditEntrySheet extends ConsumerStatefulWidget {
@@ -33,7 +34,7 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
     super.initState();
     final e = widget.entry;
     _nameController = TextEditingController(text: e.name);
-    _servingsController = TextEditingController(text: e.servings.toString());
+    _servingsController = TextEditingController(text: e.servings.toStringAsFixed(1));
     _caloriesController = TextEditingController(text: e.calories.toString());
     _proteinController = TextEditingController(text: e.proteinGrams.toString());
     _carbsController = TextEditingController(text: e.carbsGrams.toString());
@@ -105,6 +106,8 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
         loggedAt: widget.entry.loggedAt,
       );
       await ref.read(foodLogProvider).updateEntry(entry);
+      ref.invalidate(todaysFoodProvider);
+      ref.read(dataTriggerProvider.notifier).state++;
 
       if (mounted) {
         Navigator.of(context).pop(true);
@@ -159,7 +162,7 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
             controller: _servingsController,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              labelText: 'Servings (${widget.entry.servingLabel})',
+              labelText: 'Quantity (${widget.entry.servingLabel})',
             ),
             keyboardType:
                 const TextInputType.numberWithOptions(decimal: true),

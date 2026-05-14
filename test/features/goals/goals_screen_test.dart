@@ -144,11 +144,58 @@ void main() {
 
       expect(find.byType(TextFormField), findsNWidgets(4));
 
+      // Change height from seeded (5'9") to 6'4"
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Height (ft)'),
+        '6',
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Height (in)'),
+        '4',
+      );
+      await tester.pump();
+
+      // Toggle to Metric — conversion must preserve 6'4" = 193 cm
       await tester.tap(find.text('Metric'));
       await tester.pump();
       await tester.pump();
 
       expect(find.byType(TextFormField), findsNWidgets(3));
+      expect(
+        tester.widget<TextField>(
+          find.descendant(
+            of: find.widgetWithText(TextFormField, 'Height'),
+            matching: find.byType(TextField),
+          ),
+        ).controller?.text,
+        '193.0',
+      );
+
+      // Toggle back to Imperial — round-trip preserves 6'4"
+      await tester.tap(find.text('Imperial'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(TextFormField), findsNWidgets(4));
+      expect(
+        tester.widget<TextField>(
+          find.descendant(
+            of: find.widgetWithText(TextFormField, 'Height (ft)'),
+            matching: find.byType(TextField),
+          ),
+        ).controller?.text,
+        '6',
+      );
+      expect(
+        tester.widget<TextField>(
+          find.descendant(
+            of: find.widgetWithText(TextFormField, 'Height (in)'),
+            matching: find.byType(TextField),
+          ),
+        ).controller?.text,
+        '4',
+      );
     });
 
     testWidgets('units persistence: save and reopen shows imperial',

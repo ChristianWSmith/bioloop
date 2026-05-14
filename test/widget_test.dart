@@ -790,6 +790,20 @@ void main() {
         ).controller?.text,
         '9',
       );
+
+      // Toggle back to Metric — round-trip preserves height
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(TextFormField, 'Height'), findsOneWidget);
+      final heightField = tester.widget<TextField>(
+        find.descendant(
+          of: find.widgetWithText(TextFormField, 'Height'),
+          matching: find.byType(TextField),
+        ),
+      );
+      final heightValue = double.parse(heightField.controller!.text);
+      expect(heightValue, closeTo(175, 1));
     });
 
     testWidgets('toggling imperial converts weight and restores on toggle back',
