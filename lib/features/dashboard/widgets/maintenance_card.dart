@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/algorithms/maintenance_calculator.dart';
+import '../../../providers/data_trigger_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../providers/maintenance_provider.dart';
 
 final _kcalFmt = NumberFormat('#,###');
 
 final _countDataDaysProvider = FutureProvider<int>((ref) async {
-  final db = ref.read(databaseProvider);
+  ref.watch(dataTriggerProvider);
+  final db = ref.watch(databaseProvider);
   final now = DateTime.now();
   final cutoff = now.subtract(const Duration(days: 30));
   final cutoffStr =

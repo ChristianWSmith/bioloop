@@ -307,21 +307,21 @@ void main() {
       await seedGoals(db);
       await pumpGoals(tester, db);
 
-      expect(find.text('~1 lb/week loss'), findsOneWidget);
+      expect(find.text('~0.5 kg/week loss'), findsOneWidget);
 
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Calorie adjustment'),
         '-1000',
       );
       await tester.pump();
-      expect(find.text('~2 lb/week loss'), findsOneWidget);
+      expect(find.text('~0.9 kg/week loss'), findsOneWidget);
 
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Calorie adjustment'),
         '350',
       );
       await tester.pump();
-      expect(find.text('~0.7 lb/week gain'), findsOneWidget);
+      expect(find.text('~0.3 kg/week gain'), findsOneWidget);
     });
 
     testWidgets('calorie warning absent at default -500', (tester) async {
@@ -410,9 +410,9 @@ void main() {
       await seedGoals(db);
       await pumpGoals(tester, db);
 
-      expect(find.text('Protein: 1.0 g/lb'), findsOneWidget);
+      expect(find.text('Protein: 2.2 g/kg'), findsOneWidget);
       expect(find.byType(Slider), findsAtLeastNWidgets(1));
-      expect(find.text('Recommended: 0.8\u20131.4 g/lb'), findsOneWidget);
+      expect(find.text('Recommended: 1.8\u20133.1 g/kg'), findsOneWidget);
     });
 
     testWidgets('fat slider shows % and gram equivalent',

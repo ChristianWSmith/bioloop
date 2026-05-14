@@ -135,7 +135,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          if (goals != null) _buildRateCard(context, goals),
+          if (goals != null) _buildRateCard(context, goals, unitPrefs),
           const SizedBox(height: 16),
           const MaintenanceCard(),
           const SizedBox(height: 24),
@@ -289,7 +289,7 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRateCard(BuildContext context, UserGoal goals) {
+  Widget _buildRateCard(BuildContext context, UserGoal goals, UnitPreferences unitPrefs) {
     final adjustment = goals.calorieAdjustment ?? 0.0;
     if (adjustment == 0.0) {
       return _rateCard(context, 'Maintenance', Colors.grey);
@@ -300,17 +300,18 @@ class DashboardScreen extends ConsumerWidget {
 
     final label = isLoss ? 'loss' : 'gain';
     final color = isLoss ? Colors.green : Colors.orange;
+    final displayRate = rateLbsPerWeek * unitPrefs.rateFactor;
 
     String rateStr;
     if (rateLbsPerWeek < 0.3) {
       rateStr = '<0.5';
     } else {
-      rateStr = rateLbsPerWeek.toStringAsFixed(1);
+      rateStr = displayRate.toStringAsFixed(1);
     }
 
     return _rateCard(
       context,
-      '~$rateStr lb/week $label',
+      '~$rateStr ${unitPrefs.rateUnit} $label',
       color,
     );
   }

@@ -6,6 +6,7 @@ import '../../core/database/database.dart';
 import '../../providers/bodyweight_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/goals_provider.dart';
+import '../../providers/unit_preferences_provider.dart';
 
 class GoalsScreen extends ConsumerStatefulWidget {
   const GoalsScreen({super.key});
@@ -31,6 +32,9 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
   final _calorieAdjustmentController = TextEditingController(text: '-500');
   double _proteinGPerLb = 1.0;
   double _fatCaloriePct = 25.0;
+
+  UnitPreferences get _unitPrefs =>
+      _useImperial ? UnitPreferences.imperial() : UnitPreferences.metric();
 
   static const _activityLevels = [
     (1, 'Sedentary', 'Little to no exercise, desk job'),
@@ -67,7 +71,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
           _useImperial = goals.useImperial == 1;
           if (_useImperial) {
             if (goals.heightCm != null) {
-              final totalInches = goals.heightCm! / 2.54;
+              final totalInches = _unitPrefs.displayHeight(goals.heightCm!);
               _heightFeetController.text = (totalInches ~/ 12).toString();
               _heightInchesController.text =
                   (totalInches % 12).round().toString();
@@ -118,9 +122,9 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     final adjustment = double.tryParse(adjustmentText);
     if (adjustment == null) return '';
     final rate = adjustment * 7 / 3500;
-    final absRate = _formatRate(rate.abs());
-    if (rate < 0) return '~$absRate lb/week loss';
-    if (rate > 0) return '~$absRate lb/week gain';
+    final absRate = _formatRate((rate * _unitPrefs.rateFactor).abs());
+    if (rate < 0) return '~$absRate ${_unitPrefs.rateUnit} loss';
+    if (rate > 0) return '~$absRate ${_unitPrefs.rateUnit} gain';
     return 'Maintenance';
   }
 
@@ -131,8 +135,9 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     if (_birthdate == null) return '';
     final heightCm = _useImperial
         ? (_heightFeetController.text.isNotEmpty && _heightInchesController.text.isNotEmpty
-            ? double.tryParse(_heightFeetController.text)! * 30.48 +
-                double.tryParse(_heightInchesController.text)! * 2.54
+            ? _unitPrefs.heightCm(
+                double.tryParse(_heightFeetController.text)! * 12 +
+                    double.tryParse(_heightInchesController.text)!)
             : null)
         : double.tryParse(_heightController.text);
     if (heightCm == null) return '';
@@ -199,7 +204,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       if (imperial && !_useImperial) {
         final heightCm = double.tryParse(_heightController.text);
         if (heightCm != null && heightCm > 0) {
-          final totalInches = heightCm / 2.54;
+          final totalInches = UnitPreferences.imperial().displayHeight(heightCm);
           final feet = totalInches ~/ 12;
           final inches = (totalInches % 12).round();
           _heightFeetController.text = feet.toString();
@@ -216,7 +221,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         final feet = double.tryParse(_heightFeetController.text);
         final inches = double.tryParse(_heightInchesController.text);
         if (feet != null && inches != null) {
-          final heightCm = feet * 30.48 + inches * 2.54;
+          final heightCm = UnitPreferences.metric().heightCm(feet * 12 + inches);
           _heightController.text = heightCm.toStringAsFixed(1);
         }
         _heightFeetController.clear();
@@ -240,8 +245,9 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     final db = ref.read(databaseProvider);
 
     final heightCm = _useImperial
-        ? double.parse(_heightFeetController.text) * 30.48 +
-            (double.tryParse(_heightInchesController.text) ?? 0) * 2.54
+        ? _unitPrefs.heightCm(
+            double.parse(_heightFeetController.text) * 12 +
+                (double.tryParse(_heightInchesController.text) ?? 0))
         : double.parse(_heightController.text);
 
     final goalWeightKg = _goalWeightController.text.isNotEmpty
@@ -500,19 +506,20 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
             _calorieWarning(_calorieAdjustmentController.text),
             const Divider(height: 32),
             Text(
-              'Protein: ${_proteinGPerLb.toStringAsFixed(1)} g/lb',
+              'Protein: ${_unitPrefs.displayProteinGPerLb(_proteinGPerLb).toStringAsFixed(1)} ${_unitPrefs.proteinUnit}',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             Slider(
-              value: _proteinGPerLb,
-              min: 0.5,
-              max: 2.0,
+              value: _unitPrefs.displayProteinGPerLb(_proteinGPerLb),
+              min: _unitPrefs.displayProteinGPerLb(0.5),
+              max: _unitPrefs.displayProteinGPerLb(2.0),
               divisions: 30,
-              label: '${_proteinGPerLb.toStringAsFixed(1)} g/lb',
-              onChanged: (v) => setState(() => _proteinGPerLb = v),
+              label: '${_unitPrefs.displayProteinGPerLb(_proteinGPerLb).toStringAsFixed(1)} ${_unitPrefs.proteinUnit}',
+              onChanged: (v) => setState(() =>
+                  _proteinGPerLb = _unitPrefs.proteinGPerLbFromDisplay(v)),
             ),
             Text(
-              'Recommended: 0.8\u20131.4 g/lb',
+              'Recommended: ${_unitPrefs.displayProteinGPerLb(0.8).toStringAsFixed(1)}\u2013${_unitPrefs.displayProteinGPerLb(1.4).toStringAsFixed(1)} ${_unitPrefs.proteinUnit}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),

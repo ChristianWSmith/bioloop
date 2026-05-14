@@ -492,8 +492,8 @@ void main() {
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
-      await tester.scrollUntilVisible(find.text('Protein: 1.0 g/lb'), 100, scrollable: _scrollable);
-      expect(find.text('Protein: 1.0 g/lb'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Protein: 2.2 g/kg'), 100, scrollable: _scrollable);
+      expect(find.text('Protein: 2.2 g/kg'), findsOneWidget);
 
       await tester.scrollUntilVisible(
         find.text('Fat: 25% of calories'),
@@ -509,12 +509,12 @@ void main() {
       await pumpApp(tester, db);
 
       await tester.scrollUntilVisible(
-        find.text('Recommended: 0.8\u20131.4 g/lb'),
+        find.text('Recommended: 1.8\u20133.1 g/kg'),
         100,
         scrollable: _scrollable,
       );
       expect(
-        find.text('Recommended: 0.8\u20131.4 g/lb'),
+        find.text('Recommended: 1.8\u20133.1 g/kg'),
         findsOneWidget,
       );
 
@@ -718,7 +718,7 @@ void main() {
       );
 
       // Default -500 should show loss preview
-      expect(find.textContaining('lb/week'), findsOneWidget);
+      expect(find.textContaining('kg/week'), findsOneWidget);
 
       // Change to 0 — should show "Maintenance"
       await tester.enterTextByLabel('Calorie adjustment', '0');

@@ -116,7 +116,6 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
           id: food.localId ?? -1,
           name: food.name,
           servingLabel: food.servingLabel,
-          servingSizeGrams: food.servingSizeGrams,
           servingQuantity: food.servingQuantity,
           servingUnit: food.servingUnit,
           caloriesPerServing: food.caloriesPerServing,

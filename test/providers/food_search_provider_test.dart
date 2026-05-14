@@ -96,7 +96,6 @@ void main() {
       final item = FoodSearchItem(
         name: 'Oats',
         servingLabel: '100g',
-        servingSizeGrams: 100,
         caloriesPerServing: 389,
         proteinPerServing: 16.9,
         carbsPerServing: 66.3,

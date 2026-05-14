@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/models/food_result.dart';
 import '../../core/database/database.dart';
+import '../../providers/data_trigger_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/food_log_provider.dart';
 import '../../providers/food_search_provider.dart';
@@ -12,6 +13,7 @@ import 'widgets/barcode_scanner.dart';
 import 'widgets/food_search_delegate.dart';
 import 'widgets/manual_food_form.dart';
 import 'widgets/meal_type_selector.dart';
+import 'widgets/quick_food_log_sheet.dart';
 import 'widgets/serving_size_picker.dart';
 
 class LogFoodScreen extends ConsumerStatefulWidget {
@@ -23,6 +25,7 @@ class LogFoodScreen extends ConsumerStatefulWidget {
 
 class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
   FoodSearchItem? _selectedFood;
+  FoodSearchItem? _quickLogItem;
   double _servings = 1.0;
   String _unit = 'serving';
   String? _mealType;
@@ -41,10 +44,15 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
       delegate: FoodSearchDelegate(
         searchService: searchService,
         onCreateCustomFood: () => _pendingCreateCustom = true,
+        onQuickLog: (item) => _quickLogItem = item,
       ),
     );
 
-    if (result != null) {
+    if (_quickLogItem != null) {
+      final item = _quickLogItem!;
+      _quickLogItem = null;
+      _showQuickLogSheet(item);
+    } else if (result != null) {
       _selectFood(result);
     } else if (_pendingCreateCustom) {
       _pendingCreateCustom = false;
@@ -70,6 +78,31 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
     if (food != null && mounted) {
       _selectFood(FoodSearchItem.fromFood(food));
     }
+  }
+
+  Future<void> _showQuickLogSheet(FoodSearchItem item) async {
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => QuickFoodLogSheet(food: item),
+    );
+  }
+
+  Future<void> _onDuplicate(FoodEntry entry) async {
+    final foodId = entry.foodId;
+    if (foodId == null) return;
+    final db = ref.read(databaseProvider);
+    final food = await db.getFoodById(foodId);
+    if (food == null || !mounted) return;
+    final item = FoodSearchItem.fromFood(food);
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => QuickFoodLogSheet(
+        food: item,
+        sourceEntry: entry,
+      ),
+    );
   }
 
   Future<void> _onBarcodeScan() async {
@@ -129,7 +162,6 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
         foodId = await db.insertFood(FoodsCompanion.insert(
           name: food.name,
           servingLabel: food.servingLabel,
-          servingSizeGrams: Value(food.servingSizeGrams),
           servingQuantity: Value(food.servingQuantity),
           servingUnit: Value(food.servingUnit),
           caloriesPerServing: food.caloriesPerServing,
@@ -159,6 +191,7 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
       ));
 
       ref.invalidate(todaysFoodProvider);
+      ref.read(dataTriggerProvider.notifier).state++;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -255,6 +288,7 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                           );
                           if (result == true && mounted) {
                             ref.invalidate(todaysFoodProvider);
+                            ref.read(dataTriggerProvider.notifier).state++;
                           }
                         },
                         icon: const Icon(Icons.book),
@@ -280,7 +314,6 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
                     child: ServingSizePicker(
                       quantity: _servings,
                       unit: _unit,
-                      servingSizeGrams: _selectedFood!.servingSizeGrams,
                       onQuantityChanged: _onServingsChanged,
                       onUnitChanged: _onUnitChanged,
                     ),
@@ -363,7 +396,11 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
           ] else
             Expanded(
               child: _TodayEntriesSection(
-                onEdit: () => ref.invalidate(todaysFoodProvider),
+                onEdit: () {
+                  ref.invalidate(todaysFoodProvider);
+                  ref.read(dataTriggerProvider.notifier).state++;
+                },
+                onDuplicate: _onDuplicate,
               ),
             ),
         ],
@@ -389,8 +426,9 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
 
 class _TodayEntriesSection extends ConsumerWidget {
   final VoidCallback onEdit;
+  final ValueChanged<FoodEntry>? onDuplicate;
 
-  const _TodayEntriesSection({required this.onEdit});
+  const _TodayEntriesSection({required this.onEdit, this.onDuplicate});
 
   String? _timeFromLoggedAt(String loggedAt) {
     if (loggedAt.length >= 16) return loggedAt.substring(11, 16);
@@ -462,12 +500,23 @@ class _TodayEntriesSection extends ConsumerWidget {
                   subtitle: Text(
                     '${entry.calories.toInt()} cal  •  P${entry.proteinGrams.toStringAsFixed(0)}g  C${entry.carbsGrams.toStringAsFixed(0)}g  F${entry.fatGrams.toStringAsFixed(0)}g${_timeFromLoggedAt(entry.loggedAt) != null ? '  •  ${_timeFromLoggedAt(entry.loggedAt)}' : ''}',
                   ),
-                  trailing: IconButton(
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    onPressed: () => _deleteEntry(context, ref, entry),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (onDuplicate != null && entry.foodId != null)
+                        IconButton(
+                          icon: const Icon(Icons.replay),
+                          tooltip: 'Duplicate entry',
+                          onPressed: () => onDuplicate!(entry),
+                        ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        onPressed: () => _deleteEntry(context, ref, entry),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -502,10 +551,9 @@ class _TodayEntriesSection extends ConsumerWidget {
       ),
     );
 
-    if (confirmed == true) {
+      if (confirmed == true) {
       try {
         await ref.read(foodLogProvider).deleteEntry(entry.id);
-        ref.invalidate(todaysFoodProvider);
         onEdit();
       } catch (e) {
         if (context.mounted) {

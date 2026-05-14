@@ -115,18 +115,33 @@ void main() {
         _makeWeight(weightKg: 74.5, date: '2026-05-12'),
       ];
 
-      final csv = exportBodyweightToCsv(entries);
+      final csv = exportBodyweightToCsv(entries, weightUnit: 'kg');
       final lines = csv.trim().split('\n');
 
       expect(lines.length, 3);
-      expect(lines[0], 'date,weight_kg,unit');
+      expect(lines[0], 'date,weight,kg');
       expect(lines[1], '2026-05-10,75.0,kg');
       expect(lines[2], '2026-05-12,74.5,kg');
     });
 
+    test('produces header + data rows for 2 entries in imperial', () {
+      final entries = [
+        _makeWeight(weightKg: 75, date: '2026-05-10'),
+        _makeWeight(weightKg: 74.5, date: '2026-05-12'),
+      ];
+
+      final csv = exportBodyweightToCsv(entries, weightUnit: 'lb');
+      final lines = csv.trim().split('\n');
+
+      expect(lines.length, 3);
+      expect(lines[0], 'date,weight,lb');
+      expect(lines[1], '2026-05-10,${(75 * 2.20462).toStringAsFixed(1)},lb');
+      expect(lines[2], '2026-05-12,${(74.5 * 2.20462).toStringAsFixed(1)},lb');
+    });
+
     test('empty entries produces header only', () {
-      final csv = exportBodyweightToCsv([]);
-      expect(csv.trim(), 'date,weight_kg,unit');
+      final csv = exportBodyweightToCsv([], weightUnit: 'kg');
+      expect(csv.trim(), 'date,weight,kg');
     });
   });
 }

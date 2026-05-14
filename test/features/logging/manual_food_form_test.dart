@@ -133,23 +133,6 @@ void main() {
 
       final foods = await (db.select(db.foods)).get();
       expect(foods.length, 1);
-      expect(foods.first.servingSizeGrams, isNull);
-    });
-
-    testWidgets('gram weight: entering a value stores it', (tester) async {
-      final db = createDb();
-      addTearDown(() => db.close());
-      await pushForm(tester, db);
-
-      await fillRequiredFields(tester);
-      await tester.enterText(find.byType(TextFormField).at(6), '240');
-
-      await tapSave(tester);
-      await tester.pumpAndSettle();
-
-      final foods = await (db.select(db.foods)).get();
-      expect(foods.length, 1);
-      expect(foods.first.servingSizeGrams, 240);
     });
 
     testWidgets(
@@ -174,14 +157,8 @@ void main() {
           findsOneWidget);
       expect(find.widgetWithText(TextFormField, 'Fat per serving (g)'),
           findsOneWidget);
-      expect(
-        find.widgetWithText(
-            TextFormField, 'Grams per serving (optional)'),
-        findsOneWidget,
-      );
 
       expect(find.text('Label: 1 g'), findsOneWidget);
-      expect(find.text('e.g. 100'), findsOneWidget);
 
       final caloriesField = tester.widget<TextField>(
         find.descendant(

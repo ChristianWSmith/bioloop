@@ -15,7 +15,6 @@ AppDatabase createSeedDb() {
   db.into(db.foods).insert(FoodsCompanion.insert(
     name: 'Chicken Breast',
     servingLabel: '100g',
-    servingSizeGrams: Value(100),
     caloriesPerServing: 165,
     proteinPerServing: 31,
     carbsPerServing: 0,
@@ -25,7 +24,6 @@ AppDatabase createSeedDb() {
   db.into(db.foods).insert(FoodsCompanion.insert(
     name: 'Olive Oil',
     servingLabel: '1 tbsp',
-    servingSizeGrams: Value(14),
     caloriesPerServing: 119,
     proteinPerServing: 0,
     carbsPerServing: 0,
@@ -35,7 +33,6 @@ AppDatabase createSeedDb() {
   db.into(db.foods).insert(FoodsCompanion.insert(
     name: 'Brown Rice',
     servingLabel: '100g',
-    servingSizeGrams: Value(100),
     caloriesPerServing: 111,
     proteinPerServing: 2.6,
     carbsPerServing: 23,
@@ -275,7 +272,6 @@ void main() {
       await db.into(db.foods).insert(FoodsCompanion.insert(
         name: 'Oats (per 100g)',
         servingLabel: '100g',
-        servingSizeGrams: Value(100),
         servingQuantity: const Value(100),
         servingUnit: const Value('g'),
         caloriesPerServing: 389,
@@ -354,7 +350,6 @@ void main() {
       await db.into(db.foods).insert(FoodsCompanion.insert(
         name: 'Per Serving',
         servingLabel: '100g',
-        servingSizeGrams: Value(100),
         caloriesPerServing: 165,
         proteinPerServing: 31,
         carbsPerServing: 0,
@@ -366,7 +361,6 @@ void main() {
       await db.into(db.foods).insert(FoodsCompanion.insert(
         name: 'Per 100g',
         servingLabel: '100g',
-        servingSizeGrams: Value(100),
         servingQuantity: const Value(100),
         servingUnit: const Value('g'),
         caloriesPerServing: 165,

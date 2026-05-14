@@ -13,7 +13,6 @@ class FoodSearchItem {
   final int? localId;
   final String name;
   final String servingLabel;
-  final double? servingSizeGrams;
   final double servingQuantity;
   final String servingUnit;
   final double caloriesPerServing;
@@ -27,7 +26,6 @@ class FoodSearchItem {
     this.localId,
     required this.name,
     required this.servingLabel,
-    this.servingSizeGrams,
     this.servingQuantity = 1.0,
     this.servingUnit = 'serving',
     required this.caloriesPerServing,
@@ -42,7 +40,6 @@ class FoodSearchItem {
         localId: food.id,
         name: food.name,
         servingLabel: food.servingLabel,
-        servingSizeGrams: food.servingSizeGrams,
         servingQuantity: food.servingQuantity,
         servingUnit: food.servingUnit,
         caloriesPerServing: food.caloriesPerServing,
@@ -56,7 +53,6 @@ class FoodSearchItem {
   factory FoodSearchItem.fromFoodResult(FoodResult result) => FoodSearchItem(
         name: result.name,
         servingLabel: result.servingLabel,
-        servingSizeGrams: result.servingSizeGrams,
         servingQuantity: result.servingQuantity,
         servingUnit: result.servingUnit,
         caloriesPerServing: result.caloriesPerServing,
@@ -101,7 +97,6 @@ class FoodSearchService {
       return await db.insertFood(FoodsCompanion.insert(
         name: item.name,
         servingLabel: item.servingLabel,
-        servingSizeGrams: Value(item.servingSizeGrams),
         servingQuantity: Value(item.servingQuantity),
         servingUnit: Value(item.servingUnit),
         caloriesPerServing: item.caloriesPerServing,

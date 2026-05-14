@@ -7,10 +7,12 @@ import '../../../providers/recent_foods_provider.dart';
 class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   final FoodSearchService searchService;
   final VoidCallback onCreateCustomFood;
+  final ValueChanged<FoodSearchItem>? onQuickLog;
 
   FoodSearchDelegate({
     required this.searchService,
     required this.onCreateCustomFood,
+    this.onQuickLog,
   });
 
   @override
@@ -49,6 +51,12 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
         if (query.isEmpty)
           _RecentFoodsSection(
             onSelectItem: (item) => close(context, item),
+            onQuickLog: onQuickLog != null
+                ? (item) {
+                    onQuickLog!(item);
+                    close(context, null);
+                  }
+                : null,
           ),
         ListTile(
           leading: const Icon(Icons.add_circle_outline),
@@ -73,8 +81,9 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
 
 class _RecentFoodsSection extends ConsumerWidget {
   final void Function(FoodSearchItem item) onSelectItem;
+  final ValueChanged<FoodSearchItem>? onQuickLog;
 
-  const _RecentFoodsSection({required this.onSelectItem});
+  const _RecentFoodsSection({required this.onSelectItem, this.onQuickLog});
 
   String _formatLastUsed(DateTime dt) {
     final now = DateTime.now();
@@ -118,6 +127,13 @@ class _RecentFoodsSection extends ConsumerWidget {
                 ),
                 isThreeLine: true,
                 onTap: () => onSelectItem(item.food),
+                trailing: onQuickLog != null
+                    ? IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        tooltip: 'Quick log',
+                        onPressed: () => onQuickLog!(item.food),
+                      )
+                    : null,
               );
             }),
             const Divider(),

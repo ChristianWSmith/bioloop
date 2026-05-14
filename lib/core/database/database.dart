@@ -26,7 +26,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -55,7 +55,10 @@ class AppDatabase extends _$AppDatabase {
               WHEN serving_size_grams IS NOT NULL THEN serving_size_grams
               ELSE 1.0
             END
-          ''');
+            ''');
+        }
+        if (from < 3) {
+          await customStatement('ALTER TABLE foods DROP COLUMN serving_size_grams');
         }
       },
     );
@@ -127,6 +130,10 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> insertFood(FoodsCompanion food) async {
     return await into(foods).insert(food);
+  }
+
+  Future<Food?> getFoodById(int id) async {
+    return await (select(foods)..where((f) => f.id.equals(id))).getSingleOrNull();
   }
 
   Future<Food?> getByBarcode(String barcode) async {

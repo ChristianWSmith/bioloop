@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../providers/data_trigger_provider.dart';
 import '../../../providers/food_log_provider.dart';
 import '../../../providers/recipe_provider.dart';
 import '../../logging/widgets/meal_type_selector.dart';
@@ -37,6 +38,7 @@ class _LogRecipeSheetState extends ConsumerState<LogRecipeSheet> {
             mealType: _mealType!,
           );
       ref.invalidate(todaysFoodProvider);
+      ref.read(dataTriggerProvider.notifier).state++;
       if (mounted) {
         Navigator.of(context).pop(true);
       }

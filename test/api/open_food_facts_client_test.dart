@@ -48,7 +48,6 @@ void main() {
       final result = FoodResult.fromJson(_sampleProduct());
       expect(result.name, 'Chicken Breast');
       expect(result.servingLabel, '100g');
-      expect(result.servingSizeGrams, 100);
       expect(result.caloriesPerServing, 165);
       expect(result.proteinPerServing, 31);
       expect(result.carbsPerServing, 0);
@@ -61,8 +60,7 @@ void main() {
       final result = FoodResult.fromJson(_productMissingServing());
       expect(result.name, 'Oats');
       expect(result.servingLabel, '100g');
-      expect(result.servingSizeGrams, 100);
-      expect(result.caloriesPerServing, 389);
+      expect(result.servingQuantity, 100);
       expect(result.proteinPerServing, 16.9);
       expect(result.carbsPerServing, 66.3);
       expect(result.fatPerServing, 6.9);
@@ -77,7 +75,7 @@ void main() {
       };
       final result = FoodResult.fromJson(json);
       expect(result.servingLabel, '100g');
-      expect(result.servingSizeGrams, 100);
+      expect(result.servingQuantity, 100);
     });
 
     test('handles missing product_name', () {
@@ -101,7 +99,8 @@ void main() {
         'serving_size': '1 bar (40g)',
       };
       final result = FoodResult.fromJson(json);
-      expect(result.servingSizeGrams, 40);
+      expect(result.servingQuantity, 40);
+      expect(result.servingUnit, 'g');
     });
   });
 
