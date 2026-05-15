@@ -122,6 +122,15 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
+  static const VerificationMeta _brandMeta = const VerificationMeta('brand');
+  @override
+  late final GeneratedColumn<String> brand = GeneratedColumn<String>(
+    'brand',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _sourceMeta = const VerificationMeta('source');
   @override
   late final GeneratedColumn<String> source = GeneratedColumn<String>(
@@ -155,6 +164,7 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
     carbsPerServing,
     fatPerServing,
     barcode,
+    brand,
     source,
     createdAt,
   ];
@@ -260,6 +270,12 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         barcode.isAcceptableOrUnknown(data['barcode']!, _barcodeMeta),
       );
     }
+    if (data.containsKey('brand')) {
+      context.handle(
+        _brandMeta,
+        brand.isAcceptableOrUnknown(data['brand']!, _brandMeta),
+      );
+    }
     if (data.containsKey('source')) {
       context.handle(
         _sourceMeta,
@@ -323,6 +339,10 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, Food> {
         DriftSqlType.string,
         data['${effectivePrefix}barcode'],
       ),
+      brand: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}brand'],
+      ),
       source: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}source'],
@@ -351,6 +371,7 @@ class Food extends DataClass implements Insertable<Food> {
   final double carbsPerServing;
   final double fatPerServing;
   final String? barcode;
+  final String? brand;
   final String source;
   final String createdAt;
   const Food({
@@ -364,6 +385,7 @@ class Food extends DataClass implements Insertable<Food> {
     required this.carbsPerServing,
     required this.fatPerServing,
     this.barcode,
+    this.brand,
     required this.source,
     required this.createdAt,
   });
@@ -381,6 +403,9 @@ class Food extends DataClass implements Insertable<Food> {
     map['fat_per_serving'] = Variable<double>(fatPerServing);
     if (!nullToAbsent || barcode != null) {
       map['barcode'] = Variable<String>(barcode);
+    }
+    if (!nullToAbsent || brand != null) {
+      map['brand'] = Variable<String>(brand);
     }
     map['source'] = Variable<String>(source);
     map['created_at'] = Variable<String>(createdAt);
@@ -401,6 +426,9 @@ class Food extends DataClass implements Insertable<Food> {
       barcode: barcode == null && nullToAbsent
           ? const Value.absent()
           : Value(barcode),
+      brand: brand == null && nullToAbsent
+          ? const Value.absent()
+          : Value(brand),
       source: Value(source),
       createdAt: Value(createdAt),
     );
@@ -424,6 +452,7 @@ class Food extends DataClass implements Insertable<Food> {
       carbsPerServing: serializer.fromJson<double>(json['carbsPerServing']),
       fatPerServing: serializer.fromJson<double>(json['fatPerServing']),
       barcode: serializer.fromJson<String?>(json['barcode']),
+      brand: serializer.fromJson<String?>(json['brand']),
       source: serializer.fromJson<String>(json['source']),
       createdAt: serializer.fromJson<String>(json['createdAt']),
     );
@@ -442,6 +471,7 @@ class Food extends DataClass implements Insertable<Food> {
       'carbsPerServing': serializer.toJson<double>(carbsPerServing),
       'fatPerServing': serializer.toJson<double>(fatPerServing),
       'barcode': serializer.toJson<String?>(barcode),
+      'brand': serializer.toJson<String?>(brand),
       'source': serializer.toJson<String>(source),
       'createdAt': serializer.toJson<String>(createdAt),
     };
@@ -458,6 +488,7 @@ class Food extends DataClass implements Insertable<Food> {
     double? carbsPerServing,
     double? fatPerServing,
     Value<String?> barcode = const Value.absent(),
+    Value<String?> brand = const Value.absent(),
     String? source,
     String? createdAt,
   }) => Food(
@@ -471,6 +502,7 @@ class Food extends DataClass implements Insertable<Food> {
     carbsPerServing: carbsPerServing ?? this.carbsPerServing,
     fatPerServing: fatPerServing ?? this.fatPerServing,
     barcode: barcode.present ? barcode.value : this.barcode,
+    brand: brand.present ? brand.value : this.brand,
     source: source ?? this.source,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -500,6 +532,7 @@ class Food extends DataClass implements Insertable<Food> {
           ? data.fatPerServing.value
           : this.fatPerServing,
       barcode: data.barcode.present ? data.barcode.value : this.barcode,
+      brand: data.brand.present ? data.brand.value : this.brand,
       source: data.source.present ? data.source.value : this.source,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -518,6 +551,7 @@ class Food extends DataClass implements Insertable<Food> {
           ..write('carbsPerServing: $carbsPerServing, ')
           ..write('fatPerServing: $fatPerServing, ')
           ..write('barcode: $barcode, ')
+          ..write('brand: $brand, ')
           ..write('source: $source, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -536,6 +570,7 @@ class Food extends DataClass implements Insertable<Food> {
     carbsPerServing,
     fatPerServing,
     barcode,
+    brand,
     source,
     createdAt,
   );
@@ -553,6 +588,7 @@ class Food extends DataClass implements Insertable<Food> {
           other.carbsPerServing == this.carbsPerServing &&
           other.fatPerServing == this.fatPerServing &&
           other.barcode == this.barcode &&
+          other.brand == this.brand &&
           other.source == this.source &&
           other.createdAt == this.createdAt);
 }
@@ -568,6 +604,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
   final Value<double> carbsPerServing;
   final Value<double> fatPerServing;
   final Value<String?> barcode;
+  final Value<String?> brand;
   final Value<String> source;
   final Value<String> createdAt;
   const FoodsCompanion({
@@ -581,6 +618,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     this.carbsPerServing = const Value.absent(),
     this.fatPerServing = const Value.absent(),
     this.barcode = const Value.absent(),
+    this.brand = const Value.absent(),
     this.source = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
@@ -595,6 +633,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     required double carbsPerServing,
     required double fatPerServing,
     this.barcode = const Value.absent(),
+    this.brand = const Value.absent(),
     this.source = const Value.absent(),
     required String createdAt,
   }) : name = Value(name),
@@ -615,6 +654,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Expression<double>? carbsPerServing,
     Expression<double>? fatPerServing,
     Expression<String>? barcode,
+    Expression<String>? brand,
     Expression<String>? source,
     Expression<String>? createdAt,
   }) {
@@ -630,6 +670,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       if (carbsPerServing != null) 'carbs_per_serving': carbsPerServing,
       if (fatPerServing != null) 'fat_per_serving': fatPerServing,
       if (barcode != null) 'barcode': barcode,
+      if (brand != null) 'brand': brand,
       if (source != null) 'source': source,
       if (createdAt != null) 'created_at': createdAt,
     });
@@ -646,6 +687,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     Value<double>? carbsPerServing,
     Value<double>? fatPerServing,
     Value<String?>? barcode,
+    Value<String?>? brand,
     Value<String>? source,
     Value<String>? createdAt,
   }) {
@@ -660,6 +702,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
       carbsPerServing: carbsPerServing ?? this.carbsPerServing,
       fatPerServing: fatPerServing ?? this.fatPerServing,
       barcode: barcode ?? this.barcode,
+      brand: brand ?? this.brand,
       source: source ?? this.source,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -698,6 +741,9 @@ class FoodsCompanion extends UpdateCompanion<Food> {
     if (barcode.present) {
       map['barcode'] = Variable<String>(barcode.value);
     }
+    if (brand.present) {
+      map['brand'] = Variable<String>(brand.value);
+    }
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
@@ -720,6 +766,7 @@ class FoodsCompanion extends UpdateCompanion<Food> {
           ..write('carbsPerServing: $carbsPerServing, ')
           ..write('fatPerServing: $fatPerServing, ')
           ..write('barcode: $barcode, ')
+          ..write('brand: $brand, ')
           ..write('source: $source, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -3371,6 +3418,7 @@ typedef $$FoodsTableCreateCompanionBuilder =
       required double carbsPerServing,
       required double fatPerServing,
       Value<String?> barcode,
+      Value<String?> brand,
       Value<String> source,
       required String createdAt,
     });
@@ -3386,6 +3434,7 @@ typedef $$FoodsTableUpdateCompanionBuilder =
       Value<double> carbsPerServing,
       Value<double> fatPerServing,
       Value<String?> barcode,
+      Value<String?> brand,
       Value<String> source,
       Value<String> createdAt,
     });
@@ -3492,6 +3541,11 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<String> get barcode => $composableBuilder(
     column: $table.barcode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get brand => $composableBuilder(
+    column: $table.brand,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3615,6 +3669,11 @@ class $$FoodsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get brand => $composableBuilder(
+    column: $table.brand,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get source => $composableBuilder(
     column: $table.source,
     builder: (column) => ColumnOrderings(column),
@@ -3678,6 +3737,9 @@ class $$FoodsTableAnnotationComposer
 
   GeneratedColumn<String> get barcode =>
       $composableBuilder(column: $table.barcode, builder: (column) => column);
+
+  GeneratedColumn<String> get brand =>
+      $composableBuilder(column: $table.brand, builder: (column) => column);
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
@@ -3778,6 +3840,7 @@ class $$FoodsTableTableManager
                 Value<double> carbsPerServing = const Value.absent(),
                 Value<double> fatPerServing = const Value.absent(),
                 Value<String?> barcode = const Value.absent(),
+                Value<String?> brand = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 Value<String> createdAt = const Value.absent(),
               }) => FoodsCompanion(
@@ -3791,6 +3854,7 @@ class $$FoodsTableTableManager
                 carbsPerServing: carbsPerServing,
                 fatPerServing: fatPerServing,
                 barcode: barcode,
+                brand: brand,
                 source: source,
                 createdAt: createdAt,
               ),
@@ -3806,6 +3870,7 @@ class $$FoodsTableTableManager
                 required double carbsPerServing,
                 required double fatPerServing,
                 Value<String?> barcode = const Value.absent(),
+                Value<String?> brand = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 required String createdAt,
               }) => FoodsCompanion.insert(
@@ -3819,6 +3884,7 @@ class $$FoodsTableTableManager
                 carbsPerServing: carbsPerServing,
                 fatPerServing: fatPerServing,
                 barcode: barcode,
+                brand: brand,
                 source: source,
                 createdAt: createdAt,
               ),

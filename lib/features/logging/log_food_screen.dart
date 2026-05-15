@@ -169,6 +169,7 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
           carbsPerServing: food.carbsPerServing,
           fatPerServing: food.fatPerServing,
           barcode: Value(food.barcode),
+          brand: Value(food.brand),
           source: Value(food.source),
           createdAt: now,
         ));
@@ -396,10 +397,6 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
           ] else
             Expanded(
               child: _TodayEntriesSection(
-                onEdit: () {
-                  ref.invalidate(todaysFoodProvider);
-                  ref.read(dataTriggerProvider.notifier).state++;
-                },
                 onDuplicate: _onDuplicate,
               ),
             ),
@@ -425,10 +422,9 @@ class _LogFoodScreenState extends ConsumerState<LogFoodScreen> {
 }
 
 class _TodayEntriesSection extends ConsumerWidget {
-  final VoidCallback onEdit;
   final ValueChanged<FoodEntry>? onDuplicate;
 
-  const _TodayEntriesSection({required this.onEdit, this.onDuplicate});
+  const _TodayEntriesSection({this.onDuplicate});
 
   String? _timeFromLoggedAt(String loggedAt) {
     if (loggedAt.length >= 16) return loggedAt.substring(11, 16);
@@ -504,17 +500,10 @@ class _TodayEntriesSection extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (onDuplicate != null && entry.foodId != null)
-                        IconButton(
-                          icon: const Icon(Icons.replay),
-                          tooltip: 'Duplicate entry',
-                          onPressed: () => onDuplicate!(entry),
-                        ),
                       IconButton(
-                        icon: Icon(
-                          Icons.delete_outline,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        onPressed: () => _deleteEntry(context, ref, entry),
+                        icon: const Icon(Icons.replay),
+                        tooltip: 'Duplicate entry',
+                        onPressed: () => onDuplicate!(entry),
                       ),
                     ],
                   ),
@@ -531,47 +520,4 @@ class _TodayEntriesSection extends ConsumerWidget {
     );
   }
 
-  Future<void> _deleteEntry(
-      BuildContext context, WidgetRef ref, FoodEntry entry) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete entry?'),
-        content: Text('Delete "${entry.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-      if (confirmed == true) {
-      try {
-        await ref.read(foodLogProvider).deleteEntry(entry.id);
-        onEdit();
-      } catch (e) {
-        if (context.mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Error'),
-              content: Text('Failed to delete: $e'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-        }
-      }
-    }
-  }
 }

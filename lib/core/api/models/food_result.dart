@@ -10,6 +10,7 @@ class FoodResult {
   final double carbsPerServing;
   final double fatPerServing;
   final String? barcode;
+  final String? brand;
   final String source;
 
   FoodResult({
@@ -22,6 +23,7 @@ class FoodResult {
     required this.carbsPerServing,
     required this.fatPerServing,
     this.barcode,
+    this.brand,
     this.source = 'open_food_facts',
   });
 
@@ -75,6 +77,7 @@ class FoodResult {
       carbsPerServing: carbs,
       fatPerServing: fat,
       barcode: json['code'] as String?,
+      brand: json['brands'] as String?,
     );
   }
 

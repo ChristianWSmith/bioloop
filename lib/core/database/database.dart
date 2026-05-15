@@ -26,7 +26,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -59,6 +59,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 3) {
           await customStatement('ALTER TABLE foods DROP COLUMN serving_size_grams');
+        }
+        if (from < 4) {
+          await m.addColumn(foods, foods.brand);
         }
       },
     );
@@ -266,6 +269,41 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteRecipe(int id) async {
     await (delete(recipes)..where((r) => r.id.equals(id))).go();
+  }
+
+  Future<Recipe> duplicateRecipe(int recipeId) async {
+    final original = await getRecipe(recipeId);
+    if (original == null) throw Exception('Recipe not found');
+
+    final ingredients = await getIngredientsWithFood(recipeId);
+    final now = DateTime.now().toIso8601String();
+    final newName = '${original.name} (copy)';
+
+    final newId = await insertRecipe(RecipesCompanion.insert(
+      name: newName,
+      servingSize: original.servingSize,
+      servingLabel: original.servingLabel,
+      createdAt: now,
+      updatedAt: now,
+    ));
+
+    for (final item in ingredients) {
+      await insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: newId,
+        foodId: item.food.id,
+        quantity: item.ingredient.quantity,
+        createdAt: now,
+      ));
+    }
+
+    return Recipe(
+      id: newId,
+      name: newName,
+      servingSize: original.servingSize,
+      servingLabel: original.servingLabel,
+      createdAt: now,
+      updatedAt: now,
+    );
   }
 
   // ── Recipe Ingredients DAO ──────────────────────────────────

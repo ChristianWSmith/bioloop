@@ -87,6 +87,7 @@ class RecipeListScreen extends ConsumerWidget {
                 pickerMode: pickerMode,
                 onTap: () => _openRecipe(context, ref, recipe),
                 onDelete: () => _deleteRecipe(context, ref, recipe),
+                onDuplicate: () => _duplicateRecipe(context, ref, recipe),
               );
             },
           );
@@ -147,6 +148,22 @@ class RecipeListScreen extends ConsumerWidget {
       ref.invalidate(recipeListProvider);
     }
   }
+
+  Future<void> _duplicateRecipe(
+      BuildContext context, WidgetRef ref, Recipe recipe) async {
+    final db = ref.read(databaseProvider);
+    final newRecipe = await db.duplicateRecipe(recipe.id);
+    ref.invalidate(recipeListProvider);
+    if (!context.mounted) return;
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => RecipeFormScreen(recipeId: newRecipe.id),
+      ),
+    );
+    if (result == true && context.mounted) {
+      ref.invalidate(recipeListProvider);
+    }
+  }
 }
 
 class _RecipeCard extends StatelessWidget {
@@ -154,12 +171,14 @@ class _RecipeCard extends StatelessWidget {
   final bool pickerMode;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback onDuplicate;
 
   const _RecipeCard({
     required this.recipe,
     required this.pickerMode,
     required this.onTap,
     required this.onDelete,
+    required this.onDuplicate,
   });
 
   @override
@@ -174,10 +193,25 @@ class _RecipeCard extends StatelessWidget {
         ),
         trailing: pickerMode
             ? const Icon(Icons.chevron_right)
-            : IconButton(
-                icon: const Icon(Icons.delete_outline),
-                onPressed: onDelete,
-                tooltip: 'Delete recipe',
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 20),
+                    onPressed: onTap,
+                    tooltip: 'Edit recipe',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy, size: 20),
+                    onPressed: onDuplicate,
+                    tooltip: 'Duplicate recipe',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    onPressed: onDelete,
+                    tooltip: 'Delete recipe',
+                  ),
+                ],
               ),
         onTap: onTap,
         onLongPress: pickerMode ? null : onDelete,

@@ -37,8 +37,8 @@ class MaintenanceCalculator {
     final sorted = List<BodyweightEntry>.from(weightEntries)
       ..sort((a, b) => a.loggedAt.compareTo(b.loggedAt));
 
-    final recentWeights = <BodyweightEntry>[];
-    final recentDates = <String>[];
+    var recentWeights = <BodyweightEntry>[];
+    var recentDates = <String>[];
     for (final e in sorted) {
       final date = e.loggedAt.substring(0, 10);
       if (date.compareTo(cutoffStr) >= 0) {
@@ -46,6 +46,36 @@ class MaintenanceCalculator {
         recentDates.add(date);
       }
     }
+
+    // Forward-fill: ensure every day has a weight entry
+    final dateMap = <String, double>{};
+    for (final w in recentWeights) {
+      final date = w.loggedAt.substring(0, 10);
+      dateMap[date] = w.weightKg;
+    }
+
+    final start = DateTime.parse(cutoffStr);
+    final end = today;
+    final filledWeights = <BodyweightEntry>[];
+    double? lastKnownWeight;
+    for (int d = 0; d <= end.difference(start).inDays; d++) {
+      final date = start.add(Duration(days: d));
+      final dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      if (dateMap.containsKey(dateStr)) {
+        lastKnownWeight = dateMap[dateStr]!;
+      }
+      if (lastKnownWeight != null) {
+        filledWeights.add(BodyweightEntry(
+          id: -1,
+          weightKg: lastKnownWeight,
+          loggedAt: dateStr,
+        ));
+      }
+    }
+
+    recentWeights = filledWeights;
+    recentDates = filledWeights.map((e) => e.loggedAt.substring(0, 10)).toList();
 
     if (recentWeights.length < 7) return null;
 

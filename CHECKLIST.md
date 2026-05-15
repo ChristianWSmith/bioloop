@@ -4,11 +4,11 @@
 
 | # | Ticket | Issues | Status | Notes |
 |---|--------|--------|--------|-------|
-| 01 | Quick UI paper cuts | #14, #8 | ❌ Pending | Imperial default + remove delete from today's entries |
-| 02 | Add brand field to foods table | #11 | ❌ Pending | Schema v4, migration, model propagation |
-| 03 | Auto-recalculate calories on macro edit | #7 | ❌ Pending | Remove `_caloriesManuallyEdited` flag |
-| 04 | Forward-fill bodyweight for missing days | #13 | ❌ Pending | Algorithm change in maintenance calculator |
-| 05 | Polish recipe UX | #2, #4, #5 | ❌ Pending | Ingredient display, edit icon, duplicate recipe |
+| 01 | Quick UI paper cuts | #14, #8 | ✅ Complete | Imperial default + remove delete from today's entries |
+| 02 | Add brand field to foods table | #11 | ✅ Complete | Schema v4, migration, model propagation |
+| 03 | Auto-recalculate calories on macro edit | #7 | ✅ Complete | Remove `_caloriesManuallyEdited` flag |
+| 04 | Forward-fill bodyweight for missing days | #13 | ✅ Complete | Algorithm change in maintenance calculator |
+| 05 | Polish recipe UX | #2, #4, #5 | ✅ Complete | Ingredient display, edit icon, duplicate recipe |
 
 ## Phase 2 — Search Infrastructure
 

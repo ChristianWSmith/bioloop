@@ -20,6 +20,7 @@ class FoodSearchItem {
   final double carbsPerServing;
   final double fatPerServing;
   final String? barcode;
+  final String? brand;
   final String source;
 
   FoodSearchItem({
@@ -33,6 +34,7 @@ class FoodSearchItem {
     required this.carbsPerServing,
     required this.fatPerServing,
     this.barcode,
+    this.brand,
     this.source = 'manual',
   });
 
@@ -47,6 +49,7 @@ class FoodSearchItem {
         carbsPerServing: food.carbsPerServing,
         fatPerServing: food.fatPerServing,
         barcode: food.barcode,
+        brand: food.brand,
         source: food.source,
       );
 
@@ -60,6 +63,7 @@ class FoodSearchItem {
         carbsPerServing: result.carbsPerServing,
         fatPerServing: result.fatPerServing,
         barcode: result.barcode,
+        brand: result.brand,
         source: result.source,
       );
 }
@@ -104,6 +108,7 @@ class FoodSearchService {
         carbsPerServing: item.carbsPerServing,
         fatPerServing: item.fatPerServing,
         barcode: Value(item.barcode),
+        brand: Value(item.brand),
         source: Value(item.source),
         createdAt: DateTime.now().toIso8601String(),
       ));

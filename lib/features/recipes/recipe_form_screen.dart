@@ -123,6 +123,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
           carbsPerServing: food.carbsPerServing,
           fatPerServing: food.fatPerServing,
           barcode: food.barcode,
+          brand: food.brand,
           source: food.source,
           createdAt: '',
         ),
