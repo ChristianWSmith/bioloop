@@ -24,14 +24,14 @@ Use this to track progress on the active ticket set.
 
 ## Ticket 003 — Compact macro bars
 
-- [ ] `lib/features/logging/widgets/macro_bars.dart` created
-- [ ] `MacroBars` widget displays full-width calories bar
-- [ ] Protein, Carbs, Fat shown as 1/3-width bars below
-- [ ] Widget added to `CombinedLogScreen`'s ListView above meal groups
-- [ ] `macroTargetsProvider` watched for target values
-- [ ] Values update reactively on entry add/edit/delete
-- [ ] Works for both today and past dates
-- [ ] `flutter analyze` passes with zero issues
+- [x] `lib/features/logging/widgets/macro_bars.dart` created
+- [x] `MacroBars` widget displays full-width calories bar
+- [x] Protein, Carbs, Fat shown as 1/3-width bars below
+- [x] Widget added to `CombinedLogScreen`'s ListView above meal groups
+- [x] `macroTargetsProvider` watched for target values
+- [x] Values update reactively on entry add/edit/delete
+- [x] Works for both today and past dates
+- [x] `flutter analyze` passes with zero issues
 
 ---
 
