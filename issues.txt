@@ -1,0 +1,7 @@
+- on the log tab, when editing a food entry, the quantity hint is currently the complete serving size.  this should be just the units, not the quantity + units.  for instance, the hint might be "30 g" instead of just "g"
+- on the log tab, in the top bar where the user can switch between different dates (yesterday, today, tomorrow, etc), the "Today" thing is centered between the left side of the screen and the buttons on the right.  since the buttons take up space, this means that the "Today" thing is left of screen center.  it should be centered with respect to the screen if possible.
+- when searching the web for a food, if the user hits the enter key on their keyboard, it stops the search and toggles back to "My Foods".  it should instead dismiss the onscreen keyboard and allow the search to complete
+- when adding an ingredient to a recipe, the qauntity defaults to 1.  it should instead default to the serving quantity of the given food.
+- if the user backs out of onboarding, and they confirm that they want to discard progress, the app should just close.  currently it stays open with just a black screen.
+- updating protein and/or fat goals on the goals tab doesn't propogate to the macro targets on the dashboard and log.  they refresh only once the app is restarted.
+- in the food search screen, the create custom food button is currently broken.  it doesn't launch the custom food entry.
