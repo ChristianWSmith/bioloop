@@ -177,15 +177,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('Edit entry'), findsOneWidget);
-      expect(find.byKey(const Key('edit_name_field')), findsOneWidget);
 
-      final nameField = tester.widget<TextField>(
-        find.byKey(const Key('edit_name_field')),
-      );
-      expect(nameField.controller?.text, 'Oatmeal');
+      // Verify read-only name display (appears in both list and sheet)
+      expect(find.text('Oatmeal'), findsAtLeastNWidgets(2));
     });
 
-    testWidgets('edit save: change name, entry reflects new values',
+    testWidgets('edit save: name is read-only, servings scales macros',
         (tester) async {
       final db = createDb();
       addTearDown(() => db.close());
@@ -207,10 +204,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
       await tester.pump(const Duration(milliseconds: 200));
 
-      // Change name
+      // Verify name is displayed as read-only text, not a TextField
+      expect(find.text('Oatmeal'), findsWidgets);
+
+      // Change servings to 2
       await tester.enterText(
-        find.byKey(const Key('edit_name_field')),
-        'Granola',
+        find.byKey(const Key('edit_servings_field')),
+        '2',
       );
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -221,12 +221,17 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text('Granola'), findsOneWidget);
-      expect(find.text('Oatmeal'), findsNothing);
+      // Name should still be 'Oatmeal' (read-only, not changed)
+      expect(find.text('Oatmeal'), findsWidgets);
 
+      // Macros should be scaled by 2x
       final entries = await db.select(db.foodEntries).get();
       expect(entries.length, 1);
-      expect(entries.first.name, 'Granola');
+      expect(entries.first.name, 'Oatmeal');
+      expect(entries.first.calories, closeTo(600, 0.1));
+      expect(entries.first.proteinGrams, closeTo(20, 0.1));
+      expect(entries.first.carbsGrams, closeTo(100, 0.1));
+      expect(entries.first.fatGrams, closeTo(10, 0.1));
     });
 
     testWidgets('edit macro scaling: servings 1.0 -> 2.0 doubles macros',

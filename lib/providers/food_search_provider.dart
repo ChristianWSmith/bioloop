@@ -74,27 +74,15 @@ class FoodSearchService {
 
   FoodSearchService({required this.db, required this.apiClient});
 
-  Future<List<FoodSearchItem>> search(String query) async {
+  Future<List<FoodSearchItem>> searchLocal(String query) async {
+    final results = await db.searchLocalByRecency(query: query.isEmpty ? null : query);
+    return results.map(FoodSearchItem.fromFood).toList();
+  }
+
+  Future<List<FoodSearchItem>> searchWeb(String query) async {
     if (query.trim().isEmpty) return [];
-
-    final localResults = await db.searchByName(query);
-    final localBarcodes = <String>{};
-    for (final food in localResults) {
-      if (food.barcode != null) localBarcodes.add(food.barcode!);
-    }
-
-    final merged = localResults.map(FoodSearchItem.fromFood).toList();
-
-    if (localResults.length < 25) {
-      final apiResults = await apiClient.search(query);
-      for (final r in apiResults) {
-        if (r.barcode == null || !localBarcodes.contains(r.barcode)) {
-          merged.add(FoodSearchItem.fromFoodResult(r));
-        }
-      }
-    }
-
-    return merged;
+    final results = await apiClient.search(query);
+    return results.map(FoodSearchItem.fromFoodResult).toList();
   }
 
   Future<int> saveApiResult(FoodSearchItem item) async {
@@ -121,10 +109,3 @@ final foodSearchServiceProvider = Provider<FoodSearchService>((ref) {
     apiClient: ref.read(openFoodFactsClientProvider),
   );
 });
-
-final foodSearchProvider =
-    FutureProvider.family<List<FoodSearchItem>, String>(
-  (ref, query) {
-    return ref.read(foodSearchServiceProvider).search(query);
-  },
-);

@@ -220,6 +220,55 @@ class AppDatabase extends _$AppDatabase {
         .toList();
   }
 
+  Future<List<Food>> searchLocalByRecency({String? query, int limit = 50}) async {
+    final allEntries = await (select(foodEntries)
+          ..where((f) => f.foodId.isNotNull())
+          ..orderBy([
+            (f) => OrderingTerm(expression: f.loggedAt, mode: OrderingMode.desc)
+          ]))
+        .get();
+
+    final seenIds = <int>{};
+    final orderedIds = <int>[];
+    for (final entry in allEntries) {
+      if (entry.foodId != null && seenIds.add(entry.foodId!)) {
+        orderedIds.add(entry.foodId!);
+      }
+    }
+
+    final allFoods = await (select(foods).get());
+    final rest = allFoods.where((f) => !seenIds.contains(f.id)).toList();
+    rest.sort((a, b) => a.name.compareTo(b.name));
+
+    final foodMap = {for (final f in allFoods) f.id: f};
+    final orderedFoods = orderedIds
+        .map((id) => foodMap[id])
+        .whereType<Food>()
+        .toList();
+
+    final combined = [...orderedFoods, ...rest];
+
+    if (query != null && query.trim().isNotEmpty) {
+      final q = query.toLowerCase();
+      return combined
+          .where((f) => f.name.toLowerCase().contains(q))
+          .take(limit)
+          .toList();
+    }
+
+    return combined.take(limit).toList();
+
+    if (query != null && query.trim().isNotEmpty) {
+      final q = query.toLowerCase();
+      return combined
+          .where((f) => f.name.toLowerCase().contains(q))
+          .take(limit)
+          .toList();
+    }
+
+    return combined.take(limit).toList();
+  }
+
   Future<List<FoodEntry>> getEntriesPaginated(
       {int offset = 0, int limit = 20}) async {
     return await (select(foodEntries)

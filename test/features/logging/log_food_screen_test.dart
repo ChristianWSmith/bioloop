@@ -128,9 +128,29 @@ void main() {
         (tester) async {
       final db = _createSeedDb();
       addTearDown(() => db.close());
-      await pumpScreen(tester, db);
+      await pumpScreen(
+        tester,
+        db,
+        apiClient: _createMockApi(products: [
+          {
+            'product_name': 'Chicken Breast',
+            'nutriments': {
+              'energy-kcal_serving': 165,
+              'proteins_serving': 31,
+              'carbohydrates_serving': 0,
+              'fat_serving': 3.6,
+            },
+            'code': '999',
+          },
+        ]),
+      );
 
       await tester.tap(find.byKey(const Key('food_search_field')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Local search shows results immediately, so switch to web mode
+      await tester.tap(find.text('Search the Web'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
@@ -144,6 +164,9 @@ void main() {
 
       // Wait for debounce to fire + search to complete
       await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
       await tester.pump();
       await tester.pump();
 
@@ -286,7 +309,25 @@ void main() {
         ]),
       );
 
-      await searchAndTapResult(tester, 'Oats', 'API Oats');
+      // Open search and switch to "Search the Web" mode
+      await tester.tap(find.byKey(const Key('food_search_field')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.text('Search the Web'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Type query and wait for debounce + API call
+      await tester.enterText(_editableTextField(), 'Oats');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('API Oats').last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
 
       await tester.tap(find.text('Breakfast'));
       await tester.pump();

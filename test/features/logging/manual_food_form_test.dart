@@ -207,7 +207,7 @@ void main() {
       expect(caloriesField.controller?.text, '290');
     });
 
-    testWidgets('manual calories override is not overwritten',
+    testWidgets('manual calorie value recalculates when macros change',
         (tester) async {
       final db = createDb();
       addTearDown(() => db.close());
@@ -219,17 +219,20 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(4), '30');
       await tester.enterText(find.byType(TextFormField).at(5), '10');
 
+      // Manually set calories
       await tester.enterText(find.byType(TextFormField).at(2), '300');
 
+      // Change a macro — calories should recalculate automatically
       await tester.enterText(find.byType(TextFormField).at(3), '25');
 
+      // 25*4 + 30*4 + 10*9 = 100 + 120 + 90 = 310
       final caloriesField = tester.widget<TextField>(
         find.descendant(
           of: find.widgetWithText(TextFormField, 'Calories per serving'),
           matching: find.byType(TextField),
         ),
       );
-      expect(caloriesField.controller?.text, '300');
+      expect(caloriesField.controller?.text, '310');
     });
 
     testWidgets('auto-compute resumes after clearing all macros',

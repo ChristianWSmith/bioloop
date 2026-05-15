@@ -14,13 +14,9 @@ class EditEntrySheet extends ConsumerStatefulWidget {
 }
 
 class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
-  late final TextEditingController _nameController;
   late final TextEditingController _servingsController;
-  late final TextEditingController _caloriesController;
-  late final TextEditingController _proteinController;
-  late final TextEditingController _carbsController;
-  late final TextEditingController _fatController;
   late String _mealType;
+  late String _entryName;
   bool _saving = false;
 
   late double _baseCalories;
@@ -29,16 +25,18 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
   late double _baseFat;
   bool _updatingFromServings = false;
 
+  double _displayCalories = 0;
+  double _displayProtein = 0;
+  double _displayCarbs = 0;
+  double _displayFat = 0;
+
   @override
   void initState() {
     super.initState();
     final e = widget.entry;
-    _nameController = TextEditingController(text: e.name);
-    _servingsController = TextEditingController(text: e.servings.toStringAsFixed(1));
-    _caloriesController = TextEditingController(text: e.calories.toString());
-    _proteinController = TextEditingController(text: e.proteinGrams.toString());
-    _carbsController = TextEditingController(text: e.carbsGrams.toString());
-    _fatController = TextEditingController(text: e.fatGrams.toString());
+    _entryName = e.name;
+    _servingsController = TextEditingController(
+        text: e.servings.toStringAsFixed(1));
     _mealType = e.mealType;
 
     _baseCalories = e.calories / e.servings;
@@ -46,17 +44,17 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
     _baseCarbs = e.carbsGrams / e.servings;
     _baseFat = e.fatGrams / e.servings;
 
+    _displayCalories = e.calories;
+    _displayProtein = e.proteinGrams;
+    _displayCarbs = e.carbsGrams;
+    _displayFat = e.fatGrams;
+
     _servingsController.addListener(_onServingsChanged);
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
     _servingsController.dispose();
-    _caloriesController.dispose();
-    _proteinController.dispose();
-    _carbsController.dispose();
-    _fatController.dispose();
     super.dispose();
   }
 
@@ -65,23 +63,19 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
     final servings = double.tryParse(_servingsController.text);
     if (servings != null && servings > 0) {
       _updatingFromServings = true;
-      _caloriesController.text = (_baseCalories * servings).toStringAsFixed(1);
-      _proteinController.text = (_baseProtein * servings).toStringAsFixed(1);
-      _carbsController.text = (_baseCarbs * servings).toStringAsFixed(1);
-      _fatController.text = (_baseFat * servings).toStringAsFixed(1);
+      setState(() {
+        _displayCalories = _baseCalories * servings;
+        _displayProtein = _baseProtein * servings;
+        _displayCarbs = _baseCarbs * servings;
+        _displayFat = _baseFat * servings;
+      });
       _updatingFromServings = false;
     }
   }
 
   bool get _isValid {
-    if (_nameController.text.trim().isEmpty) return false;
     final servings = double.tryParse(_servingsController.text);
-    if (servings == null || servings <= 0) return false;
-    if (double.tryParse(_caloriesController.text) == null) return false;
-    if (double.tryParse(_proteinController.text) == null) return false;
-    if (double.tryParse(_carbsController.text) == null) return false;
-    if (double.tryParse(_fatController.text) == null) return false;
-    return true;
+    return servings != null && servings > 0;
   }
 
   Future<void> _save() async {
@@ -92,11 +86,11 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
     try {
       final entry = FoodEntry(
         id: widget.entry.id,
-        name: _nameController.text.trim(),
-        calories: double.parse(_caloriesController.text),
-        proteinGrams: double.parse(_proteinController.text),
-        carbsGrams: double.parse(_carbsController.text),
-        fatGrams: double.parse(_fatController.text),
+        name: _entryName,
+        calories: _displayCalories,
+        proteinGrams: _displayProtein,
+        carbsGrams: _displayCarbs,
+        fatGrams: _displayFat,
         servings: double.parse(_servingsController.text),
         servingLabel: widget.entry.servingLabel,
         barcode: widget.entry.barcode,
@@ -134,6 +128,8 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -147,74 +143,69 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
         children: [
           Text(
             'Edit entry',
-            style: Theme.of(context).textTheme.titleLarge,
+            style: theme.textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
-          TextField(
-            key: const Key('edit_name_field'),
-            controller: _nameController,
-            onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(labelText: 'Name'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('edit_servings_field'),
-            controller: _servingsController,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              labelText: 'Quantity (${widget.entry.servingLabel})',
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 100,
+                  child: Text('Name',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                ),
+                Expanded(child: Text(_entryName)),
+              ],
             ),
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _caloriesController,
-            onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(labelText: 'Calories'),
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
           Row(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _proteinController,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(labelText: 'Protein (g)'),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                ),
+              SizedBox(
+                width: 100,
+                child: Text('Quantity',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant)),
               ),
-              const SizedBox(width: 12),
               Expanded(
                 child: TextField(
-                  controller: _carbsController,
+                  key: const Key('edit_servings_field'),
+                  controller: _servingsController,
                   onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(labelText: 'Carbs (g)'),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 8),
+                    suffixText: widget.entry.servingLabel,
+                  ),
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                 ),
               ),
             ],
           ),
+          const Divider(height: 24),
+          _macroRow(theme, 'Calories', _displayCalories.toStringAsFixed(0)),
+          const SizedBox(height: 4),
+          _macroRow(theme, 'Protein', '${_displayProtein.toStringAsFixed(1)} g'),
+          const SizedBox(height: 4),
+          _macroRow(theme, 'Carbs', '${_displayCarbs.toStringAsFixed(1)} g'),
+          const SizedBox(height: 4),
+          _macroRow(theme, 'Fat', '${_displayFat.toStringAsFixed(1)} g'),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _fatController,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(labelText: 'Fat (g)'),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                ),
+              SizedBox(
+                width: 100,
+                child: Text('Meal type',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant)),
               ),
-              const SizedBox(width: 12),
               Expanded(
                 child: InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Meal type'),
+                  decoration: const InputDecoration(),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _mealType,
@@ -255,6 +246,20 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
           const SizedBox(height: 16),
         ],
       ),
+    );
+  }
+
+  Widget _macroRow(ThemeData theme, String label, String value) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(label,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        ),
+        Expanded(child: Text(value)),
+      ],
     );
   }
 }

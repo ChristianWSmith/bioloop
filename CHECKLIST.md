@@ -14,8 +14,8 @@
 
 | # | Ticket | Issues | Status | Notes |
 |---|--------|--------|--------|-------|
-| 06 | Restrict edit entry to quantity only | #12 | ❌ Pending | Read-only macros in EditEntrySheet |
-| 07 | Rework food search with My Foods / Search Web toggle | #10, #1, #6, #9 | ❌ Pending | Major: new DAO, split service, redesigned delegate |
+| 06 | Restrict edit entry to quantity only | #12 | ✅ Complete | Read-only macros in EditEntrySheet |
+| 07 | Rework food search with My Foods / Search Web toggle | #10, #1, #6, #9 | ✅ Complete | New DAO, split service, redesigned delegate, deleted recent_foods_provider |
 
 ## Phase 3 — Screen Consolidation
 

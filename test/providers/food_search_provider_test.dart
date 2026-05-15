@@ -20,8 +20,18 @@ void main() {
       db.close();
     });
 
-    test('dedup: no duplicate barcodes, local results first', () async {
+    test('searchLocal returns foods sorted by recency', () async {
       final now = DateTime.now().toIso8601String();
+      // Insert 3 foods
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Oats',
+        servingLabel: '100g',
+        caloriesPerServing: 389,
+        proteinPerServing: 16.9,
+        carbsPerServing: 66.3,
+        fatPerServing: 6.9,
+        createdAt: now,
+      ));
       await db.into(db.foods).insert(FoodsCompanion.insert(
         name: 'Chicken Breast',
         servingLabel: '100g',
@@ -29,10 +39,76 @@ void main() {
         proteinPerServing: 31,
         carbsPerServing: 0,
         fatPerServing: 3.6,
-        barcode: Value('123'),
+        createdAt: now,
+      ));
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Brown Rice',
+        servingLabel: '100g',
+        caloriesPerServing: 111,
+        proteinPerServing: 2.6,
+        carbsPerServing: 23,
+        fatPerServing: 0.9,
         createdAt: now,
       ));
 
+      // Log entries to establish recency order: Oats first, then Chicken, then Rice
+      await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
+        name: 'Oats',
+        calories: 389,
+        proteinGrams: 16.9,
+        carbsGrams: 66.3,
+        fatGrams: 6.9,
+        servings: 1,
+        servingLabel: '100g',
+        mealType: 'breakfast',
+        foodId: Value(1),
+        loggedAt: '2026-05-14T08:00:00',
+      ));
+      await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
+        name: 'Chicken Breast',
+        calories: 165,
+        proteinGrams: 31,
+        carbsGrams: 0,
+        fatGrams: 3.6,
+        servings: 1,
+        servingLabel: '100g',
+        mealType: 'lunch',
+        foodId: Value(2),
+        loggedAt: '2026-05-15T12:00:00',
+      ));
+      await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
+        name: 'Brown Rice',
+        calories: 111,
+        proteinGrams: 2.6,
+        carbsGrams: 23,
+        fatGrams: 0.9,
+        servings: 1,
+        servingLabel: '100g',
+        mealType: 'dinner',
+        foodId: Value(3),
+        loggedAt: '2026-05-15T13:00:00',
+      ));
+
+      final mockApiClient = OpenFoodFactsClient(
+        client: MockClient((_) async => http.Response('{}', 200)),
+      );
+      final service = FoodSearchService(db: db, apiClient: mockApiClient);
+
+      // searchLocal with empty query returns all foods in recency order
+      final allResults = await service.searchLocal('');
+      expect(allResults.length, 3);
+      // Most recently used first: Brown Rice (May 15 13:00), Chicken (May 15 12:00), Oats (May 14)
+      expect(allResults[0].name, 'Brown Rice');
+      expect(allResults[1].name, 'Chicken Breast');
+      expect(allResults[2].name, 'Oats');
+
+      // searchLocal with query filters correctly
+      final filteredResults = await service.searchLocal('chicken');
+      expect(filteredResults.length, 1);
+      expect(filteredResults[0].name, 'Chicken Breast');
+    });
+
+    test('searchWeb returns API results only', () async {
       final mock = MockClient((_) async {
         return http.Response(jsonEncode({
           'products': [
@@ -56,33 +132,32 @@ void main() {
               },
               'code': '456',
             },
-            {
-              'product_name': 'Pork Chop',
-              'nutriments': {
-                'energy-kcal_serving': 200,
-                'proteins_serving': 22,
-                'carbohydrates_serving': 0,
-                'fat_serving': 12,
-              },
-              'code': '789',
-            },
           ],
         }), 200);
       });
       final mockApiClient = OpenFoodFactsClient(client: mock);
       final service = FoodSearchService(db: db, apiClient: mockApiClient);
 
-      final results = await service.search('chicken');
+      final results = await service.searchWeb('chicken');
 
-      expect(results.length, 3);
-      expect(results[0].localId, isNotNull);
+      expect(results.length, 2);
+      expect(results[0].localId, isNull);
       expect(results[0].name, 'Chicken Breast');
-      expect(results[0].source, 'manual');
-      expect(results[1].localId, isNull);
-      expect(results[2].localId, isNull);
+      expect(results[0].source, 'open_food_facts');
+      expect(results[1].name, 'Beef Steak');
+    });
 
-      final barcodes = results.map((r) => r.barcode).toSet();
-      expect(barcodes.length, 3);
+    test('searchWeb with empty query returns empty list', () async {
+      final mockApiClient = OpenFoodFactsClient(
+        client: MockClient((_) async => http.Response('{}', 200)),
+      );
+      final service = FoodSearchService(db: db, apiClient: mockApiClient);
+
+      final results = await service.searchWeb('');
+      expect(results, isEmpty);
+
+      final results2 = await service.searchWeb('   ');
+      expect(results2, isEmpty);
     });
 
     test('auto-save: saveApiResult inserts into foods table', () async {
@@ -111,47 +186,6 @@ void main() {
       expect(saved, isNotNull);
       expect(saved!.name, 'Oats');
       expect(saved.source, 'open_food_facts');
-    });
-
-    test('local-first: no API call when local results >= 25', () async {
-      final now = DateTime.now().toIso8601String();
-      for (var i = 0; i < 25; i++) {
-        await db.into(db.foods).insert(FoodsCompanion.insert(
-          name: 'Food $i',
-          servingLabel: '100g',
-          caloriesPerServing: 100.0,
-          proteinPerServing: 10.0,
-          carbsPerServing: 10.0,
-          fatPerServing: 1.0,
-          createdAt: now,
-        ));
-      }
-
-      int apiCallCount = 0;
-      final mock = MockClient((_) async {
-        apiCallCount++;
-        return http.Response(jsonEncode({'products': []}), 200);
-      });
-      final mockApiClient = OpenFoodFactsClient(client: mock);
-      final service = FoodSearchService(db: db, apiClient: mockApiClient);
-
-      final results = await service.search('Food');
-
-      expect(results.length, 25);
-      expect(apiCallCount, 0);
-    });
-
-    test('empty query returns empty list', () async {
-      final mockApiClient = OpenFoodFactsClient(
-        client: MockClient((_) async => http.Response('{}', 200)),
-      );
-      final service = FoodSearchService(db: db, apiClient: mockApiClient);
-
-      final results = await service.search('');
-      expect(results, isEmpty);
-
-      final results2 = await service.search('   ');
-      expect(results2, isEmpty);
     });
   });
 }
