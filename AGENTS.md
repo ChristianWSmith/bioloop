@@ -34,11 +34,11 @@ lib/
     algorithms/
       maintenance_calculator.dart  # rolling linear regression
       mifflin_st_jeor.dart         # BMR estimator
-  providers/             # 12 Riverpod providers
+  providers/             # 19 Riverpod providers
   features/
     onboarding/          # first-launch setup flow
     dashboard/           # summary + progress rings + sparkline
-    logging/             # food search, log, barcode, today's entries
+    logging/             # food search, log, barcode, macro bars, today's entries
     bodyweight/          # weight log + chart
     history/             # CSV export + edit entry sheet
     goals/               # goal type, calorie adj, sliders
@@ -104,9 +104,8 @@ lib/
 - **Logging a recipe**: creates single `food_entry` with summed macros × scale, sets `recipe_id` FK
 - **CSV export**: sync (`compute`), writes to temp dir, shares via `share_plus`
 - **Log tab entry delete**: swipe-to-dismiss or delete button per entry in today's list; shows confirmation dialog; increments `dataTriggerProvider` (which `todaysFoodProvider` watches) to refresh the list on success
-- **Search delegate**: `FoodSearchDelegate` shows a segmented toggle ("My Foods" / "Search the Web"); local search calls `searchService.searchLocal(query)` which returns foods ordered by recency via `db.searchLocalByRecency()`; trailing `Icons.add_circle_outline` calls `onQuickLog` which opens `QuickFoodLogSheet`
+- **Search delegate**: `FoodSearchDelegate` accepts `searchService`, `apiClient` (`OpenFoodFactsClient`), `onCreateCustomFood`, and `onQuickLog` (async); shows a segmented toggle ("My Foods" / "Search the Web") wrapped in `SizedBox(width: double.infinity)` for width stability; `Icons.qr_code_scanner` button in `buildActions` opens `BarcodeScannerScreen`; local search calls `searchService.searchLocal(query)` returning foods ordered by recency via `db.searchLocalByRecency()`; trailing `Icons.add_circle_outline` calls `onQuickLog` which opens `QuickFoodLogSheet` — after the sheet closes, the delegate automatically pops itself (wrapped in `buildResults`/`buildSuggestions` to navigate.pop after awaiting `onQuickLog`)
 - **Quick-food log sheet**: `QuickFoodLogSheet` in `lib/features/logging/widgets/quick_food_log_sheet.dart` — reusable modal bottom sheet with serving picker, macro preview, meal type selector, and "Log to today" button; supports both fresh quick-log (`food` only) and duplicate (`food` + `sourceEntry` with pre-filled servings)
-- **Duplicate entry**: trailing `Icons.replay` icon on each today's entry (non-recipe only); opens `QuickFoodLogSheet` pre-filled with the entry's serving size; creates new entry with fresh timestamp
 - **Onboarding complete** (`_onOnboardingComplete` in `app.dart`): invalidates `bodyweightProvider`, `todaysFoodProvider`, and `userGoalsProvider` and increments `dataTriggerProvider` so providers re-fetch with the newly saved data
 - **Unit preference helpers** (`UnitPreferences` in `unit_preferences_provider.dart`): `displayWeight(double kg)` converts kg→lb, `kgWeight(double display)` converts lb→kg; use `unitPreferencesProvider` instead of reading `useImperial` directly from the DB
 - **Data reset**: `resetAll()` truncates all 6 tables in FK-safe order within a transaction; increments `resetTriggerProvider` → `App` re-checks onboarding
@@ -119,5 +118,7 @@ lib/
 - `databaseProvider` is intentionally un-implemented at declaration site (throws `UnimplementedError`); `main.dart` creates the real DB and overrides it
 - Schema v1→v2 migration (onUpgrade) adds `serving_unit` and `serving_quantity` columns to `foods` and backfills from `serving_label` / `serving_size_grams` patterns; schema v2→v3 drops the vestigial `serving_size_grams` column; schema v3→v4 adds the `brand` column
 - `getRecentFoods()` / `searchLocalByRecency()` in `AppDatabase` fetches distinct `foodId`s from `food_entries` in a Dart-side loop (drift 2.31.0 has no `groupBy` on `SimpleSelectStatement`); orders by `MAX(loggedAt)` DESC, limit 10, then fetches `Food` records from the `foods` table
+- Maintenance calculator (`maintenance_provider.dart`) uses `DateTime.now().subtract(const Duration(days: 1))` so the 30-day regression window ends yesterday, excluding today's partial data
 - All macro calculations (save, preview, recipe totals, ingredient rows, `computeRecipeMacros()`) use `macroPerServing * (qty / servingQuantity)` with a zero-division guard. When adding new macro math, always use this pattern.
 - `_selectFood()` defaults to `_servings = food.servingQuantity` (not 1). This is correct with the formula fix — for per-100g foods, `_servings=100` means `macro * (100/100) = macro`, giving the right display for 1 serving.
+- `MacroBars` widget at `lib/features/logging/widgets/macro_bars.dart` shows compact macro progress bars on the log screen. Uses calories (primary), protein (blue), carbs (green), fat (orange) colors matching `DashboardScreen`. Consumed totals computed via `.fold()` on `dateFoodProvider(_currentDate)` entries.
