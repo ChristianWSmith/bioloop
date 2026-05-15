@@ -1,0 +1,4 @@
+- during onboarding, "Male" should be toggled by default
+- during our last round of updates to the logging screen, we accidentally got rid of the barcode scanning button.  the code to do the scanning is still present, so we need to reincorporate that feature.
+- when calculating maintenance calories with our regression algorithm, we should NOT include today in the inputs to the function, as that will throw off the calculation because food will be logged over the course of the day.  not sure if that's how we're doing it now.  either verify or update.
+- 
