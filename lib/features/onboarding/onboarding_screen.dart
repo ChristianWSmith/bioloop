@@ -20,7 +20,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _canPop = false;
   bool _saving = false;
 
-  String? _sex;
+  String _sex = 'male';
   String? _birthdate;
   final _heightController = TextEditingController();
   final _heightFeetController = TextEditingController();
@@ -29,8 +29,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _goalWeightController = TextEditingController();
   bool _useImperial = true;
   int _activityLevel = 3;
-  String _goalType = 'cut';
-  final _calorieAdjustmentController = TextEditingController(text: '-500');
+  String _goalType = 'maintain';
+  final _calorieAdjustmentController = TextEditingController(text: '0');
   double _proteinGPerLb = 1.0;
   double _fatCaloriePct = 25.0;
 
@@ -162,7 +162,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   bool get _canSave =>
-      _sex != null &&
       _birthdate != null &&
       (_useImperial
           ? _heightFeetController.text.isNotEmpty
@@ -245,7 +244,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final weightText = _weightController.text;
     final rawWeight = double.tryParse(weightText);
     if (rawWeight == null || rawWeight <= 0) return '';
-    if (_sex == null) return '';
     if (_birthdate == null) return '';
     final heightCm = _useImperial
         ? _unitPrefs.heightCm(
@@ -256,7 +254,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     final weightKg = _useImperial ? rawWeight / 2.20462 : rawWeight;
     final maintenance = estimateMaintenance(
-      sex: _sex!,
+      sex: _sex,
       weightKg: weightKg,
       heightCm: heightCm,
       birthdate: _birthdate,
@@ -374,8 +372,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ButtonSegment(value: 'male', label: Text('Male')),
                   ButtonSegment(value: 'female', label: Text('Female')),
                 ],
-                selected: _sex != null ? {_sex!} : {},
-                emptySelectionAllowed: true,
+                selected: {_sex},
                 onSelectionChanged: (v) => setState(() => _sex = v.first),
               ),
               const SizedBox(height: 12),

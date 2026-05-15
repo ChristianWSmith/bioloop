@@ -1,0 +1,93 @@
+# BioLoop — Implementation Checklist
+
+Use this to track progress on the active ticket set.
+
+---
+
+## Ticket 001 — Onboarding defaults
+
+- [x] `_sex` initialized to `'male'` instead of `null`
+- [x] `emptySelectionAllowed` removed from sex `SegmentedButton`
+- [x] `_goalType` default changed from `'cut'` to `'maintain'`
+- [x] Calorie adjustment default changed from `'-500'` to `'0'`
+- [x] `flutter analyze` passes with zero issues (pre-existing dead_code warning in database.dart only)
+
+---
+
+## Ticket 002 — Exclude today from maintenance
+
+- [ ] `DateTime.now()` changed to `DateTime.now().subtract(const Duration(days: 1))` in `maintenance_provider.dart`
+- [ ] All existing maintenance calculator tests pass
+- [ ] `flutter analyze` passes with zero issues
+
+---
+
+## Ticket 003 — Compact macro bars
+
+- [ ] `lib/features/logging/widgets/macro_bars.dart` created
+- [ ] `MacroBars` widget displays full-width calories bar
+- [ ] Protein, Carbs, Fat shown as 1/3-width bars below
+- [ ] Widget added to `CombinedLogScreen`'s ListView above meal groups
+- [ ] `macroTargetsProvider` watched for target values
+- [ ] Values update reactively on entry add/edit/delete
+- [ ] Works for both today and past dates
+- [ ] `flutter analyze` passes with zero issues
+
+---
+
+## Ticket 004 — Log screen AppBar cleanup
+
+### #6 — Center DayNavigator
+- [ ] `centerTitle: true` added to log screen `AppBar`
+- [ ] Date indicator visually centered in AppBar
+
+### #10 — Remove relog button
+- [ ] `Icons.replay` `IconButton` removed from food entry trailing widgets
+- [ ] `_onDuplicate` method removed
+
+### #11 — Log recipe as own button
+- [ ] `Icons.menu_book` `IconButton` added to AppBar `actions`
+- [ ] "Log recipe" `PopupMenuItem` removed from overflow menu
+- [ ] Overflow menu (with share/save items) still functional
+
+### Combined
+- [ ] `flutter analyze` passes with zero issues
+
+---
+
+## Ticket 005 — Barcode scanning button
+
+- [ ] Barcode scan `IconButton` added to `FoodSearchDelegate.buildActions()`
+- [ ] `OpenFoodFactsClient` accessible in the delegate
+- [ ] Tapping button opens `BarcodeScannerScreen`
+- [ ] Found food → quick-log sheet opens → search closes
+- [ ] Not found → "Enter manually" or "Scan again" options work
+- [ ] Cancel → returns to search delegate
+- [ ] `flutter analyze` passes with zero issues
+
+---
+
+## Ticket 006 — Search screen UX fixes
+
+### #9 — Re-log returns to log screen
+- [ ] Quick-log via `+` icon closes search delegate after sheet closes
+- [ ] Tap-to-select path still works correctly
+
+### #5 — Toggle off-center (investigate)
+- [ ] Root cause identified and reproduced
+- [ ] SegmentedButton stays centered in both modes
+
+### #8 — Web search toggle flip (investigate)
+- [ ] Root cause identified and reproduced
+- [ ] Web search errors no longer reset toggle to "My Foods"
+
+### Combined
+- [ ] `flutter analyze` passes with zero issues
+
+---
+
+## Final verification
+
+- [ ] `flutter analyze` passes with zero issues
+- [ ] `flutter test` passes (run via `flutter test > test.log 2>&1`)
+- [ ] `flutter run` starts without crashes

@@ -1,4 +1,11 @@
 - during onboarding, "Male" should be toggled by default
-- during our last round of updates to the logging screen, we accidentally got rid of the barcode scanning button.  the code to do the scanning is still present, so we need to reincorporate that feature.
+- during our last round of updates to the logging screen, we accidentally got rid of the barcode scanning button.  the code to do the scanning is still present, so we need to reincorporate that feature.  The button should be present on the food search screen
 - when calculating maintenance calories with our regression algorithm, we should NOT include today in the inputs to the function, as that will throw off the calculation because food will be logged over the course of the day.  not sure if that's how we're doing it now.  either verify or update.
-- 
+- during onboarding, the default goal type should be "Maintain", not "Cut"
+- on the search food screen, when toggling to "Search the Web", the toggle group becomes off-center (shifts left)
+- on the log screen, the top bar indicator for which day you're viewing should be centered on the screen.  currently its centered between the left side of the screen and the dropdown dots on the right.  this makes it shifted left from screen center, kind of visually offputting.
+- on the log screen, above all food entries, we should have a compact display of the current state of the macros for the day.  instead of wheels, these should be bars.  calories should be on top, and fit the full width.  the three macros should be below it and take up 1/3rd each.  this gives the user a quick view of their current status without having to go back and forth between the log screen and the dashboard
+- when searching the web for food, sometimes if the search fails, it will automatically toggle back over to "My Foods".  This is annoying and goes against user intent.  It should stay on "Search the web"
+- when searching foods, if the user re-logs an existing food from the "My Foods" side of the toggle, it should return to the log screen rather than staying in the food search view.
+- on the log screen, we should get rid of the relog button entirely.  it has become redundant since the user can already just hit the "+" button and immediately see their recent foods for relogging
+- the log recipe feature is a little hidden in the dropdown on the log screen at the moment.  can we add it as its own button in the top bar?
