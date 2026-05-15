@@ -38,20 +38,20 @@ Use this to track progress on the active ticket set.
 ## Ticket 004 — Log screen AppBar cleanup
 
 ### #6 — Center DayNavigator
-- [ ] `centerTitle: true` added to log screen `AppBar`
-- [ ] Date indicator visually centered in AppBar
+- [x] `centerTitle: true` added to log screen `AppBar`
+- [x] Date indicator visually centered in AppBar
 
 ### #10 — Remove relog button
-- [ ] `Icons.replay` `IconButton` removed from food entry trailing widgets
-- [ ] `_onDuplicate` method removed
+- [x] `Icons.replay` `IconButton` removed from food entry trailing widgets
+- [x] `_onDuplicate` method removed
 
 ### #11 — Log recipe as own button
-- [ ] `Icons.menu_book` `IconButton` added to AppBar `actions`
-- [ ] "Log recipe" `PopupMenuItem` removed from overflow menu
-- [ ] Overflow menu (with share/save items) still functional
+- [x] `Icons.menu_book` `IconButton` added to AppBar `actions`
+- [x] "Log recipe" `PopupMenuItem` removed from overflow menu
+- [x] Overflow menu (with share/save items) still functional
 
 ### Combined
-- [ ] `flutter analyze` passes with zero issues
+- [x] `flutter analyze` passes with zero issues
 
 ---
 

@@ -84,23 +84,6 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
     }
   }
 
-  Future<void> _onDuplicate(FoodEntry entry) async {
-    final foodId = entry.foodId;
-    if (foodId == null) return;
-    final db = ref.read(databaseProvider);
-    final food = await db.getFoodById(foodId);
-    if (food == null || !mounted) return;
-    final item = FoodSearchItem.fromFood(food);
-    await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => QuickFoodLogSheet(
-        food: item,
-        sourceEntry: entry,
-      ),
-    );
-  }
-
   Future<void> _editEntry(FoodEntry entry) async {
     await showModalBottomSheet<bool>(
       context: context,
@@ -218,11 +201,17 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: DayNavigator(
           currentDate: _currentDate,
           onDateChanged: _goToDate,
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.menu_book),
+            tooltip: 'Log recipe',
+            onPressed: _onLogRecipe,
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) async {
@@ -230,19 +219,9 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
                 await _shareCsv();
               } else if (value == 'save_food') {
                 await _saveCsv();
-              } else if (value == 'log_recipe') {
-                await _onLogRecipe();
               }
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'log_recipe',
-                child: ListTile(
-                  leading: Icon(Icons.book),
-                  title: Text('Log recipe'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
               const PopupMenuItem(
                 value: 'share_food',
                 child: ListTile(
@@ -367,12 +346,6 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (entry.foodId != null)
-                            IconButton(
-                              icon: const Icon(Icons.replay, size: 20),
-                              tooltip: 'Duplicate entry',
-                              onPressed: () => _onDuplicate(entry),
-                            ),
                           _mealTypeBadge(entry.mealType),
                         ],
                       ),
