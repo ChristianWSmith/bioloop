@@ -57,13 +57,13 @@ Use this to track progress on the active ticket set.
 
 ## Ticket 005 — Barcode scanning button
 
-- [ ] Barcode scan `IconButton` added to `FoodSearchDelegate.buildActions()`
-- [ ] `OpenFoodFactsClient` accessible in the delegate
-- [ ] Tapping button opens `BarcodeScannerScreen`
-- [ ] Found food → quick-log sheet opens → search closes
-- [ ] Not found → "Enter manually" or "Scan again" options work
-- [ ] Cancel → returns to search delegate
-- [ ] `flutter analyze` passes with zero issues
+- [x] Barcode scan `IconButton` added to `FoodSearchDelegate.buildActions()`
+- [x] `OpenFoodFactsClient` accessible in the delegate
+- [x] Tapping button opens `BarcodeScannerScreen`
+- [x] Found food → quick-log sheet opens → search closes
+- [x] Not found → "Enter manually" or "Scan again" options work
+- [x] Cancel → returns to search delegate
+- [x] `flutter analyze` passes with zero issues
 
 ---
 

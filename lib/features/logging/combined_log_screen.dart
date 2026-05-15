@@ -39,10 +39,12 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
 
   Future<void> _onSearch() async {
     final searchService = ref.read(foodSearchServiceProvider);
+    final apiClient = ref.read(openFoodFactsClientProvider);
     final result = await showSearch<FoodSearchItem?>(
       context: context,
       delegate: FoodSearchDelegate(
         searchService: searchService,
+        apiClient: apiClient,
         onCreateCustomFood: () => _pendingCreateCustom = true,
         onQuickLog: (item) {
           _showQuickLogSheet(item);

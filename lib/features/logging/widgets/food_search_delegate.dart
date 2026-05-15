@@ -1,14 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/api/open_food_facts_client.dart';
+import '../../../core/api/models/food_result.dart';
 import '../../../providers/food_search_provider.dart';
+import 'barcode_scanner.dart';
 
 class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   final FoodSearchService searchService;
+  final OpenFoodFactsClient apiClient;
   final VoidCallback onCreateCustomFood;
   final ValueChanged<FoodSearchItem>? onQuickLog;
 
   FoodSearchDelegate({
     required this.searchService,
+    required this.apiClient,
     required this.onCreateCustomFood,
     this.onQuickLog,
   });
@@ -21,6 +26,26 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   @override
   List<Widget>? buildActions(BuildContext context) {
     return [
+      IconButton(
+        icon: const Icon(Icons.qr_code_scanner),
+        tooltip: 'Scan barcode',
+        onPressed: () async {
+          final navigator = Navigator.of(context);
+          final result = await navigator.push<Object?>(
+            MaterialPageRoute(
+              builder: (_) => BarcodeScannerScreen(apiClient: apiClient),
+            ),
+          );
+          if (result is FoodResult) {
+            final item = FoodSearchItem.fromFoodResult(result);
+            onQuickLog?.call(item);
+            navigator.pop<FoodSearchItem?>(null);
+          } else if (result == 'manual') {
+            onCreateCustomFood();
+            navigator.pop<FoodSearchItem?>(null);
+          }
+        },
+      ),
       if (query.isNotEmpty)
         IconButton(
           icon: const Icon(Icons.clear),
