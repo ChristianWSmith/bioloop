@@ -16,4 +16,16 @@
 
 - when adding a custom food, the calculated calories should re-calculate each time one of the macros are edited.  the user should still be able to edit the calories directly after the fact, but subsequent changes to the macros should re-calculate the calories and overwrite that.  this should only happen when the macro fields are manually edited
 
-- 
+- deleting a logged food should be possible only from the history tab, not from the recently logged foods in the food search view
+
+- the recently logged foods should be unique.  Currently logging the same food twice results in two entries in the recently logged foods list.  This is unnecessary as they're simply there to give the user a quick way to log a food that they've already eaten again
+
+- actually, food searching needs to be reworked.  Currently searching always calls the openfoodfacts API, with no way of searching locally stored foods.  When searching, there should be a toggle between "My Foods" and "Search the Web".  When toggled to my foods, it should only search locally stored foods, and when it's set to search the web, it should call the openfoodfacts API.  It should be toggled to "my foods" by default, and the foods should appear sorted in order of recency.  this prevents the need for specific "recent foods" logic.  the create custom food button should only exist when toggled to "my foods", and it should still always appear before the list, whether or not the list is being filtered/searched
+
+- the data model for foods needs to be updated with an optional field for brand.  We should populate it when saving a food from openfoodfacts
+
+- when editing a logged food on the history screen, the user should only be able to edit the quantity, not the individual macros
+
+- if the user forgets to log their weight, we should assume the same weight on all subsequent days until the next time they log it.  we shouldn't prevent the regression algorithm from kicking in just because they missed the odd day of bodyweight logging.
+
+- during onboarding imperial should be selected by default
