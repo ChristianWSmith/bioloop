@@ -12,6 +12,7 @@ class Foods extends Table {
   RealColumn get carbsPerServing => real()();
   RealColumn get fatPerServing => real()();
   TextColumn get barcode => text().nullable().unique()();
+  TextColumn get brand => text().nullable()();
   TextColumn get source => text().withDefault(const Constant('manual'))();
   TextColumn get createdAt => text()();
 }

@@ -19,7 +19,6 @@ ProviderScope buildApp(AppDatabase db) {
 
 Future<void> pumpApp(WidgetTester tester, AppDatabase db) async {
   await tester.pumpWidget(buildApp(db));
-  // Let the async onboarding check complete
   await tester.pump();
   await tester.pump();
 }
@@ -62,13 +61,13 @@ void main() {
       return db;
     }
 
-    testWidgets('renders 5 bottom nav destinations', (tester) async {
+    testWidgets('renders 4 bottom nav destinations', (tester) async {
       final db = await seedDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
       expect(find.byType(NavigationBar), findsOneWidget);
-      expect(find.byType(NavigationDestination), findsNWidgets(5));
+      expect(find.byType(NavigationDestination), findsNWidgets(4));
     });
 
     testWidgets('tapping each tab switches body content', (tester) async {
@@ -76,17 +75,14 @@ void main() {
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
+      // Start from Log to avoid Dashboard appearing in both appbar + nav
       await tester.tap(find.text('Log'));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('food_search_field')), findsOneWidget);
+      expect(find.text('Today'), findsOneWidget);
 
       await tester.tap(find.text('Bodyweight'));
       await tester.pumpAndSettle();
       expect(find.text('Bodyweight'), findsWidgets);
-
-      await tester.tap(find.text('History'));
-      await tester.pumpAndSettle();
-      expect(find.text('History'), findsWidgets);
 
       await tester.tap(find.text('Goals'));
       await tester.pumpAndSettle();
@@ -144,6 +140,9 @@ void main() {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
+
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
 
       // Sex
       await tester.tap(find.text('Male'));
@@ -216,6 +215,9 @@ void main() {
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
+
       // Fill required fields only
       await tester.tap(find.text('Female'));
       await tester.pumpAndSettle();
@@ -241,13 +243,12 @@ void main() {
       expect(goals!.goalWeightKg, isNull);
     });
 
-    testWidgets('units default to metric (use_imperial=0)',
-        (tester) async {
+    testWidgets('units default to imperial', (tester) async {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
-      // Metric button is selected by default
+      // Imperial button is selected by default
       await tester.tap(find.text('Male'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
@@ -260,21 +261,27 @@ void main() {
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
 
-      await tester.enterTextByLabel('Height', '180');
+      await tester.enterTextByLabel('Height (ft)', '5');
       await tester.pumpAndSettle();
-      await tester.enterTextByLabel('Weight', '80');
+      await tester.enterTextByLabel('Height (in)', '11');
+      await tester.pumpAndSettle();
+      await tester.enterTextByLabel('Weight', '176');
       await tester.pumpAndSettle();
 
       await saveOnboarding(tester);
 
       final goals = await db.getGoals();
       expect(goals, isNotNull);
-      expect(goals!.useImperial, 0);
+      expect(goals!.useImperial, 1);
+      expect(goals.heightCm, closeTo(180.3, 1));
     });
     testWidgets('activity level defaults to 3', (tester) async {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
+
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Male'));
       await tester.pumpAndSettle();
@@ -304,6 +311,9 @@ void main() {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
+
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Male'));
       await tester.pumpAndSettle();
@@ -360,6 +370,9 @@ void main() {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
+
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Male'));
       await tester.pumpAndSettle();
@@ -492,6 +505,9 @@ void main() {
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
+
       await tester.scrollUntilVisible(find.text('Protein: 2.2 g/kg'), 100, scrollable: _scrollable);
       expect(find.text('Protein: 2.2 g/kg'), findsOneWidget);
 
@@ -507,6 +523,9 @@ void main() {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
+
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(
         find.text('Recommended: 1.8\u20133.1 g/kg'),
@@ -533,6 +552,9 @@ void main() {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
+
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
 
       final heightField = tester.widget<TextField>(
         find.descendant(
@@ -666,6 +688,9 @@ void main() {
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Male'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
@@ -710,6 +735,9 @@ void main() {
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
+
       // Scroll to calorie adjustment field
       await tester.scrollUntilVisible(
         find.widgetWithText(TextFormField, 'Calorie adjustment'),
@@ -736,6 +764,10 @@ void main() {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
+
+      // Start in metric so we can enter a height and verify the toggle cycle
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Male'));
       await tester.pumpAndSettle();
@@ -811,6 +843,10 @@ void main() {
       final db = createDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
+
+      // Start in metric to enter weight in kg
+      await tester.tap(find.text('Metric'));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Male'));
       await tester.pumpAndSettle();

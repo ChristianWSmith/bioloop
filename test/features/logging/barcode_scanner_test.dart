@@ -1,15 +1,9 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'package:bioloop/core/api/open_food_facts_client.dart';
-import 'package:bioloop/core/database/database.dart';
-import 'package:bioloop/features/logging/log_food_screen.dart';
-import 'package:bioloop/providers/database_provider.dart';
-import 'package:bioloop/providers/food_search_provider.dart';
 
 void main() {
   group('getByBarcode API', () {
@@ -63,37 +57,6 @@ void main() {
 
       final result = await client.getByBarcode('3017620422003');
       expect(result, isNull);
-    });
-  });
-
-  group('LogFoodScreen barcode button', () {
-    Future<void> pumpScreen(WidgetTester tester, AppDatabase db) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            databaseProvider.overrideWithValue(db),
-            openFoodFactsClientProvider.overrideWithValue(
-              OpenFoodFactsClient(
-                client: MockClient((_) async =>
-                    http.Response(jsonEncode({'products': []}), 200)),
-              ),
-            ),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(body: LogFoodScreen()),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-    }
-
-    testWidgets('barcode scan icon button is visible', (tester) async {
-      final db = AppDatabase.createInMemory();
-      addTearDown(() => db.close());
-      await pumpScreen(tester, db);
-
-      expect(find.byKey(const Key('barcode_scan_button')), findsOneWidget);
-      expect(find.byIcon(Icons.qr_code_scanner), findsOneWidget);
     });
   });
 

@@ -239,6 +239,91 @@ void main() {
       expect(highNoise.confidenceInterval,
           greaterThan(lowNoise.confidenceInterval));
     });
+
+    test('sparse logging — Mon+Fri only, still produces result', () {
+      final now = DateTime(2024, 1, 28);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
+      final rng = Random(42);
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+
+      for (int i = 0; i < 28; i++) {
+        final day = now.subtract(Duration(days: 27 - i));
+        final cals = trueMaintenance + pattern[i % 5];
+
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+
+        if (day.weekday == DateTime.monday ||
+            day.weekday == DateTime.friday) {
+          final noisyWeight = startWeight +
+              cumulativeKg +
+              (rng.nextDouble() - 0.5) * 0.1;
+          weightEntries.add(
+              makeWeight(id: i, weightKg: noisyWeight, date: day));
+        }
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.maintenanceCalories,
+          closeTo(trueMaintenance, trueMaintenance * 0.10));
+      expect(result.dataPoints, greaterThanOrEqualTo(14));
+    });
+
+    test('single gap — one missing day does not break result', () {
+      final now = DateTime.now();
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
+      final rng = Random(42);
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+
+      for (int i = 0; i < 30; i++) {
+        final day = now.subtract(Duration(days: 29 - i));
+        final cals = trueMaintenance + pattern[i % 5];
+
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+
+        if (i != 10) {
+          final noisyWeight = startWeight +
+              cumulativeKg +
+              (rng.nextDouble() - 0.5) * 0.1;
+          weightEntries.add(
+              makeWeight(id: i, weightKg: noisyWeight, date: day));
+        }
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.maintenanceCalories,
+          closeTo(trueMaintenance, trueMaintenance * 0.05));
+      expect(result.dataPoints, greaterThanOrEqualTo(14));
+    });
   });
 
   group('maintenanceProvider', () {

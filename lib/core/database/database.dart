@@ -26,7 +26,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -59,6 +59,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 3) {
           await customStatement('ALTER TABLE foods DROP COLUMN serving_size_grams');
+        }
+        if (from < 4) {
+          await m.addColumn(foods, foods.brand);
         }
       },
     );
@@ -217,6 +220,55 @@ class AppDatabase extends _$AppDatabase {
         .toList();
   }
 
+  Future<List<Food>> searchLocalByRecency({String? query, int limit = 50}) async {
+    final allEntries = await (select(foodEntries)
+          ..where((f) => f.foodId.isNotNull())
+          ..orderBy([
+            (f) => OrderingTerm(expression: f.loggedAt, mode: OrderingMode.desc)
+          ]))
+        .get();
+
+    final seenIds = <int>{};
+    final orderedIds = <int>[];
+    for (final entry in allEntries) {
+      if (entry.foodId != null && seenIds.add(entry.foodId!)) {
+        orderedIds.add(entry.foodId!);
+      }
+    }
+
+    final allFoods = await (select(foods).get());
+    final rest = allFoods.where((f) => !seenIds.contains(f.id)).toList();
+    rest.sort((a, b) => a.name.compareTo(b.name));
+
+    final foodMap = {for (final f in allFoods) f.id: f};
+    final orderedFoods = orderedIds
+        .map((id) => foodMap[id])
+        .whereType<Food>()
+        .toList();
+
+    final combined = [...orderedFoods, ...rest];
+
+    if (query != null && query.trim().isNotEmpty) {
+      final q = query.toLowerCase();
+      return combined
+          .where((f) => f.name.toLowerCase().contains(q))
+          .take(limit)
+          .toList();
+    }
+
+    return combined.take(limit).toList();
+
+    if (query != null && query.trim().isNotEmpty) {
+      final q = query.toLowerCase();
+      return combined
+          .where((f) => f.name.toLowerCase().contains(q))
+          .take(limit)
+          .toList();
+    }
+
+    return combined.take(limit).toList();
+  }
+
   Future<List<FoodEntry>> getEntriesPaginated(
       {int offset = 0, int limit = 20}) async {
     return await (select(foodEntries)
@@ -266,6 +318,41 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteRecipe(int id) async {
     await (delete(recipes)..where((r) => r.id.equals(id))).go();
+  }
+
+  Future<Recipe> duplicateRecipe(int recipeId) async {
+    final original = await getRecipe(recipeId);
+    if (original == null) throw Exception('Recipe not found');
+
+    final ingredients = await getIngredientsWithFood(recipeId);
+    final now = DateTime.now().toIso8601String();
+    final newName = '${original.name} (copy)';
+
+    final newId = await insertRecipe(RecipesCompanion.insert(
+      name: newName,
+      servingSize: original.servingSize,
+      servingLabel: original.servingLabel,
+      createdAt: now,
+      updatedAt: now,
+    ));
+
+    for (final item in ingredients) {
+      await insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: newId,
+        foodId: item.food.id,
+        quantity: item.ingredient.quantity,
+        createdAt: now,
+      ));
+    }
+
+    return Recipe(
+      id: newId,
+      name: newName,
+      servingSize: original.servingSize,
+      servingLabel: original.servingLabel,
+      createdAt: now,
+      updatedAt: now,
+    );
   }
 
   // ── Recipe Ingredients DAO ──────────────────────────────────

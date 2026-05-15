@@ -23,9 +23,7 @@ class RecipeIngredientRow extends StatelessWidget {
     return ListTile(
       leading: const Icon(Icons.restaurant),
       title: Text(food.name),
-      subtitle: Text(
-        '${ingredient.quantity.toStringAsFixed(1)} × ${food.servingLabel} — ${cals.toStringAsFixed(0)} kcal',
-      ),
+      subtitle: Text(_ingredientSubtitle(food, ingredient, cals)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -44,5 +42,15 @@ class RecipeIngredientRow extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _ingredientSubtitle(Food food, RecipeIngredient ingredient, double cals) {
+    final qtyStr = ingredient.quantity == ingredient.quantity.roundToDouble()
+        ? ingredient.quantity.toInt().toString()
+        : ingredient.quantity.toStringAsFixed(1);
+    final displayText = ingredient.quantity == food.servingQuantity
+        ? food.servingLabel
+        : '$qtyStr ${food.servingUnit}';
+    return '$displayText — ${cals.toStringAsFixed(0)} kcal';
   }
 }

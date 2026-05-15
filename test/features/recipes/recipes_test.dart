@@ -726,9 +726,9 @@ void main() {
       await tester.tap(find.text('Add ingredient'));
       await tester.pumpAndSettle();
 
-      // Recent foods section should appear with "Chicken Breast"
-      expect(find.text('Recent Foods'), findsOneWidget);
+      // "My Foods" mode shows all local foods by default
       expect(find.text('Chicken Breast'), findsOneWidget);
+      expect(find.text('Create custom food'), findsOneWidget);
     });
   });
 }

@@ -28,8 +28,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
   final _fatController = TextEditingController();
   String _selectedUnit = 'g';
   String? _customUnit;
-  bool _caloriesManuallyEdited = false;
-  bool _settingCalories = false;
+
 
   @override
   void dispose() {
@@ -96,19 +95,15 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
     final allZero =
         (p == null || p == 0) && (c == null || c == 0) && (f == null || f == 0);
     if (allZero) {
-      _caloriesManuallyEdited = false;
       return;
     }
-    if (_caloriesManuallyEdited) return;
     if (p == null || c == null || f == null) return;
     if (p < 0 || c < 0 || f < 0) return;
     final computed = (p * 4) + (c * 4) + (f * 9);
     final text = computed == computed.roundToDouble()
         ? computed.toInt().toString()
         : computed.toStringAsFixed(1);
-    _settingCalories = true;
     _caloriesController.text = text;
-    _settingCalories = false;
   }
 
   Future<void> _save() async {
@@ -133,6 +128,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
         carbsPerServing: double.parse(_carbsController.text),
         fatPerServing: double.parse(_fatController.text),
         barcode: const Value(null),
+        brand: const Value(null),
         source: const Value('manual'),
         createdAt: now,
       ));
@@ -149,6 +145,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
           carbsPerServing: double.parse(_carbsController.text),
           fatPerServing: double.parse(_fatController.text),
           barcode: null,
+          brand: null,
           source: 'manual',
           createdAt: now,
         );
@@ -270,9 +267,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              onChanged: (_) {
-                if (!_settingCalories) _caloriesManuallyEdited = true;
-              },
+              onChanged: (_) {},
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Required';
                 final n = double.tryParse(v);

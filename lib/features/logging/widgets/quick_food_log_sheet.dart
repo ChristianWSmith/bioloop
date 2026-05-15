@@ -70,6 +70,7 @@ class _QuickFoodLogSheetState extends ConsumerState<QuickFoodLogSheet> {
           carbsPerServing: food.carbsPerServing,
           fatPerServing: food.fatPerServing,
           barcode: Value(food.barcode),
+          brand: Value(food.brand),
           source: Value(food.source),
           createdAt: now,
         ));

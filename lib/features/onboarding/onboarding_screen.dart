@@ -27,7 +27,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _heightInchesController = TextEditingController();
   final _weightController = TextEditingController();
   final _goalWeightController = TextEditingController();
-  bool _useImperial = false;
+  bool _useImperial = true;
   int _activityLevel = 3;
   String _goalType = 'cut';
   final _calorieAdjustmentController = TextEditingController(text: '-500');
