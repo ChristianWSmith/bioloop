@@ -1,35 +1,42 @@
-# Implementation Checklist
+# Implementation Progress Checklist
 
-Tickets are ordered by dependency and grouped for efficiency.
+## Phase 1 — Independent Quick Wins
 
-| # | Ticket | Status | Notes |
-|---|--------|--------|-------|
-| T1 | Fix "Create custom food" ordering | Pending | Independent, trivial |
-| T2 | Make auto-calc always overwrite calories | Pending | Independent, trivial |
-| T3 | Make recent foods refresh reactively | Pending | Independent, trivial |
-| T4 | Show quantity/unit on history tab entries | Pending | Independent, trivial |
-| T5 | Extract shared serving helper + fix ingredient display | Pending | Independent, ~15 min |
-| T6 | Add recipe editing | Pending | Touches same widget as T7 |
-| T7 | Add recipe duplication | Pending | Pair with T6 (recommend `PopupMenuButton`) |
+| # | Ticket | Issues | Status | Notes |
+|---|--------|--------|--------|-------|
+| 01 | Quick UI paper cuts | #14, #8 | ❌ Pending | Imperial default + remove delete from today's entries |
+| 02 | Add brand field to foods table | #11 | ❌ Pending | Schema v4, migration, model propagation |
+| 03 | Auto-recalculate calories on macro edit | #7 | ❌ Pending | Remove `_caloriesManuallyEdited` flag |
+| 04 | Forward-fill bodyweight for missing days | #13 | ❌ Pending | Algorithm change in maintenance calculator |
+| 05 | Polish recipe UX | #2, #4, #5 | ❌ Pending | Ingredient display, edit icon, duplicate recipe |
 
-## Recommended execution order
+## Phase 2 — Search Infrastructure
 
-1. **T1** — trivial, zero risk
-2. **T2** — trivial, zero risk
-3. **T3** — trivial, zero risk
-4. **T4** — trivial, zero risk
-5. **T5** — requires a `dart run build_runner build` if tests depend on imports (no drift changes, so build_runner likely not needed)
-6. **T6 + T7** — batch together, they share the `_RecipeCard` trailing widget; implement `PopupMenuButton` once with Edit, Duplicate, Delete options
+| # | Ticket | Issues | Status | Notes |
+|---|--------|--------|--------|-------|
+| 06 | Restrict edit entry to quantity only | #12 | ❌ Pending | Read-only macros in EditEntrySheet |
+| 07 | Rework food search with My Foods / Search Web toggle | #10, #1, #6, #9 | ❌ Pending | Major: new DAO, split service, redesigned delegate |
 
-## Per-ticket validation
+## Phase 3 — Screen Consolidation
 
-After each ticket:
-- Run `flutter analyze > analyze.log 2>&1` — must have zero issues
-- Run `flutter test > test.log 2>&1` — all existing tests must pass
-- Run the app and manually verify the changed behaviour
+| # | Ticket | Issues | Status | Dependencies |
+|---|--------|--------|--------|-------------|
+| 08 | Merge Log and History tabs | #15, #3 | ❌ Pending | #06, #07 |
 
-## Before merging batch
+## Dependencies
 
-- [ ] `flutter analyze` passes with zero issues
-- [ ] `flutter test` passes all tests
-- [ ] Manual smoke test of affected screens
+```
+Phase 1 (Tickets 01-05) — any order, no dependencies
+        │
+Phase 2 (Tickets 06-07) — any order, no dependencies between them
+        │
+        ↓
+Phase 3 (Ticket 08)     — requires 06 + 07
+```
+
+## Legend
+
+- ❌ Pending
+- 🔄 In Progress
+- ✅ Complete
+- ⏸ Blocked

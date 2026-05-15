@@ -29,3 +29,5 @@
 - if the user forgets to log their weight, we should assume the same weight on all subsequent days until the next time they log it.  we shouldn't prevent the regression algorithm from kicking in just because they missed the odd day of bodyweight logging.
 
 - during onboarding imperial should be selected by default
+
+- the log screen and the history screen should be combined into a single new tab called "log".  there should be a button at the bottom with "log new food" that should bring you to the existing food logging flow.  primarily it should display logged food history.  it should only display a single day at a time, with "Today" being the default.  the user should be able to tap left/right buttons to go forward and backward in time.  logged food on this screen should be sorted in meal order (breakfast first, then lunch, then dinner, then snack at the bottom)
