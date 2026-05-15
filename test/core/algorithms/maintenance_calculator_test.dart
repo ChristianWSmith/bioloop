@@ -332,7 +332,7 @@ void main() {
       final db = AppDatabase.createInMemory();
       addTearDown(() => db.close());
 
-      final now = DateTime.now();
+      final now = DateTime.now().subtract(const Duration(days: 1));
       final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
 
       double cumulativeKg = 0;

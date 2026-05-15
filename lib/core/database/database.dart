@@ -257,16 +257,6 @@ class AppDatabase extends _$AppDatabase {
     }
 
     return combined.take(limit).toList();
-
-    if (query != null && query.trim().isNotEmpty) {
-      final q = query.toLowerCase();
-      return combined
-          .where((f) => f.name.toLowerCase().contains(q))
-          .take(limit)
-          .toList();
-    }
-
-    return combined.take(limit).toList();
   }
 
   Future<List<FoodEntry>> getEntriesPaginated(

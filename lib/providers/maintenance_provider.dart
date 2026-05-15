@@ -9,7 +9,7 @@ final maintenanceProvider = FutureProvider<MaintenanceResult?>((ref) async {
   ref.watch(resetTriggerProvider);
   ref.watch(dataTriggerProvider);
   final db = ref.watch(databaseProvider);
-  final now = DateTime.now();
+  final now = DateTime.now().subtract(const Duration(days: 1));
   final lookback = 30;
 
   final allFoodEntries = await db.getEntriesPaginated(limit: 365);

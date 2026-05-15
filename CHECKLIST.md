@@ -16,9 +16,9 @@ Use this to track progress on the active ticket set.
 
 ## Ticket 002 — Exclude today from maintenance
 
-- [ ] `DateTime.now()` changed to `DateTime.now().subtract(const Duration(days: 1))` in `maintenance_provider.dart`
-- [ ] All existing maintenance calculator tests pass
-- [ ] `flutter analyze` passes with zero issues
+- [x] `DateTime.now()` changed to `DateTime.now().subtract(const Duration(days: 1))` in `maintenance_provider.dart`
+- [x] All existing maintenance calculator tests pass
+- [x] `flutter analyze` passes with zero issues
 
 ---
 

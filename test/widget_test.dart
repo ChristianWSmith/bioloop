@@ -463,7 +463,7 @@ void main() {
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
-      // Default should be Cut with -500 — scroll to calorie adjustment field
+      // Default should be Maintain with 0 — scroll to calorie adjustment field
       await tester.scrollUntilVisible(
         find.widgetWithText(TextFormField, 'Calorie adjustment'),
         100,
@@ -472,16 +472,16 @@ void main() {
       final initialField = tester.widget<TextFormField>(
         find.widgetWithText(TextFormField, 'Calorie adjustment'),
       );
-      expect(initialField.controller?.text, '-500');
+      expect(initialField.controller?.text, '0');
 
-      // Tap Maintain
-      await tester.scrollUntilVisible(find.text('Maintain'), 100, scrollable: _scrollable);
-      await tester.tap(find.text('Maintain'));
+      // Tap Cut
+      await tester.scrollUntilVisible(find.text('Cut'), 100, scrollable: _scrollable);
+      await tester.tap(find.text('Cut'));
       await tester.pumpAndSettle();
-      final maintainField = tester.widget<TextFormField>(
+      final afterCutField = tester.widget<TextFormField>(
         find.widgetWithText(TextFormField, 'Calorie adjustment'),
       );
-      expect(maintainField.controller?.text, '0');
+      expect(afterCutField.controller?.text, '-500');
 
       // Tap Bulk
       await tester.tap(find.text('Bulk'));
@@ -745,13 +745,13 @@ void main() {
         scrollable: _scrollable,
       );
 
-      // Default -500 should show loss preview
-      expect(find.textContaining('kg/week'), findsOneWidget);
-
-      // Change to 0 — should show "Maintenance"
-      await tester.enterTextByLabel('Calorie adjustment', '0');
-      await tester.pumpAndSettle();
+      // Default 0 should show "Maintenance"
       expect(find.text('Maintenance'), findsOneWidget);
+
+      // Change to -500 — should show loss preview
+      await tester.enterTextByLabel('Calorie adjustment', '-500');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('kg/week'), findsOneWidget);
 
       // Change to +300 — should show gain preview
       await tester.enterTextByLabel('Calorie adjustment', '300');
