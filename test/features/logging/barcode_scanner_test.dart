@@ -59,19 +59,4 @@ void main() {
       expect(result, isNull);
     });
   });
-
-  group('camera tests (skipped in CI)', () {
-    testWidgets('permission denied shows error message',
-        (tester) async {
-      // Requires real device/emulator — skip in CI
-    }, skip: true);
-
-    testWidgets('successful scan proceeds to log flow', (tester) async {
-      // Requires real device/emulator — skip in CI
-    }, skip: true);
-
-    testWidgets('scanner overlay renders viewfinder', (tester) async {
-      // Requires real device/emulator — skip in CI
-    }, skip: true);
-  });
 }

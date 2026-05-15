@@ -70,10 +70,12 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   Future<void> _addIngredient() async {
     _pendingCreateCustom = false;
     final searchService = ref.read(foodSearchServiceProvider);
+    final apiClient = ref.read(openFoodFactsClientProvider);
     final food = await showSearch<FoodSearchItem?>(
       context: context,
       delegate: FoodSearchDelegate(
         searchService: searchService,
+        apiClient: apiClient,
         onCreateCustomFood: _onCreateCustomFood,
       ),
     );

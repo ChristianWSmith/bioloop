@@ -5,11 +5,13 @@ import '../../providers/data_trigger_provider.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/food_log_provider.dart';
 import '../../providers/food_search_provider.dart';
+import '../../providers/macro_targets_provider.dart';
 import '../history/export.dart';
 import '../history/widgets/edit_entry_sheet.dart';
 import '../recipes/recipe_list_screen.dart';
 import 'widgets/day_navigator.dart';
 import 'widgets/food_search_delegate.dart';
+import 'widgets/macro_bars.dart';
 import 'widgets/manual_food_form.dart';
 import 'widgets/quick_food_log_sheet.dart';
 
@@ -37,13 +39,15 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
 
   Future<void> _onSearch() async {
     final searchService = ref.read(foodSearchServiceProvider);
+    final apiClient = ref.read(openFoodFactsClientProvider);
     final result = await showSearch<FoodSearchItem?>(
       context: context,
       delegate: FoodSearchDelegate(
         searchService: searchService,
+        apiClient: apiClient,
         onCreateCustomFood: () => _pendingCreateCustom = true,
-        onQuickLog: (item) {
-          _showQuickLogSheet(item);
+        onQuickLog: (item) async {
+          await _showQuickLogSheet(item);
         },
       ),
     );
@@ -82,23 +86,6 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
       final item = FoodSearchItem.fromFood(food);
       _showQuickLogSheet(item);
     }
-  }
-
-  Future<void> _onDuplicate(FoodEntry entry) async {
-    final foodId = entry.foodId;
-    if (foodId == null) return;
-    final db = ref.read(databaseProvider);
-    final food = await db.getFoodById(foodId);
-    if (food == null || !mounted) return;
-    final item = FoodSearchItem.fromFood(food);
-    await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => QuickFoodLogSheet(
-        food: item,
-        sourceEntry: entry,
-      ),
-    );
   }
 
   Future<void> _editEntry(FoodEntry entry) async {
@@ -215,14 +202,21 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
   @override
   Widget build(BuildContext context) {
     final entriesAsync = ref.watch(dateFoodProvider(_currentDate));
+    final targetsAsync = ref.watch(macroTargetsProvider);
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: DayNavigator(
           currentDate: _currentDate,
           onDateChanged: _goToDate,
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.menu_book),
+            tooltip: 'Log recipe',
+            onPressed: _onLogRecipe,
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) async {
@@ -230,19 +224,9 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
                 await _shareCsv();
               } else if (value == 'save_food') {
                 await _saveCsv();
-              } else if (value == 'log_recipe') {
-                await _onLogRecipe();
               }
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'log_recipe',
-                child: ListTile(
-                  leading: Icon(Icons.book),
-                  title: Text('Log recipe'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
               const PopupMenuItem(
                 value: 'share_food',
                 child: ListTile(
@@ -263,130 +247,149 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
           ),
         ],
       ),
-      body: entriesAsync.when(
-        data: (entries) {
-          if (entries.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      body: targetsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Failed to load targets')),
+        data: (targets) => entriesAsync.when(
+          data: (entries) {
+            final consumedCals = entries.fold(0.0, (s, e) => s + e.calories);
+            final consumedProtein = entries.fold(0.0, (s, e) => s + e.proteinGrams);
+            final consumedCarbs = entries.fold(0.0, (s, e) => s + e.carbsGrams);
+            final consumedFat = entries.fold(0.0, (s, e) => s + e.fatGrams);
+
+            final macroBars = MacroBars(
+              targets: targets,
+              consumedCalories: consumedCals,
+              consumedProtein: consumedProtein,
+              consumedCarbs: consumedCarbs,
+              consumedFat: consumedFat,
+            );
+
+            if (entries.isEmpty) {
+              return ListView(
+                padding: const EdgeInsets.only(top: 8, bottom: 80),
                 children: [
-                  Icon(Icons.restaurant, size: 64,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No entries for this date',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  macroBars,
+                  const SizedBox(height: 48),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.restaurant, size: 64,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No entries for this date',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
                         ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
-            );
-          }
+              );
+            }
 
-          final groups = _groupByMealType(entries);
-          final mealOrder = ['breakfast', 'lunch', 'dinner', 'snack'];
-          final sortedMeals = groups.keys.toList()
-            ..sort((a, b) {
-              final ai = mealOrder.indexOf(a);
-              final bi = mealOrder.indexOf(b);
-              if (ai == -1 && bi == -1) return a.compareTo(b);
-              if (ai == -1) return 1;
-              if (bi == -1) return -1;
-              return ai.compareTo(bi);
-            });
+            final groups = _groupByMealType(entries);
+            final mealOrder = ['breakfast', 'lunch', 'dinner', 'snack'];
+            final sortedMeals = groups.keys.toList()
+              ..sort((a, b) {
+                final ai = mealOrder.indexOf(a);
+                final bi = mealOrder.indexOf(b);
+                if (ai == -1 && bi == -1) return a.compareTo(b);
+                if (ai == -1) return 1;
+                if (bi == -1) return -1;
+                return ai.compareTo(bi);
+              });
 
-          return ListView(
-            padding: const EdgeInsets.only(top: 8, bottom: 80),
-            children: [
-              for (final mealType in sortedMeals) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
-                  child: Row(
-                    children: [
-                      Text(
-                        mealType[0].toUpperCase() + mealType.substring(1),
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${groups[mealType]!.length}',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                for (final entry in groups[mealType]!) ...[
-                  Dismissible(
-                    key: ValueKey('entry_${entry.id}'),
-                    direction: DismissDirection.endToStart,
-                    background: Container(
-                      color: Theme.of(context).colorScheme.error,
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 16),
-                      child: Icon(Icons.delete,
-                          color: Theme.of(context).colorScheme.onError),
+            return ListView(
+              padding: const EdgeInsets.only(top: 8, bottom: 80),
+              children: [
+                macroBars,
+                for (final mealType in sortedMeals) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
+                    child: Row(
+                      children: [
+                        Text(
+                          mealType[0].toUpperCase() + mealType.substring(1),
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${groups[mealType]!.length}',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
                     ),
-                    confirmDismiss: (_) async {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Delete entry?'),
-                          content: Text('Delete "${entry.name}"?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(false),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(true),
-                              child: const Text('Delete'),
-                            ),
+                  ),
+                  for (final entry in groups[mealType]!) ...[
+                    Dismissible(
+                      key: ValueKey('entry_${entry.id}'),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        color: Theme.of(context).colorScheme.error,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 16),
+                        child: Icon(Icons.delete,
+                            color: Theme.of(context).colorScheme.onError),
+                      ),
+                      confirmDismiss: (_) async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Delete entry?'),
+                            content: Text('Delete "${entry.name}"?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true) {
+                          await _deleteEntry(entry);
+                        }
+                        return confirmed ?? false;
+                      },
+                      child: ListTile(
+                        title: Text(entry.name),
+                        subtitle: Text(
+                          '${entry.calories.toInt()} cal  •  '
+                          'P${entry.proteinGrams.toStringAsFixed(0)}g  '
+                          'C${entry.carbsGrams.toStringAsFixed(0)}g  '
+                          'F${entry.fatGrams.toStringAsFixed(0)}g'
+                          '${_timeFromLoggedAt(entry.loggedAt) != null ? "  •  ${_timeFromLoggedAt(entry.loggedAt)}" : ""}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _mealTypeBadge(entry.mealType),
                           ],
                         ),
-                      );
-                      if (confirmed == true) {
-                        await _deleteEntry(entry);
-                      }
-                      return confirmed ?? false;
-                    },
-                    child: ListTile(
-                      title: Text(entry.name),
-                      subtitle: Text(
-                        '${entry.calories.toInt()} cal  •  '
-                        'P${entry.proteinGrams.toStringAsFixed(0)}g  '
-                        'C${entry.carbsGrams.toStringAsFixed(0)}g  '
-                        'F${entry.fatGrams.toStringAsFixed(0)}g'
-                        '${_timeFromLoggedAt(entry.loggedAt) != null ? "  •  ${_timeFromLoggedAt(entry.loggedAt)}" : ""}',
+                        onTap: () => _editEntry(entry),
                       ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (entry.foodId != null)
-                            IconButton(
-                              icon: const Icon(Icons.replay, size: 20),
-                              tooltip: 'Duplicate entry',
-                              onPressed: () => _onDuplicate(entry),
-                            ),
-                          _mealTypeBadge(entry.mealType),
-                        ],
-                      ),
-                      onTap: () => _editEntry(entry),
                     ),
-                  ),
+                  ],
                 ],
               ],
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Text('Failed to load entries'),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(
+            child: Text('Failed to load entries'),
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(

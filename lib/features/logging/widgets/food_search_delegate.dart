@@ -1,14 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/api/open_food_facts_client.dart';
+import '../../../core/api/models/food_result.dart';
 import '../../../providers/food_search_provider.dart';
+import 'barcode_scanner.dart';
 
 class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   final FoodSearchService searchService;
+  final OpenFoodFactsClient apiClient;
   final VoidCallback onCreateCustomFood;
-  final ValueChanged<FoodSearchItem>? onQuickLog;
+  final Future<void> Function(FoodSearchItem)? onQuickLog;
 
   FoodSearchDelegate({
     required this.searchService,
+    required this.apiClient,
     required this.onCreateCustomFood,
     this.onQuickLog,
   });
@@ -21,6 +26,26 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   @override
   List<Widget>? buildActions(BuildContext context) {
     return [
+      IconButton(
+        icon: const Icon(Icons.qr_code_scanner),
+        tooltip: 'Scan barcode',
+        onPressed: () async {
+          final navigator = Navigator.of(context);
+          final result = await navigator.push<Object?>(
+            MaterialPageRoute(
+              builder: (_) => BarcodeScannerScreen(apiClient: apiClient),
+            ),
+          );
+          if (result is FoodResult) {
+            final item = FoodSearchItem.fromFoodResult(result);
+            await onQuickLog?.call(item);
+            navigator.pop<FoodSearchItem?>(null);
+          } else if (result == 'manual') {
+            onCreateCustomFood();
+            navigator.pop<FoodSearchItem?>(null);
+          }
+        },
+      ),
       if (query.isNotEmpty)
         IconButton(
           icon: const Icon(Icons.clear),
@@ -42,7 +67,13 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
         query: query,
         searchService: searchService,
         onCreateCustomFood: onCreateCustomFood,
-        onQuickLog: onQuickLog,
+        onQuickLog: onQuickLog != null
+            ? (item) async {
+                final nav = Navigator.of(context);
+                await onQuickLog!(item);
+                nav.pop<FoodSearchItem?>(null);
+              }
+            : null,
         onSelectItem: (item) => close(context, item),
       );
 
@@ -51,7 +82,13 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
         query: query,
         searchService: searchService,
         onCreateCustomFood: onCreateCustomFood,
-        onQuickLog: onQuickLog,
+        onQuickLog: onQuickLog != null
+            ? (item) async {
+                final nav = Navigator.of(context);
+                await onQuickLog!(item);
+                nav.pop<FoodSearchItem?>(null);
+              }
+            : null,
         onSelectItem: (item) => close(context, item),
       );
 }
@@ -60,7 +97,7 @@ class _FoodSearchContent extends StatefulWidget {
   final String query;
   final FoodSearchService searchService;
   final VoidCallback onCreateCustomFood;
-  final ValueChanged<FoodSearchItem>? onQuickLog;
+  final Future<void> Function(FoodSearchItem)? onQuickLog;
   final void Function(FoodSearchItem item) onSelectItem;
 
   const _FoodSearchContent({
@@ -84,13 +121,16 @@ class _FoodSearchContentState extends State<_FoodSearchContent> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'local', label: Text('My Foods')),
-              ButtonSegment(value: 'web', label: Text('Search the Web')),
-            ],
-            selected: {_searchMode},
-            onSelectionChanged: (v) => setState(() => _searchMode = v.first),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'local', label: Text('My Foods')),
+                ButtonSegment(value: 'web', label: Text('Search the Web')),
+              ],
+              selected: {_searchMode},
+              onSelectionChanged: (v) => setState(() => _searchMode = v.first),
+            ),
           ),
         ),
         Expanded(
@@ -117,7 +157,7 @@ class _LocalSearchContent extends StatelessWidget {
   final String query;
   final FoodSearchService searchService;
   final VoidCallback onCreateCustomFood;
-  final ValueChanged<FoodSearchItem>? onQuickLog;
+  final Future<void> Function(FoodSearchItem)? onQuickLog;
   final void Function(FoodSearchItem item) onSelectItem;
 
   const _LocalSearchContent({
@@ -226,6 +266,7 @@ class _WebSearchContentState extends State<_WebSearchContent> {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 400), () {
       if (mounted) {
+        debugPrint('Web search: debounced query "${widget.query}"');
         setState(() => _debouncedQuery = widget.query);
       }
     });
@@ -251,12 +292,13 @@ class _WebSearchContentState extends State<_WebSearchContent> {
             child: Center(child: CircularProgressIndicator()),
           );
         }
-        if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('Error: ${snapshot.error}'),
-          );
-        }
+          if (snapshot.hasError) {
+            debugPrint('Web search error: ${snapshot.error}');
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
 
         final items = snapshot.data ?? [];
         if (items.isEmpty) {
