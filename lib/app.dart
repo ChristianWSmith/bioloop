@@ -4,8 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/bodyweight/bodyweight_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/goals/goals_screen.dart';
-import 'features/history/history_screen.dart';
-import 'features/logging/log_food_screen.dart';
+import 'features/logging/combined_log_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'providers/bodyweight_provider.dart';
 import 'providers/data_trigger_provider.dart';
@@ -95,9 +94,8 @@ class _AppShellState extends State<_AppShell> {
 
   static const _screens = <Widget>[
     DashboardScreen(),
-    LogFoodScreen(),
+    CombinedLogScreen(),
     BodyweightScreen(),
-    HistoryScreen(),
     GoalsScreen(),
   ];
 
@@ -120,10 +118,6 @@ class _AppShellState extends State<_AppShell> {
           NavigationDestination(
             icon: Icon(Icons.monitor_weight),
             label: 'Bodyweight',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.history),
-            label: 'History',
           ),
           NavigationDestination(
             icon: Icon(Icons.track_changes),

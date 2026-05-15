@@ -21,7 +21,7 @@
 
 | # | Ticket | Issues | Status | Dependencies |
 |---|--------|--------|--------|-------------|
-| 08 | Merge Log and History tabs | #15, #3 | ❌ Pending | #06, #07 |
+| 08 | Merge Log and History tabs | #15, #3 | ✅ Complete | #06, #07 |
 
 ## Dependencies
 

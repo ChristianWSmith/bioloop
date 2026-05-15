@@ -19,7 +19,6 @@ ProviderScope buildApp(AppDatabase db) {
 
 Future<void> pumpApp(WidgetTester tester, AppDatabase db) async {
   await tester.pumpWidget(buildApp(db));
-  // Let the async onboarding check complete
   await tester.pump();
   await tester.pump();
 }
@@ -62,13 +61,13 @@ void main() {
       return db;
     }
 
-    testWidgets('renders 5 bottom nav destinations', (tester) async {
+    testWidgets('renders 4 bottom nav destinations', (tester) async {
       final db = await seedDb();
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
       expect(find.byType(NavigationBar), findsOneWidget);
-      expect(find.byType(NavigationDestination), findsNWidgets(5));
+      expect(find.byType(NavigationDestination), findsNWidgets(4));
     });
 
     testWidgets('tapping each tab switches body content', (tester) async {
@@ -76,17 +75,14 @@ void main() {
       addTearDown(() => db.close());
       await pumpApp(tester, db);
 
+      // Start from Log to avoid Dashboard appearing in both appbar + nav
       await tester.tap(find.text('Log'));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('food_search_field')), findsOneWidget);
+      expect(find.text('Today'), findsOneWidget);
 
       await tester.tap(find.text('Bodyweight'));
       await tester.pumpAndSettle();
       expect(find.text('Bodyweight'), findsWidgets);
-
-      await tester.tap(find.text('History'));
-      await tester.pumpAndSettle();
-      expect(find.text('History'), findsWidgets);
 
       await tester.tap(find.text('Goals'));
       await tester.pumpAndSettle();
