@@ -46,8 +46,8 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
         searchService: searchService,
         apiClient: apiClient,
         onCreateCustomFood: () => _pendingCreateCustom = true,
-        onQuickLog: (item) {
-          _showQuickLogSheet(item);
+        onQuickLog: (item) async {
+          await _showQuickLogSheet(item);
         },
       ),
     );

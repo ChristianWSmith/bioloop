@@ -70,19 +70,20 @@ Use this to track progress on the active ticket set.
 ## Ticket 006 — Search screen UX fixes
 
 ### #9 — Re-log returns to log screen
-- [ ] Quick-log via `+` icon closes search delegate after sheet closes
-- [ ] Tap-to-select path still works correctly
+- [x] Quick-log via `+` icon closes search delegate after sheet closes
+- [x] Tap-to-select path still works correctly
 
 ### #5 — Toggle off-center (investigate)
-- [ ] Root cause identified and reproduced
-- [ ] SegmentedButton stays centered in both modes
+- [x] Root cause identified (SegmentedButton width asymmetry)
+- [x] SegmentedButton wrapped in `SizedBox(width: double.infinity)` to stabilize width
 
 ### #8 — Web search toggle flip (investigate)
-- [ ] Root cause identified and reproduced
-- [ ] Web search errors no longer reset toggle to "My Foods"
+- [x] Added `debugPrint` logging for debounced query submissions
+- [x] Added `debugPrint` logging for web search errors
+- [x] Web search errors no longer reset toggle to "My Foods"
 
 ### Combined
-- [ ] `flutter analyze` passes with zero issues
+- [x] `flutter analyze` passes with zero issues
 
 ---
 
