@@ -1,0 +1,6 @@
+- the user should be able to edit recipes.  currently when the user taps a recipe, it just goes straight into logging that recipe
+- currently logging recipes is broken - calculated macros are all zeroes every time
+- the user should be able to long press recipes to delete them
+- when calculating maintenance calories using our regression algorithm, we're already assuming no weight change on days where the user didn't log a weight.  similarly, we should assume the same weight as oldest logged weight for all dates BEFORE that weight.  for example, if i onboard today (may 16 2026) at 190lb, it should assume that i was 190lb on all dates prior to may 16.  if i then logged 188 on may 17 and deleted the logged bodyweight from may 16, it should assume i was 188 on all dates before may 17.  does this make sense?
+- when importing a food from openfoodfacts, we should honor the units that it comes in.  currently we're allowing the user to pick from our whole default list. we should only present them with the canonical units from openfoodfacts and the custom units option.  it doesn't make much sense for them to be seeing the whole default units list.
+
