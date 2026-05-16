@@ -7,8 +7,9 @@ import '../../logging/widgets/meal_type_selector.dart';
 
 class LogRecipeSheet extends ConsumerStatefulWidget {
   final RecipeDetail detail;
+  final DateTime? loggedAt;
 
-  const LogRecipeSheet({super.key, required this.detail});
+  const LogRecipeSheet({super.key, required this.detail, this.loggedAt});
 
   @override
   ConsumerState<LogRecipeSheet> createState() => _LogRecipeSheetState();
@@ -36,6 +37,7 @@ class _LogRecipeSheetState extends ConsumerState<LogRecipeSheet> {
             recipeId: widget.detail.recipe.id,
             portion: _portion,
             mealType: _mealType!,
+            loggedAt: widget.loggedAt,
           );
       ref.invalidate(todaysFoodProvider);
       ref.read(dataTriggerProvider.notifier).state++;
@@ -121,7 +123,7 @@ class _LogRecipeSheetState extends ConsumerState<LogRecipeSheet> {
             width: double.infinity,
             child: FilledButton(
               onPressed: (_mealType != null && _portion > 0) ? _log : null,
-              child: const Text('Log to today'),
+              child: const Text('Log entry'),
             ),
           ),
           const SizedBox(height: 16),

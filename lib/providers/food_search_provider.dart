@@ -68,6 +68,17 @@ class FoodSearchItem {
       );
 }
 
+sealed class WebSearchResult {}
+
+class WebSearchSuccess extends WebSearchResult {
+  final List<FoodSearchItem> items;
+  WebSearchSuccess(this.items);
+}
+
+class WebSearchFailure extends WebSearchResult {
+  WebSearchFailure();
+}
+
 class FoodSearchService {
   final AppDatabase db;
   final OpenFoodFactsClient apiClient;
@@ -79,10 +90,16 @@ class FoodSearchService {
     return results.map(FoodSearchItem.fromFood).toList();
   }
 
-  Future<List<FoodSearchItem>> searchWeb(String query) async {
-    if (query.trim().isEmpty) return [];
-    final results = await apiClient.search(query);
-    return results.map(FoodSearchItem.fromFoodResult).toList();
+  Future<WebSearchResult> searchWeb(String query) async {
+    if (query.trim().isEmpty) return WebSearchSuccess([]);
+    try {
+      final results = await apiClient.search(query);
+      return WebSearchSuccess(
+        results.map(FoodSearchItem.fromFoodResult).toList(),
+      );
+    } catch (_) {
+      return WebSearchFailure();
+    }
   }
 
   Future<int> saveApiResult(FoodSearchItem item) async {

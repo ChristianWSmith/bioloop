@@ -111,24 +111,6 @@ void main() {
       expect(find.text('Female'), findsWidgets);
     });
 
-    testWidgets('goal weight field accepts input',
-        (tester) async {
-      final db = AppDatabase.createInMemory();
-      addTearDown(() => db.close());
-      await seedGoals(db);
-      await pumpGoals(tester, db);
-
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Goal weight (optional)'),
-        '70',
-      );
-      await tester.pump();
-      var gwField = tester.widget<TextFormField>(
-        find.widgetWithText(TextFormField, 'Goal weight (optional)'),
-      );
-      expect(gwField.controller?.text, '70');
-    });
-
     testWidgets('units toggle switches height fields',
         (tester) async {
       final db = AppDatabase.createInMemory();
@@ -136,13 +118,13 @@ void main() {
       await seedGoals(db);
       await pumpGoals(tester, db);
 
-      expect(find.byType(TextFormField), findsNWidgets(3));
+      expect(find.byType(TextFormField), findsNWidgets(2));
 
       await tester.tap(find.text('Imperial'));
       await tester.pump();
       await tester.pump();
 
-      expect(find.byType(TextFormField), findsNWidgets(4));
+      expect(find.byType(TextFormField), findsNWidgets(3));
 
       // Change height from seeded (5'9") to 6'4"
       await tester.enterText(
@@ -161,7 +143,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.byType(TextFormField), findsNWidgets(3));
+      expect(find.byType(TextFormField), findsNWidgets(2));
       expect(
         tester.widget<TextField>(
           find.descendant(
@@ -177,7 +159,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.byType(TextFormField), findsNWidgets(4));
+      expect(find.byType(TextFormField), findsNWidgets(3));
       expect(
         tester.widget<TextField>(
           find.descendant(
@@ -285,11 +267,6 @@ void main() {
         '165',
       );
       await tester.pump();
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Goal weight (optional)'),
-        '60',
-      );
-      await tester.pump();
 
       await tester.tap(find.text('Imperial'));
       await tester.pump();
@@ -308,7 +285,6 @@ void main() {
       expect(goals!.sex, 'female');
       expect(goals.birthdate, '2001-01-01');
       expect(goals.heightCm, closeTo(165, 0.5));
-      expect(goals.goalWeightKg, closeTo(60, 0.5));
       expect(goals.useImperial, 1);
       expect(goals.activityLevel, 5);
     });

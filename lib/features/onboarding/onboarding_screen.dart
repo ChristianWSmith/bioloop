@@ -27,7 +27,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _heightFeetController = TextEditingController();
   final _heightInchesController = TextEditingController();
   final _weightController = TextEditingController();
-  final _goalWeightController = TextEditingController();
   bool _useImperial = true;
   int _activityLevel = 3;
   String _goalType = 'maintain';
@@ -52,7 +51,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _heightFeetController.dispose();
     _heightInchesController.dispose();
     _weightController.dispose();
-    _goalWeightController.dispose();
     _calorieAdjustmentController.dispose();
     super.dispose();
   }
@@ -133,11 +131,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         if (weightKg != null && weightKg > 0) {
           _weightController.text = (weightKg * 2.20462).toStringAsFixed(2);
         }
-
-        final goalKg = double.tryParse(_goalWeightController.text);
-        if (goalKg != null && goalKg > 0) {
-          _goalWeightController.text = (goalKg * 2.20462).toStringAsFixed(2);
-        }
       } else if (!imperial && _useImperial) {
         final feet = double.tryParse(_heightFeetController.text);
         final inches = double.tryParse(_heightInchesController.text);
@@ -151,11 +144,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         final weightLb = double.tryParse(_weightController.text);
         if (weightLb != null && weightLb > 0) {
           _weightController.text = (weightLb / 2.20462).toStringAsFixed(2);
-        }
-
-        final goalLb = double.tryParse(_goalWeightController.text);
-        if (goalLb != null && goalLb > 0) {
-          _goalWeightController.text = (goalLb / 2.20462).toStringAsFixed(2);
         }
       }
       _useImperial = imperial;
@@ -187,12 +175,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ? double.parse(_weightController.text) / 2.20462
         : double.parse(_weightController.text);
 
-    final goalWeightKg = _goalWeightController.text.isNotEmpty
-        ? _useImperial
-            ? double.parse(_goalWeightController.text) / 2.20462
-            : double.parse(_goalWeightController.text)
-        : null;
-
     try {
       await db.upsertGoals(UserGoalsCompanion(
         goalType: Value(_goalType),
@@ -204,9 +186,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         sex: Value(_sex),
         heightCm: Value(heightCm),
         birthdate: Value(_birthdate),
-        goalWeightKg: goalWeightKg != null
-            ? Value<double?>(goalWeightKg)
-            : const Value<double?>(null),
         useImperial: Value(_useImperial ? 1 : 0),
         activityLevel: Value(_activityLevel),
         onboardingCompleted: const Value(1),
@@ -444,25 +423,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   return null;
                 },
                 onChanged: (_) => setState(() {}),
-              ),
-              const Divider(height: 32),
-              _sectionTitle(context, 'Goal Weight'),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _goalWeightController,
-                decoration: InputDecoration(
-                  labelText: 'Goal weight (optional)',
-                  hintText: _useImperial ? 'e.g. 154' : 'e.g. 70',
-                  suffixText: _useImperial ? 'lb' : 'kg',
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return null;
-                  final n = double.tryParse(v);
-                  if (n == null || n <= 0) return 'Enter a valid weight';
-                  return null;
-                },
               ),
               const Divider(height: 32),
               _sectionTitle(context, 'Activity Level'),

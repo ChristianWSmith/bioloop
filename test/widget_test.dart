@@ -162,10 +162,6 @@ void main() {
       await tester.enterTextByLabel('Weight', '75');
       await tester.pumpAndSettle();
 
-      // Goal weight
-      await tester.enterTextByLabel('Goal weight (optional)', '70');
-      await tester.pumpAndSettle();
-
       // Activity level — Extra active
       await tester.scrollUntilVisible(find.text('Extra active'), 100, scrollable: _scrollable);
       await tester.tap(find.text('Extra active'));
@@ -198,7 +194,6 @@ void main() {
       expect(goals!.sex, 'male');
       expect(goals.birthdate, isNotNull);
       expect(goals.heightCm, 175);
-      expect(goals.goalWeightKg, 70);
       expect(goals.useImperial, 0);
       expect(goals.activityLevel, 5);
       expect(goals.goalType, 'bulk');
@@ -208,39 +203,6 @@ void main() {
       final weights = await (db.select(db.bodyweightEntries)).get();
       expect(weights.length, 1);
       expect(weights.first.weightKg, 75);
-    });
-
-    testWidgets('skip goal weight: null in DB', (tester) async {
-      final db = createDb();
-      addTearDown(() => db.close());
-      await pumpApp(tester, db);
-
-      await tester.tap(find.text('Metric'));
-      await tester.pumpAndSettle();
-
-      // Fill required fields only
-      await tester.tap(find.text('Female'));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.text('Select your birthdate'),
-        100,
-        scrollable: _scrollable,
-      );
-      await tester.tap(find.text('Select your birthdate'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('OK'));
-      await tester.pumpAndSettle();
-      await tester.enterTextByLabel('Height', '165');
-      await tester.pumpAndSettle();
-      await tester.enterTextByLabel('Weight', '60');
-      await tester.pumpAndSettle();
-
-      await saveOnboarding(tester);
-
-      expect(find.byType(NavigationBar), findsOneWidget);
-      final goals = await db.getGoals();
-      expect(goals, isNotNull);
-      expect(goals!.goalWeightKg, isNull);
     });
 
     testWidgets('units default to imperial', (tester) async {
@@ -940,10 +902,6 @@ void main() {
       await tester.enterTextByLabel('Weight', '165');
       await tester.pumpAndSettle();
 
-      // Goal weight in imperial
-      await tester.enterTextByLabel('Goal weight (optional)', '154');
-      await tester.pumpAndSettle();
-
       await saveOnboarding(tester);
 
       expect(find.byType(NavigationBar), findsOneWidget);
@@ -951,7 +909,6 @@ void main() {
       final goals = await db.getGoals();
       expect(goals, isNotNull);
       expect(goals!.heightCm, closeTo(177.8, 0.1));
-      expect(goals.goalWeightKg, closeTo(69.9, 0.1));
       expect(goals.useImperial, 1);
 
       final weights = await (db.select(db.bodyweightEntries)).get();

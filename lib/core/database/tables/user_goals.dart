@@ -10,7 +10,6 @@ class UserGoals extends Table {
   RealColumn get heightCm => real().nullable()();
   TextColumn get birthdate => text().nullable()();
   IntColumn get age => integer().nullable()();
-  RealColumn get goalWeightKg => real().nullable()();
   IntColumn get useImperial => integer().withDefault(const Constant(0))();
   IntColumn get activityLevel => integer().withDefault(const Constant(3))();
   IntColumn get onboardingCompleted => integer().withDefault(const Constant(0))();

@@ -79,7 +79,7 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
   Future<void> _onLogRecipe() async {
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => const RecipeListScreen(pickerMode: true),
+        builder: (_) => RecipeListScreen(pickerMode: true, loggedAt: _currentDate),
       ),
     );
   }
@@ -88,7 +88,7 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
     await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => QuickFoodLogSheet(food: item),
+      builder: (_) => QuickFoodLogSheet(food: item, loggedAt: _currentDate),
     );
   }
 
@@ -410,6 +410,7 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         onTap: () => _editEntry(entry),
+                        onLongPress: () => _deleteEntry(entry),
                       ),
                     ),
                   ],

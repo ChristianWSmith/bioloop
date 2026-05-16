@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -18,32 +19,56 @@ class OpenFoodFactsClient {
   }) : _client = client ?? http.Client();
 
   Future<List<FoodResult>> search(String query) async {
-    try {
-      final uri = Uri.parse(
-        '$baseUrl/cgi/search.pl?search_terms=${Uri.encodeQueryComponent(query)}&json=true&page_size=25&lc=en&cc=US',
-      );
-      final response = await _client
-          .get(uri, headers: {'User-Agent': userAgent})
-          .timeout(const Duration(seconds: 10));
+    int attempts = 0;
+    while (true) {
+      attempts++;
+      try {
+        final uri = Uri.parse(
+          '$baseUrl/cgi/search.pl?search_terms=${Uri.encodeQueryComponent(query)}&json=true&page_size=25&lc=en&cc=US',
+        );
+        final response = await _client
+            .get(uri, headers: {'User-Agent': userAgent})
+            .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 429) return [];
-      if (response.statusCode != 200) return [];
+        if (response.statusCode == 429 || response.statusCode >= 500) {
+          if (attempts < 3) {
+            await Future.delayed(Duration(milliseconds: 500 * attempts));
+            continue;
+          }
+          return [];
+        }
+        if (response.statusCode != 200) return [];
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>?;
-      if (body == null) return [];
+        final body = jsonDecode(response.body) as Map<String, dynamic>?;
+        if (body == null) return [];
 
-      final products = body['products'] as List<dynamic>?;
-      if (products == null) return [];
+        final products = body['products'] as List<dynamic>?;
+        if (products == null) return [];
 
-      return products
-          .map((p) => FoodResult.fromJson(p as Map<String, dynamic>))
-          .toList();
-    } on SocketException {
-      return [];
-    } on HttpException {
-      return [];
-    } on FormatException {
-      return [];
+        return products
+            .map((p) => FoodResult.fromJson(p as Map<String, dynamic>))
+            .toList();
+      } on SocketException {
+        if (attempts < 3) {
+          await Future.delayed(Duration(milliseconds: 500 * attempts));
+          continue;
+        }
+        return [];
+      } on HttpException {
+        if (attempts < 3) {
+          await Future.delayed(Duration(milliseconds: 500 * attempts));
+          continue;
+        }
+        return [];
+      } on TimeoutException {
+        if (attempts < 3) {
+          await Future.delayed(Duration(milliseconds: 500 * attempts));
+          continue;
+        }
+        return [];
+      } on FormatException {
+        return [];
+      }
     }
   }
 

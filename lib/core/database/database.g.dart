@@ -2294,17 +2294,6 @@ class $UserGoalsTable extends UserGoals
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _goalWeightKgMeta = const VerificationMeta(
-    'goalWeightKg',
-  );
-  @override
-  late final GeneratedColumn<double> goalWeightKg = GeneratedColumn<double>(
-    'goal_weight_kg',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
   static const VerificationMeta _useImperialMeta = const VerificationMeta(
     'useImperial',
   );
@@ -2362,7 +2351,6 @@ class $UserGoalsTable extends UserGoals
     heightCm,
     birthdate,
     age,
-    goalWeightKg,
     useImperial,
     activityLevel,
     onboardingCompleted,
@@ -2440,15 +2428,6 @@ class $UserGoalsTable extends UserGoals
       context.handle(
         _ageMeta,
         age.isAcceptableOrUnknown(data['age']!, _ageMeta),
-      );
-    }
-    if (data.containsKey('goal_weight_kg')) {
-      context.handle(
-        _goalWeightKgMeta,
-        goalWeightKg.isAcceptableOrUnknown(
-          data['goal_weight_kg']!,
-          _goalWeightKgMeta,
-        ),
       );
     }
     if (data.containsKey('use_imperial')) {
@@ -2531,10 +2510,6 @@ class $UserGoalsTable extends UserGoals
         DriftSqlType.int,
         data['${effectivePrefix}age'],
       ),
-      goalWeightKg: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}goal_weight_kg'],
-      ),
       useImperial: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}use_imperial'],
@@ -2570,7 +2545,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
   final double? heightCm;
   final String? birthdate;
   final int? age;
-  final double? goalWeightKg;
   final int useImperial;
   final int activityLevel;
   final int onboardingCompleted;
@@ -2585,7 +2559,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     this.heightCm,
     this.birthdate,
     this.age,
-    this.goalWeightKg,
     required this.useImperial,
     required this.activityLevel,
     required this.onboardingCompleted,
@@ -2613,9 +2586,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     if (!nullToAbsent || age != null) {
       map['age'] = Variable<int>(age);
     }
-    if (!nullToAbsent || goalWeightKg != null) {
-      map['goal_weight_kg'] = Variable<double>(goalWeightKg);
-    }
     map['use_imperial'] = Variable<int>(useImperial);
     map['activity_level'] = Variable<int>(activityLevel);
     map['onboarding_completed'] = Variable<int>(onboardingCompleted);
@@ -2640,9 +2610,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
           ? const Value.absent()
           : Value(birthdate),
       age: age == null && nullToAbsent ? const Value.absent() : Value(age),
-      goalWeightKg: goalWeightKg == null && nullToAbsent
-          ? const Value.absent()
-          : Value(goalWeightKg),
       useImperial: Value(useImperial),
       activityLevel: Value(activityLevel),
       onboardingCompleted: Value(onboardingCompleted),
@@ -2667,7 +2634,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       heightCm: serializer.fromJson<double?>(json['heightCm']),
       birthdate: serializer.fromJson<String?>(json['birthdate']),
       age: serializer.fromJson<int?>(json['age']),
-      goalWeightKg: serializer.fromJson<double?>(json['goalWeightKg']),
       useImperial: serializer.fromJson<int>(json['useImperial']),
       activityLevel: serializer.fromJson<int>(json['activityLevel']),
       onboardingCompleted: serializer.fromJson<int>(
@@ -2689,7 +2655,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       'heightCm': serializer.toJson<double?>(heightCm),
       'birthdate': serializer.toJson<String?>(birthdate),
       'age': serializer.toJson<int?>(age),
-      'goalWeightKg': serializer.toJson<double?>(goalWeightKg),
       'useImperial': serializer.toJson<int>(useImperial),
       'activityLevel': serializer.toJson<int>(activityLevel),
       'onboardingCompleted': serializer.toJson<int>(onboardingCompleted),
@@ -2707,7 +2672,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     Value<double?> heightCm = const Value.absent(),
     Value<String?> birthdate = const Value.absent(),
     Value<int?> age = const Value.absent(),
-    Value<double?> goalWeightKg = const Value.absent(),
     int? useImperial,
     int? activityLevel,
     int? onboardingCompleted,
@@ -2724,7 +2688,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     heightCm: heightCm.present ? heightCm.value : this.heightCm,
     birthdate: birthdate.present ? birthdate.value : this.birthdate,
     age: age.present ? age.value : this.age,
-    goalWeightKg: goalWeightKg.present ? goalWeightKg.value : this.goalWeightKg,
     useImperial: useImperial ?? this.useImperial,
     activityLevel: activityLevel ?? this.activityLevel,
     onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
@@ -2747,9 +2710,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       heightCm: data.heightCm.present ? data.heightCm.value : this.heightCm,
       birthdate: data.birthdate.present ? data.birthdate.value : this.birthdate,
       age: data.age.present ? data.age.value : this.age,
-      goalWeightKg: data.goalWeightKg.present
-          ? data.goalWeightKg.value
-          : this.goalWeightKg,
       useImperial: data.useImperial.present
           ? data.useImperial.value
           : this.useImperial,
@@ -2775,7 +2735,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
           ..write('heightCm: $heightCm, ')
           ..write('birthdate: $birthdate, ')
           ..write('age: $age, ')
-          ..write('goalWeightKg: $goalWeightKg, ')
           ..write('useImperial: $useImperial, ')
           ..write('activityLevel: $activityLevel, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
@@ -2795,7 +2754,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     heightCm,
     birthdate,
     age,
-    goalWeightKg,
     useImperial,
     activityLevel,
     onboardingCompleted,
@@ -2814,7 +2772,6 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
           other.heightCm == this.heightCm &&
           other.birthdate == this.birthdate &&
           other.age == this.age &&
-          other.goalWeightKg == this.goalWeightKg &&
           other.useImperial == this.useImperial &&
           other.activityLevel == this.activityLevel &&
           other.onboardingCompleted == this.onboardingCompleted &&
@@ -2831,7 +2788,6 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
   final Value<double?> heightCm;
   final Value<String?> birthdate;
   final Value<int?> age;
-  final Value<double?> goalWeightKg;
   final Value<int> useImperial;
   final Value<int> activityLevel;
   final Value<int> onboardingCompleted;
@@ -2847,7 +2803,6 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     this.heightCm = const Value.absent(),
     this.birthdate = const Value.absent(),
     this.age = const Value.absent(),
-    this.goalWeightKg = const Value.absent(),
     this.useImperial = const Value.absent(),
     this.activityLevel = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
@@ -2864,7 +2819,6 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     this.heightCm = const Value.absent(),
     this.birthdate = const Value.absent(),
     this.age = const Value.absent(),
-    this.goalWeightKg = const Value.absent(),
     this.useImperial = const Value.absent(),
     this.activityLevel = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
@@ -2882,7 +2836,6 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     Expression<double>? heightCm,
     Expression<String>? birthdate,
     Expression<int>? age,
-    Expression<double>? goalWeightKg,
     Expression<int>? useImperial,
     Expression<int>? activityLevel,
     Expression<int>? onboardingCompleted,
@@ -2899,7 +2852,6 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
       if (heightCm != null) 'height_cm': heightCm,
       if (birthdate != null) 'birthdate': birthdate,
       if (age != null) 'age': age,
-      if (goalWeightKg != null) 'goal_weight_kg': goalWeightKg,
       if (useImperial != null) 'use_imperial': useImperial,
       if (activityLevel != null) 'activity_level': activityLevel,
       if (onboardingCompleted != null)
@@ -2919,7 +2871,6 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     Value<double?>? heightCm,
     Value<String?>? birthdate,
     Value<int?>? age,
-    Value<double?>? goalWeightKg,
     Value<int>? useImperial,
     Value<int>? activityLevel,
     Value<int>? onboardingCompleted,
@@ -2936,7 +2887,6 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
       heightCm: heightCm ?? this.heightCm,
       birthdate: birthdate ?? this.birthdate,
       age: age ?? this.age,
-      goalWeightKg: goalWeightKg ?? this.goalWeightKg,
       useImperial: useImperial ?? this.useImperial,
       activityLevel: activityLevel ?? this.activityLevel,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
@@ -2975,9 +2925,6 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     if (age.present) {
       map['age'] = Variable<int>(age.value);
     }
-    if (goalWeightKg.present) {
-      map['goal_weight_kg'] = Variable<double>(goalWeightKg.value);
-    }
     if (useImperial.present) {
       map['use_imperial'] = Variable<int>(useImperial.value);
     }
@@ -3008,7 +2955,6 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
           ..write('heightCm: $heightCm, ')
           ..write('birthdate: $birthdate, ')
           ..write('age: $age, ')
-          ..write('goalWeightKg: $goalWeightKg, ')
           ..write('useImperial: $useImperial, ')
           ..write('activityLevel: $activityLevel, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
@@ -5122,7 +5068,6 @@ typedef $$UserGoalsTableCreateCompanionBuilder =
       Value<double?> heightCm,
       Value<String?> birthdate,
       Value<int?> age,
-      Value<double?> goalWeightKg,
       Value<int> useImperial,
       Value<int> activityLevel,
       Value<int> onboardingCompleted,
@@ -5140,7 +5085,6 @@ typedef $$UserGoalsTableUpdateCompanionBuilder =
       Value<double?> heightCm,
       Value<String?> birthdate,
       Value<int?> age,
-      Value<double?> goalWeightKg,
       Value<int> useImperial,
       Value<int> activityLevel,
       Value<int> onboardingCompleted,
@@ -5199,11 +5143,6 @@ class $$UserGoalsTableFilterComposer
 
   ColumnFilters<int> get age => $composableBuilder(
     column: $table.age,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get goalWeightKg => $composableBuilder(
-    column: $table.goalWeightKg,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5282,11 +5221,6 @@ class $$UserGoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<double> get goalWeightKg => $composableBuilder(
-    column: $table.goalWeightKg,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<int> get useImperial => $composableBuilder(
     column: $table.useImperial,
     builder: (column) => ColumnOrderings(column),
@@ -5350,11 +5284,6 @@ class $$UserGoalsTableAnnotationComposer
   GeneratedColumn<int> get age =>
       $composableBuilder(column: $table.age, builder: (column) => column);
 
-  GeneratedColumn<double> get goalWeightKg => $composableBuilder(
-    column: $table.goalWeightKg,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<int> get useImperial => $composableBuilder(
     column: $table.useImperial,
     builder: (column) => column,
@@ -5411,7 +5340,6 @@ class $$UserGoalsTableTableManager
                 Value<double?> heightCm = const Value.absent(),
                 Value<String?> birthdate = const Value.absent(),
                 Value<int?> age = const Value.absent(),
-                Value<double?> goalWeightKg = const Value.absent(),
                 Value<int> useImperial = const Value.absent(),
                 Value<int> activityLevel = const Value.absent(),
                 Value<int> onboardingCompleted = const Value.absent(),
@@ -5427,7 +5355,6 @@ class $$UserGoalsTableTableManager
                 heightCm: heightCm,
                 birthdate: birthdate,
                 age: age,
-                goalWeightKg: goalWeightKg,
                 useImperial: useImperial,
                 activityLevel: activityLevel,
                 onboardingCompleted: onboardingCompleted,
@@ -5445,7 +5372,6 @@ class $$UserGoalsTableTableManager
                 Value<double?> heightCm = const Value.absent(),
                 Value<String?> birthdate = const Value.absent(),
                 Value<int?> age = const Value.absent(),
-                Value<double?> goalWeightKg = const Value.absent(),
                 Value<int> useImperial = const Value.absent(),
                 Value<int> activityLevel = const Value.absent(),
                 Value<int> onboardingCompleted = const Value.absent(),
@@ -5461,7 +5387,6 @@ class $$UserGoalsTableTableManager
                 heightCm: heightCm,
                 birthdate: birthdate,
                 age: age,
-                goalWeightKg: goalWeightKg,
                 useImperial: useImperial,
                 activityLevel: activityLevel,
                 onboardingCompleted: onboardingCompleted,
