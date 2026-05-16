@@ -186,6 +186,7 @@ class _LocalSearchContent extends StatelessWidget {
               title: const Text('Create custom food'),
               onTap: () {
                 onCreateCustomFood();
+                Navigator.of(context).pop<FoodSearchItem?>(null);
               },
             ),
             if (items.isEmpty)
