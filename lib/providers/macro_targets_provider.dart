@@ -81,7 +81,7 @@ class MacroTargets {
 }
 
 final macroTargetsProvider = FutureProvider<MacroTargets>((ref) async {
-  final goals = await ref.watch(goalsProvider).getGoals();
+  final goals = await ref.watch(userGoalsProvider.future);
   final entries = await ref.watch(bodyweightProvider.future);
   final maintenanceResult = await ref.watch(maintenanceProvider.future);
 

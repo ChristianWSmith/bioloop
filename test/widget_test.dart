@@ -451,10 +451,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Discard progress?'), findsOneWidget);
 
-      // "Leave" pops the route
+      // "Leave" calls SystemNavigator.pop() which exits the app
+      // (in test environment, SystemNavigator.pop() is a no-op, so the
+      // app stays visible — the important thing is no crash/black screen)
       await tester.tap(find.text('Leave'));
       await tester.pumpAndSettle();
-      expect(find.text('Setup'), findsNothing);
+      expect(find.text('Discard progress?'), findsNothing);
     });
 
     testWidgets('goal type segmented buttons set calorie adjustment defaults',

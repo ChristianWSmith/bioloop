@@ -10,6 +10,7 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   final OpenFoodFactsClient apiClient;
   final VoidCallback onCreateCustomFood;
   final Future<void> Function(FoodSearchItem)? onQuickLog;
+  String _searchMode = 'local';
 
   FoodSearchDelegate({
     required this.searchService,
@@ -66,6 +67,8 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   Widget buildResults(BuildContext context) => _FoodSearchContent(
         query: query,
         searchService: searchService,
+        searchMode: _searchMode,
+        onSearchModeChanged: (v) => _searchMode = v,
         onCreateCustomFood: onCreateCustomFood,
         onQuickLog: onQuickLog != null
             ? (item) async {
@@ -81,6 +84,8 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   Widget buildSuggestions(BuildContext context) => _FoodSearchContent(
         query: query,
         searchService: searchService,
+        searchMode: _searchMode,
+        onSearchModeChanged: (v) => _searchMode = v,
         onCreateCustomFood: onCreateCustomFood,
         onQuickLog: onQuickLog != null
             ? (item) async {
@@ -96,6 +101,8 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
 class _FoodSearchContent extends StatefulWidget {
   final String query;
   final FoodSearchService searchService;
+  final String searchMode;
+  final ValueChanged<String> onSearchModeChanged;
   final VoidCallback onCreateCustomFood;
   final Future<void> Function(FoodSearchItem)? onQuickLog;
   final void Function(FoodSearchItem item) onSelectItem;
@@ -103,6 +110,8 @@ class _FoodSearchContent extends StatefulWidget {
   const _FoodSearchContent({
     required this.query,
     required this.searchService,
+    required this.searchMode,
+    required this.onSearchModeChanged,
     required this.onCreateCustomFood,
     this.onQuickLog,
     required this.onSelectItem,
@@ -113,8 +122,6 @@ class _FoodSearchContent extends StatefulWidget {
 }
 
 class _FoodSearchContentState extends State<_FoodSearchContent> {
-  String _searchMode = 'local';
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -128,13 +135,13 @@ class _FoodSearchContentState extends State<_FoodSearchContent> {
                 ButtonSegment(value: 'local', label: Text('My Foods')),
                 ButtonSegment(value: 'web', label: Text('Search the Web')),
               ],
-              selected: {_searchMode},
-              onSelectionChanged: (v) => setState(() => _searchMode = v.first),
+              selected: {widget.searchMode},
+              onSelectionChanged: (v) => widget.onSearchModeChanged(v.first),
             ),
           ),
         ),
         Expanded(
-          child: _searchMode == 'local'
+          child: widget.searchMode == 'local'
               ? _LocalSearchContent(
                   query: widget.query,
                   searchService: widget.searchService,
@@ -186,6 +193,7 @@ class _LocalSearchContent extends StatelessWidget {
               title: const Text('Create custom food'),
               onTap: () {
                 onCreateCustomFood();
+                Navigator.of(context).pop<FoodSearchItem?>(null);
               },
             ),
             if (items.isEmpty)
