@@ -34,7 +34,7 @@ lib/
     algorithms/
       maintenance_calculator.dart  # rolling linear regression
       mifflin_st_jeor.dart         # BMR estimator
-  providers/             # 19 Riverpod providers
+  providers/             # 12 Riverpod providers
   features/
     onboarding/          # first-launch setup flow
     dashboard/           # summary + progress rings + sparkline
@@ -49,14 +49,14 @@ lib/
 ## Key conventions
 
 ### Drift (database)
-- 6 tables (schema v5): `foods`, `food_entries`, `bodyweight_entries`, `user_goals`, `recipes`, `recipe_ingredients`
+- 6 tables (schema v1): `foods`, `food_entries`, `bodyweight_entries`, `user_goals`, `recipes`, `recipe_ingredients`
 - `foods` table has 13 columns: id, name, servingLabel, servingQuantity (default 1.0), servingUnit (default 'serving'), caloriesPerServing, proteinPerServing, carbsPerServing, fatPerServing, barcode (nullable, unique), brand (nullable), source (default 'manual'), createdAt
 - `user_goals` table has 13 columns: id (default 1 singleton), goalType, calorieAdjustment (nullable), proteinGPerLb (default 1.0), fatCaloriePct (default 25.0), sex (nullable), heightCm (nullable), birthdate (nullable), age (nullable), useImperial (default 0), activityLevel (default 3), onboardingCompleted (default 0), updatedAt
-- `goalWeightKg` was removed in schema v5 — the column no longer exists and no code references it
 - Table definitions in `lib/core/database/tables/` (one file per table)
 - All DAO methods on `AppDatabase` in `lib/core/database/database.dart`
 - Use `AppDatabase.createInMemory()` for tests
 - In-memory DB does NOT enforce FK constraints by default
+- No migration strategy implemented yet (schemaVersion = 1, onCreate only)
 
 ### Riverpod providers
 
@@ -119,7 +119,7 @@ lib/
 - `flutter analyze` should always pass with zero issues
 - In-memory drift DBs don't enforce foreign keys; rely on explicit delete ordering or explicit cascade deletes in tests
 - `databaseProvider` is intentionally un-implemented at declaration site (throws `UnimplementedError`); `main.dart` creates the real DB and overrides it
-- Schema v1→v2 migration (onUpgrade) adds `serving_unit` and `serving_quantity` columns to `foods` and backfills from `serving_label` / `serving_size_grams` patterns; schema v2→v3 drops the vestigial `serving_size_grams` column; schema v3→v4 adds the `brand` column; schema v4→v5 drops `goalWeightKg` from `user_goals`
+- Schema version is 1 with onCreate only — no onUpgrade migration strategy implemented yet
 - `getRecentFoods()` / `searchLocalByRecency()` in `AppDatabase` fetches distinct `foodId`s from `food_entries` in a Dart-side loop (drift 2.31.0 has no `groupBy` on `SimpleSelectStatement`); orders by `MAX(loggedAt)` DESC, limit 10, then fetches `Food` records from the `foods` table
 - Maintenance calculator (`maintenance_provider.dart`) uses `DateTime.now().subtract(const Duration(days: 1))` so the 30-day regression window ends yesterday, excluding today's partial data
 - All macro calculations (save, preview, recipe totals, ingredient rows, `computeRecipeMacros()`) use `macroPerServing * (qty / servingQuantity)` with a zero-division guard. When adding new macro math, always use this pattern.
