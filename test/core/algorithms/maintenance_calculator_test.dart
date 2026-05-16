@@ -324,6 +324,138 @@ void main() {
           closeTo(trueMaintenance, trueMaintenance * 0.05));
       expect(result.dataPoints, greaterThanOrEqualTo(14));
     });
+
+    test('single weight entry — all 30 days use oldest weight', () {
+      final now = DateTime.now();
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+
+      // 30 days of food at 2500 kcal
+      for (int i = 0; i < 30; i++) {
+        final day = now.subtract(Duration(days: 29 - i));
+        foodEntries.add(makeFood(id: i, calories: 2500, date: day));
+      }
+
+      // Single weight on last day (onboarding today)
+      weightEntries.add(makeWeight(id: 0, weightKg: 80.0, date: now));
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      // Should have 30 weight points (all forward-filled with 80.0)
+      // But no weight variance → slope = 0 → returns null
+      expect(result, isNull);  // Expected: no variance means no maintenance estimate
+    });
+
+    test('delete oldest weight — assumption shifts to new oldest', () {
+      final now = DateTime.now();
+      final rng = Random(42);
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+
+      // 30 days of food with variance
+      final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
+      for (int i = 0; i < 30; i++) {
+        final day = now.subtract(Duration(days: 29 - i));
+        final cals = 2500.0 + pattern[i % 5];
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+      }
+
+      // Multiple weights with variance (not just 2)
+      double cumulativeKg = 0;
+      for (int i = 0; i < 30; i++) {
+        final day = now.subtract(Duration(days: 29 - i));
+        final cals = 2500.0 + pattern[i % 5];
+        final dailyChangeLbs = (cals - 2500.0) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+        final noisyWeight = 80.0 + cumulativeKg + (rng.nextDouble() - 0.5) * 0.1;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result1 = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      // Verify initial result with all weights
+      expect(result1, isNotNull);
+
+      // Now remove first 5 weights (simulate deletion of oldest weights)
+      for (int i = 0; i < 5; i++) {
+        if (weightEntries.isNotEmpty) weightEntries.removeAt(0);
+      }
+
+      final result2 = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      // Should still produce a result (assumption shifts to new oldest)
+      expect(result2, isNotNull);
+    });
+
+    test('weight entries start mid-window — prior dates use oldest weight', () {
+      final now = DateTime.now();
+      final rng = Random(42);
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+
+      // 30 days of food with variance
+      final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
+      for (int i = 0; i < 30; i++) {
+        final day = now.subtract(Duration(days: 29 - i));
+        final cals = 2500.0 + pattern[i % 5];
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+      }
+
+      // Weights only on days 10-30 (user started logging late)
+      // But we need enough variance, so add noise
+      double cumulativeKg = 0;
+      for (int i = 10; i < 30; i++) {
+        final day = now.subtract(Duration(days: 29 - i));
+        final cals = 2500.0 + pattern[i % 5];
+        final dailyChangeLbs = (cals - 2500.0) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+        final noisyWeight = 80.0 + cumulativeKg + (rng.nextDouble() - 0.5) * 0.1;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      // Should have 30 weight points (days 1-9 use day 10's weight via forward-fill)
+      expect(result, isNotNull);
+      expect(result!.dataPoints, greaterThanOrEqualTo(14));
+    });
+
+    test('no weight entries — returns null (existing behavior)', () {
+      final now = DateTime.now();
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+
+      for (int i = 0; i < 30; i++) {
+        final day = now.subtract(Duration(days: 29 - i));
+        foodEntries.add(makeFood(id: i, calories: 2500, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNull);  // Unchanged: no weights = no estimate
+    });
   });
 
   group('maintenanceProvider', () {

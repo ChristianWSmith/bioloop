@@ -10,6 +10,7 @@ class ServingSizePicker extends StatefulWidget {
   final String unit;
   final ValueChanged<double> onQuantityChanged;
   final ValueChanged<String> onUnitChanged;
+  final String? source;
 
   const ServingSizePicker({
     super.key,
@@ -17,6 +18,7 @@ class ServingSizePicker extends StatefulWidget {
     required this.unit,
     required this.onQuantityChanged,
     required this.onUnitChanged,
+    this.source,
   });
 
   @override
@@ -55,7 +57,14 @@ class _ServingSizePickerState extends State<ServingSizePicker> {
 
   String get _effectiveUnit => _customUnit ?? widget.unit;
 
-  bool get _unitIsCommon => _commonUnits.contains(_effectiveUnit);
+  bool get _unitIsCommon => _allowedUnits.contains(_effectiveUnit);
+
+  List<String> get _allowedUnits {
+    if (widget.source == 'open_food_facts') {
+      return [widget.unit, '__custom__'];
+    }
+    return [..._commonUnits, '__custom__'];
+  }
 
   void _onQtyChanged(String value) {
     final qty = double.tryParse(value);
@@ -147,14 +156,18 @@ class _ServingSizePickerState extends State<ServingSizePicker> {
                       }
                     },
                     items: [
-                      ..._commonUnits.map((u) => DropdownMenuItem(
+                      ..._allowedUnits.map((u) {
+                        if (u == '__custom__') {
+                          return DropdownMenuItem(
                             value: u,
-                            child: Text(u),
-                          )),
-                      const DropdownMenuItem(
-                        value: '__custom__',
-                        child: Text('Custom\u2026'),
-                      ),
+                            child: const Text('Custom\u2026'),
+                          );
+                        }
+                        return DropdownMenuItem(
+                          value: u,
+                          child: Text(u),
+                        );
+                      }),
                     ],
                   ),
                 ),

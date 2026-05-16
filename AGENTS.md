@@ -34,7 +34,7 @@ lib/
     algorithms/
       maintenance_calculator.dart  # rolling linear regression
       mifflin_st_jeor.dart         # BMR estimator
-  providers/             # 19 Riverpod providers
+  providers/             # 12 Riverpod providers
   features/
     onboarding/          # first-launch setup flow
     dashboard/           # summary + progress rings + sparkline
@@ -49,14 +49,14 @@ lib/
 ## Key conventions
 
 ### Drift (database)
-- 6 tables (schema v5): `foods`, `food_entries`, `bodyweight_entries`, `user_goals`, `recipes`, `recipe_ingredients`
+- 6 tables (schema v1): `foods`, `food_entries`, `bodyweight_entries`, `user_goals`, `recipes`, `recipe_ingredients`
 - `foods` table has 13 columns: id, name, servingLabel, servingQuantity (default 1.0), servingUnit (default 'serving'), caloriesPerServing, proteinPerServing, carbsPerServing, fatPerServing, barcode (nullable, unique), brand (nullable), source (default 'manual'), createdAt
 - `user_goals` table has 13 columns: id (default 1 singleton), goalType, calorieAdjustment (nullable), proteinGPerLb (default 1.0), fatCaloriePct (default 25.0), sex (nullable), heightCm (nullable), birthdate (nullable), age (nullable), useImperial (default 0), activityLevel (default 3), onboardingCompleted (default 0), updatedAt
-- `goalWeightKg` was removed in schema v5 — the column no longer exists and no code references it
 - Table definitions in `lib/core/database/tables/` (one file per table)
 - All DAO methods on `AppDatabase` in `lib/core/database/database.dart`
 - Use `AppDatabase.createInMemory()` for tests
 - In-memory DB does NOT enforce FK constraints by default
+- No migration strategy implemented yet (schemaVersion = 1, onCreate only)
 
 ### Riverpod providers
 
@@ -107,6 +107,8 @@ lib/
 - **Logging a recipe**: creates single `food_entry` with summed macros × scale, sets `recipe_id` FK
 - **CSV export**: sync (`compute`), writes to temp dir, shares via `share_plus`
 - **Log tab entry delete**: swipe-to-dismiss or delete button per entry in today's list; shows confirmation dialog; increments `dataTriggerProvider` (which `todaysFoodProvider` watches) to refresh the list on success
+- **Recipe management**: `RecipeListScreen` has `pickerMode` parameter — management mode (Recipes tab): tap to edit, long-press to delete with haptic feedback; picker mode (Log screen): tap to log recipe only. Edit flow re-inserts ingredients after save (bug fix #1). Files: `lib/features/recipes/recipe_list_screen.dart:171-240`, `lib/features/recipes/recipe_form_screen.dart:204-217`
+- **Unit filtering for imported foods**: `ServingSizePicker` filters unit dropdown to `[parsedUnit, 'Custom…']` when `source == 'open_food_facts'`. Manual foods show all 11 common units. Prevents confusion from selecting nonsensical units for API-imported foods. File: `lib/features/logging/widgets/serving_size_picker.dart:56-63`
 - **Search delegate**: `FoodSearchDelegate` accepts `searchService`, `apiClient` (`OpenFoodFactsClient`), `onCreateCustomFood`, and `onQuickLog` (async); shows a segmented toggle ("My Foods" / "Search the Web") wrapped in `SizedBox(width: double.infinity)` for width stability; `_searchMode` is stored on the delegate field so it survives `buildResults`/`buildSuggestions` rebuilds when Enter is pressed; `_FoodSearchContentState` keeps a local `_localSearchMode` synced via `didUpdateWidget` so the toggle responds even when the search field has focus; `Icons.qr_code_scanner` button in `buildActions` opens `BarcodeScannerScreen`; local search calls `searchService.searchLocal(query)` returning foods ordered by recency via `db.searchLocalByRecency()`; tapping a food list item calls `onQuickLog` (which opens `QuickFoodLogSheet` in-place) instead of selecting it — after the sheet closes, the delegate pops itself via `nav.pop<FoodSearchItem?>(null)`; `onSelectItem` is only used as fallback when `onQuickLog` is null (recipe form path); there is no trailing `+` button (removed — tapping the item does the same thing); "Create custom food" ListTile pops the delegate synchronously after setting the flag
 - **Quick-food log sheet**: `QuickFoodLogSheet` in `lib/features/logging/widgets/quick_food_log_sheet.dart` — reusable modal bottom sheet with serving picker, macro preview, meal type selector, and "Log to today" button; supports both fresh quick-log (`food` only) and duplicate (`food` + `sourceEntry` with pre-filled servings); `servingLabel` is saved as just `_unit` (not quantity + unit) so `EditEntrySheet` shows `"g"` instead of `"100 g"` as the quantity suffix
 - **Onboarding complete** (`_onOnboardingComplete` in `app.dart`): invalidates `bodyweightProvider`, `todaysFoodProvider`, and `userGoalsProvider` and increments `dataTriggerProvider` so providers re-fetch with the newly saved data
@@ -119,7 +121,7 @@ lib/
 - `flutter analyze` should always pass with zero issues
 - In-memory drift DBs don't enforce foreign keys; rely on explicit delete ordering or explicit cascade deletes in tests
 - `databaseProvider` is intentionally un-implemented at declaration site (throws `UnimplementedError`); `main.dart` creates the real DB and overrides it
-- Schema v1→v2 migration (onUpgrade) adds `serving_unit` and `serving_quantity` columns to `foods` and backfills from `serving_label` / `serving_size_grams` patterns; schema v2→v3 drops the vestigial `serving_size_grams` column; schema v3→v4 adds the `brand` column; schema v4→v5 drops `goalWeightKg` from `user_goals`
+- Schema version is 1 with onCreate only — no onUpgrade migration strategy implemented yet
 - `getRecentFoods()` / `searchLocalByRecency()` in `AppDatabase` fetches distinct `foodId`s from `food_entries` in a Dart-side loop (drift 2.31.0 has no `groupBy` on `SimpleSelectStatement`); orders by `MAX(loggedAt)` DESC, limit 10, then fetches `Food` records from the `foods` table
 - Maintenance calculator (`maintenance_provider.dart`) uses `DateTime.now().subtract(const Duration(days: 1))` so the 30-day regression window ends yesterday, excluding today's partial data
 - All macro calculations (save, preview, recipe totals, ingredient rows, `computeRecipeMacros()`) use `macroPerServing * (qty / servingQuantity)` with a zero-division guard. When adding new macro math, always use this pattern.
@@ -131,3 +133,5 @@ lib/
 - **`DayNavigator`** is a static utility class (`DayNavigator.format(DateTime)`) that returns a formatted date string ("Today", "Yesterday", "Tomorrow", or "Jan 15, 2026"). The chevron buttons live in `AppBar.title` as a `Row(mainAxisSize: MainAxisSize.min)` with the date `Text` between them, and `centerTitle: true` centers the whole group. Only `menu_book` (recipe log) and `PopupMenuButton` (CSV) remain in `actions`.
 - **Per-food macro breakdown bars**: `_MacroBreakdownBar` in `combined_log_screen.dart` renders 3 proportional colored segments (blue=protein, green=carbs, orange=fat) using `Expanded(flex:)` based on each macro's calorie contribution (4-4-9 rule). Fills the full `ListTile` width, wrapped in `ClipRRect`. Zero-total food returns `SizedBox.shrink()`. Zero-value segments use `clamp(1, 9999)`.
 - **Log screen entry display**: Each food entry's `ListTile` subtitle is the `_MacroBreakdownBar` (no macro text or time). Trailing is bold `"XXX cal"` text (meal-type badge removed). Section headers have a 3px colored left border strip, meal-type icon (`Icons.free_breakfast`/`Icons.lunch_dining`/`Icons.dinner_dining`/`Icons.cookie`), bold colored heading, and tinted count badge.
+- **Maintenance forward-fill**: `MaintenanceCalculator.calculate()` assumes the oldest logged weight for all dates before the first weight entry. This ensures new users with sparse early data can get maintenance estimates. Example: If you onboard at 190 lbs on May 16, the algorithm assumes you were 190 lbs for all dates in the 30-day window before May 16. If you delete the May 16 weight, the assumption shifts to the new oldest weight. File: `lib/core/algorithms/maintenance_calculator.dart:57-78`
+- **Recipe edit bug fix**: When editing a recipe, the save logic re-inserts ingredients after deleting them. Previously, ingredients were deleted but not re-inserted, causing zero macros. File: `lib/features/recipes/recipe_form_screen.dart:204-217`

@@ -611,6 +611,59 @@ void main() {
       expect(find.text('To Delete'), findsNothing);
       expect(find.textContaining('No recipes yet'), findsOneWidget);
     });
+
+    testWidgets('tooltip shows edit message in management mode', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      final now = DateTime.now().toIso8601String();
+
+      await db.insertRecipe(RecipesCompanion.insert(
+        name: 'Test',
+        servingSize: 100,
+        servingLabel: 'g',
+        createdAt: now,
+        updatedAt: now,
+      ));
+
+      await tester.pumpWidget(buildTestApp(db));
+      await tester.pumpAndSettle();
+
+      final tooltipFinder = find.byType(Tooltip);
+      expect(tooltipFinder, findsWidgets);
+
+      final tooltips = tester.widgetList<Tooltip>(tooltipFinder).toList();
+      expect(tooltips.any((t) => t.message == 'Tap to edit'), isTrue);
+    });
+
+    testWidgets('tooltip shows log message in picker mode', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      final now = DateTime.now().toIso8601String();
+
+      await db.insertRecipe(RecipesCompanion.insert(
+        name: 'Test',
+        servingSize: 100,
+        servingLabel: 'g',
+        createdAt: now,
+        updatedAt: now,
+      ));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [databaseProvider.overrideWithValue(db)],
+          child: const MaterialApp(
+            home: RecipeListScreen(pickerMode: true),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tooltipFinder = find.byType(Tooltip);
+      expect(tooltipFinder, findsWidgets);
+
+      final tooltips = tester.widgetList<Tooltip>(tooltipFinder).toList();
+      expect(tooltips.any((t) => t.message == 'Log this recipe'), isTrue);
+    });
   });
 
   group('Recipe form screen', () {
@@ -729,6 +782,84 @@ void main() {
       // "My Foods" mode shows all local foods by default
       expect(find.text('Chicken Breast'), findsOneWidget);
       expect(find.text('Create custom food'), findsOneWidget);
+    });
+
+    test('edit recipe → save → ingredients persist', () async {
+      final db = createSeedDb();
+      addTearDown(() => db.close());
+      final now = DateTime.now().toIso8601String();
+
+      final recipeId = await db.insertRecipe(RecipesCompanion.insert(
+        name: 'Original',
+        servingSize: 400,
+        servingLabel: 'g',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final chicken = await (db.select(db.foods)..where((f) => f.name.equals('Chicken Breast'))).getSingle();
+      final rice = await (db.select(db.foods)..where((f) => f.name.equals('Brown Rice'))).getSingle();
+      
+      await db.insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: recipeId, foodId: chicken.id, quantity: 2, createdAt: now,
+      ));
+      await db.insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: recipeId, foodId: rice.id, quantity: 1, createdAt: now,
+      ));
+
+      // Verify initial state
+      var ingredients = await db.getIngredientsWithFood(recipeId);
+      expect(ingredients.length, 2);
+      expect(ingredients[0].food.name, 'Chicken Breast');
+      expect(ingredients[1].food.name, 'Brown Rice');
+
+      // Simulate edit: delete and re-insert (mimicking the save flow)
+      await db.deleteIngredientsForRecipe(recipeId);
+      await db.insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: recipeId, foodId: chicken.id, quantity: 2, createdAt: now,
+      ));
+      await db.insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: recipeId, foodId: rice.id, quantity: 1, createdAt: now,
+      ));
+
+      // Verify ingredients persist
+      ingredients = await db.getIngredientsWithFood(recipeId);
+      expect(ingredients.length, 2);
+      expect(ingredients[0].food.name, 'Chicken Breast');
+      expect(ingredients[1].food.name, 'Brown Rice');
+    });
+
+    test('edit recipe → save → macros recalculate correctly', () async {
+      final db = createSeedDb();
+      addTearDown(() => db.close());
+      final now = DateTime.now().toIso8601String();
+
+      final recipeId = await db.insertRecipe(RecipesCompanion.insert(
+        name: 'Test',
+        servingSize: 400,
+        servingLabel: 'g',
+        createdAt: now,
+        updatedAt: now,
+      ));
+      final chicken = await (db.select(db.foods)..where((f) => f.name.equals('Chicken Breast'))).getSingle();
+      
+      await db.insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: recipeId, foodId: chicken.id, quantity: 2, createdAt: now,
+      ));
+
+      // Verify initial macros
+      final macros1 = await db.computeRecipeMacros(recipeId);
+      expect(macros1.calories, closeTo(330, 0.01));
+
+      // Simulate edit: change quantity from 2 to 3
+      await db.deleteIngredientsForRecipe(recipeId);
+      await db.insertIngredient(RecipeIngredientsCompanion.insert(
+        recipeId: recipeId, foodId: chicken.id, quantity: 3, createdAt: now,
+      ));
+
+      // Verify updated macros
+      final macros2 = await db.computeRecipeMacros(recipeId);
+      expect(macros2.calories, closeTo(495, 0.01));  // 165 * 3 = 495
+      expect(macros2.proteinGrams, closeTo(93, 0.01));  // 31 * 3 = 93
     });
   });
 }

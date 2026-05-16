@@ -173,6 +173,7 @@ class _QuickFoodLogSheetState extends ConsumerState<QuickFoodLogSheet> {
           ServingSizePicker(
             quantity: _servings,
             unit: _unit,
+            source: widget.food.source,
             onQuantityChanged: (v) => setState(() => _servings = v),
             onUnitChanged: (v) => setState(() => _unit = v),
           ),
