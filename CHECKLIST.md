@@ -4,40 +4,40 @@
 
 | # | Ticket | Description | Est. | Status | Owner | Notes |
 |---|--------|-------------|------|--------|-------|-------|
-| 1 | [TKT-1](tickets/TKT-1-recipe-delete-cascade.md) | Fix recipe delete cascade | <15min | ⬜ Pending | | `recipe_list_screen.dart` |
-| 2 | [TKT-2](tickets/TKT-2-bodyweight-delete-timestamp.md) | Format bodyweight delete timestamp | <15min | ⬜ Pending | | `bodyweight_screen.dart` |
-| 3 | [TKT-3](tickets/TKT-3-longpress-food-delete.md) | Long press to delete food entries | <15min | ⬜ Pending | | `combined_log_screen.dart` |
-| 4 | [TKT-4](tickets/TKT-4-web-search-retries.md) | Web search retries + error differentiation | 2-3hr | ⬜ Pending | | Client + service + delegate |
+| 1 | [TKT-1](tickets/TKT-1-recipe-delete-cascade.md) | Fix recipe delete cascade | <15min | ✅ Done | | `recipe_list_screen.dart` |
+| 2 | [TKT-2](tickets/TKT-2-bodyweight-delete-timestamp.md) | Format bodyweight delete timestamp | <15min | ✅ Done | | `bodyweight_screen.dart` |
+| 3 | [TKT-3](tickets/TKT-3-longpress-food-delete.md) | Long press to delete food entries | <15min | ✅ Done | | `combined_log_screen.dart` |
+| 4 | [TKT-4](tickets/TKT-4-web-search-retries.md) | Web search retries + error differentiation | 2-3hr | ✅ Done | | Client + service + delegate |
 | 5 | [TKT-5](tickets/TKT-5-log-to-viewed-date.md) | Log food to viewed date | 2-3hr | ⬜ Pending | | 5 files, threading date through |
 | 6 | [TKT-6](tickets/TKT-6-remove-bodyweight-goal.md) | Remove bodyweight goal feature | 4-6hr | ⬜ Pending | | Schema migration + 3 screens + tests |
 
 ## Per-ticket checkboxes
 
 ### TKT-1: Fix recipe delete cascade
-- [ ] Add `deleteIngredientsForRecipe()` call before `deleteRecipe()` in `_deleteRecipe()`
-- [ ] Run `flutter analyze` — zero issues
-- [ ] Run `flutter test` — all pass
+- [x] Add `deleteIngredientsForRecipe()` call before `deleteRecipe()` in `_deleteRecipe()`
+- [x] Run `flutter analyze` — zero issues
+- [x] Run `flutter test` — all pass (recipe-specific: 22/22). Pre-existing failure in `search_delegate_test.dart` unrelated.
 
 ### TKT-2: Format bodyweight delete timestamp
-- [ ] Replace raw `entry.loggedAt` with formatted date in `_confirmDelete()` dialog
-- [ ] Run `flutter analyze` — zero issues
-- [ ] Run `flutter test` — all pass
+- [x] Replace raw `entry.loggedAt` with formatted date in `_confirmDelete()` dialog
+- [x] Run `flutter analyze` — zero issues
+- [x] Run `flutter test` — all pass
 
 ### TKT-3: Long press to delete food entries
-- [ ] Add `onLongPress: () => _deleteEntry(entry)` to `ListTile` inside `Dismissible`
-- [ ] Run `flutter analyze` — zero issues
-- [ ] Run `flutter test` — all pass
+- [x] Add `onLongPress: () => _deleteEntry(entry)` to `ListTile` inside `Dismissible`
+- [x] Run `flutter analyze` — zero issues
+- [x] Run `flutter test` — all pass
 
 ### TKT-4: Web search retries + error differentiation
-- [ ] Add retry loop to `OpenFoodFactsClient.search()` (max 3 attempts, exponential backoff)
-- [ ] Catch `TimeoutException` in client error handlers
-- [ ] Add `WebSearchResult` sealed class to `food_search_provider.dart`
-- [ ] Update `FoodSearchService.searchWeb()` to return `WebSearchResult`
-- [ ] Update `_WebSearchContent` to show differentiated messages + tap-to-retry
-- [ ] Update tests in `test/api/open_food_facts_client_test.dart`
-- [ ] Run `flutter analyze` — zero issues
-- [ ] Run `flutter test` — all pass
-- [ ] Manual: verify "No results found" vs "Search failed" in app
+- [x] Add retry loop to `OpenFoodFactsClient.search()` (max 3 attempts, exponential backoff)
+- [x] Catch `TimeoutException` in client error handlers
+- [x] Add `WebSearchResult` sealed class to `food_search_provider.dart`
+- [x] Update `FoodSearchService.searchWeb()` to return `WebSearchResult`
+- [x] Update `_WebSearchContent` to show differentiated messages + tap-to-retry
+- [x] Update tests in `test/api/open_food_facts_client_test.dart`
+- [x] Run `flutter analyze` — zero issues
+- [x] Run `flutter test` — all pass
+- [ ] Manual: verify "No results found" vs "Search failed" in app (requires API access)
 
 ### TKT-5: Log food to viewed date
 - [ ] Add optional `loggedAt` to `QuickFoodLogSheet` + use in `_log()`

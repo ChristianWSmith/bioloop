@@ -263,6 +263,7 @@ class _WebSearchContent extends StatefulWidget {
 class _WebSearchContentState extends State<_WebSearchContent> {
   Timer? _debounceTimer;
   String _debouncedQuery = '';
+  int _retryTrigger = 0;
 
   @override
   void initState() {
@@ -274,6 +275,7 @@ class _WebSearchContentState extends State<_WebSearchContent> {
   void didUpdateWidget(_WebSearchContent oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.query != oldWidget.query) {
+      _retryTrigger = 0;
       _startDebounce();
     }
   }
@@ -288,7 +290,6 @@ class _WebSearchContentState extends State<_WebSearchContent> {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 400), () {
       if (mounted) {
-        debugPrint('Web search: debounced query "${widget.query}"');
         setState(() => _debouncedQuery = widget.query);
       }
     });
@@ -304,8 +305,8 @@ class _WebSearchContentState extends State<_WebSearchContent> {
       return const SizedBox.shrink();
     }
 
-    return FutureBuilder<List<FoodSearchItem>>(
-      key: ValueKey(_debouncedQuery),
+    return FutureBuilder<WebSearchResult>(
+      key: ValueKey('$_debouncedQuery-$_retryTrigger'),
       future: widget.searchService.searchWeb(_debouncedQuery),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -314,15 +315,19 @@ class _WebSearchContentState extends State<_WebSearchContent> {
             child: Center(child: CircularProgressIndicator()),
           );
         }
-          if (snapshot.hasError) {
-            debugPrint('Web search error: ${snapshot.error}');
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text('Error: ${snapshot.error}'),
-            );
-          }
 
-        final items = snapshot.data ?? [];
+        final result = snapshot.data;
+        if (result is WebSearchFailure) {
+          return GestureDetector(
+            onTap: () => setState(() => _retryTrigger++),
+            child: const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Search failed. Tap to retry.'),
+            ),
+          );
+        }
+
+        final items = (result as WebSearchSuccess?)?.items ?? [];
         if (items.isEmpty) {
           return const Padding(
             padding: EdgeInsets.all(16),

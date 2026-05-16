@@ -410,6 +410,7 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         onTap: () => _editEntry(entry),
+                        onLongPress: () => _deleteEntry(entry),
                       ),
                     ),
                   ],

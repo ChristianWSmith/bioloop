@@ -117,7 +117,10 @@ void main() {
 
       // Toggle to Search the Web — should still work after Enter
       await tester.tap(find.text('Search the Web'));
-      await tester.pumpAndSettle();
+      await tester.pump(); // rebuild with web content, start 400ms debounce
+      await tester.pump(const Duration(milliseconds: 500)); // fire debounce → _debouncedQuery set
+      await tester.pump(); // FutureBuilder starts async searchWeb
+      await tester.pump(); // async completes, FutureBuilder gets empty results
       // Web search with query 'chicken' uses debounce + mock API → "No results found"
       expect(find.text('No results found'), findsOneWidget);
     });

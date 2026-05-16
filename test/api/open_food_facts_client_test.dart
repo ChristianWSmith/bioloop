@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -187,6 +189,112 @@ void main() {
 
       final results = await client.search('anything');
       expect(results, isEmpty);
+    });
+
+    test('retries on SocketException then succeeds', () async {
+      int callCount = 0;
+      final mock = MockClient((_) async {
+        callCount++;
+        if (callCount == 1) throw const SocketException('first attempt fails');
+        return http.Response(jsonEncode(_sampleSearchResponse()), 200);
+      });
+      client = OpenFoodFactsClient(client: mock);
+
+      final results = await client.search('chicken');
+      expect(results.length, 1);
+      expect(callCount, 2);
+    });
+
+    test('retries on HttpException then succeeds', () async {
+      int callCount = 0;
+      final mock = MockClient((_) async {
+        callCount++;
+        if (callCount == 1) throw HttpException('first attempt fails');
+        return http.Response(jsonEncode(_sampleSearchResponse()), 200);
+      });
+      client = OpenFoodFactsClient(client: mock);
+
+      final results = await client.search('chicken');
+      expect(results.length, 1);
+      expect(callCount, 2);
+    });
+
+    test('retries on TimeoutException then succeeds', () async {
+      int callCount = 0;
+      final mock = MockClient((_) async {
+        callCount++;
+        if (callCount == 1) throw TimeoutException('first attempt times out');
+        return http.Response(jsonEncode(_sampleSearchResponse()), 200);
+      });
+      client = OpenFoodFactsClient(client: mock);
+
+      final results = await client.search('chicken');
+      expect(results.length, 1);
+      expect(callCount, 2);
+    });
+
+    test('retries on 429 then succeeds', () async {
+      int callCount = 0;
+      final mock = MockClient((_) async {
+        callCount++;
+        if (callCount == 1) return http.Response('Too Many Requests', 429);
+        return http.Response(jsonEncode(_sampleSearchResponse()), 200);
+      });
+      client = OpenFoodFactsClient(client: mock);
+
+      final results = await client.search('chicken');
+      expect(results.length, 1);
+      expect(callCount, 2);
+    });
+
+    test('retries on 503 then succeeds', () async {
+      int callCount = 0;
+      final mock = MockClient((_) async {
+        callCount++;
+        if (callCount == 1) return http.Response('Service Unavailable', 503);
+        return http.Response(jsonEncode(_sampleSearchResponse()), 200);
+      });
+      client = OpenFoodFactsClient(client: mock);
+
+      final results = await client.search('chicken');
+      expect(results.length, 1);
+      expect(callCount, 2);
+    });
+
+    test('returns empty after exhausting retries', () async {
+      final mock = MockClient((_) async {
+        throw const SocketException('always fails');
+      });
+      client = OpenFoodFactsClient(client: mock);
+
+      final results = await client.search('chicken');
+      expect(results, isEmpty);
+    });
+
+    test('does not retry on FormatException', () async {
+      int callCount = 0;
+      final mock = MockClient((_) async {
+        callCount++;
+        return http.Response('not json', 200);
+      });
+      client = OpenFoodFactsClient(client: mock);
+
+      final results = await client.search('chicken');
+      expect(results, isEmpty);
+      expect(callCount, 1);
+    });
+
+    test('does not retry on 404', () async {
+      int callCount = 0;
+      final mock = MockClient((_) async {
+        callCount++;
+        return http.Response('Not Found', 404);
+      });
+      client = OpenFoodFactsClient(client: mock);
+
+      final results = await client.search('chicken');
+      expect(results, isEmpty);
+      expect(callCount, 1);
     });
   });
 }

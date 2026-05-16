@@ -144,6 +144,7 @@ class RecipeListScreen extends ConsumerWidget {
     );
     if (confirmed == true) {
       final db = ref.read(databaseProvider);
+      await db.deleteIngredientsForRecipe(recipe.id);
       await db.deleteRecipe(recipe.id);
       ref.invalidate(recipeListProvider);
     }

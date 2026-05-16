@@ -138,13 +138,14 @@ void main() {
       final mockApiClient = OpenFoodFactsClient(client: mock);
       final service = FoodSearchService(db: db, apiClient: mockApiClient);
 
-      final results = await service.searchWeb('chicken');
-
-      expect(results.length, 2);
-      expect(results[0].localId, isNull);
-      expect(results[0].name, 'Chicken Breast');
-      expect(results[0].source, 'open_food_facts');
-      expect(results[1].name, 'Beef Steak');
+      final result = await service.searchWeb('chicken');
+      expect(result, isA<WebSearchSuccess>());
+      final items = (result as WebSearchSuccess).items;
+      expect(items.length, 2);
+      expect(items[0].localId, isNull);
+      expect(items[0].name, 'Chicken Breast');
+      expect(items[0].source, 'open_food_facts');
+      expect(items[1].name, 'Beef Steak');
     });
 
     test('searchWeb with empty query returns empty list', () async {
@@ -153,11 +154,13 @@ void main() {
       );
       final service = FoodSearchService(db: db, apiClient: mockApiClient);
 
-      final results = await service.searchWeb('');
-      expect(results, isEmpty);
+      final result = await service.searchWeb('');
+      expect(result, isA<WebSearchSuccess>());
+      expect((result as WebSearchSuccess).items, isEmpty);
 
-      final results2 = await service.searchWeb('   ');
-      expect(results2, isEmpty);
+      final result2 = await service.searchWeb('   ');
+      expect(result2, isA<WebSearchSuccess>());
+      expect((result2 as WebSearchSuccess).items, isEmpty);
     });
 
     test('auto-save: saveApiResult inserts into foods table', () async {

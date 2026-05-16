@@ -127,12 +127,15 @@ class BodyweightScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, BodyweightEntry entry) async {
     final prefs = ref.read(unitPreferencesProvider);
     final displayWeight = prefs.displayWeight(entry.weightKg).toStringAsFixed(2);
+    final date = DateTime.parse(entry.loggedAt);
+    final dateStr =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete entry?'),
         content: Text(
-            'Delete weight $displayWeight ${prefs.weightUnit} from ${entry.loggedAt}?'),
+            'Delete weight $displayWeight ${prefs.weightUnit} from $dateStr?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
