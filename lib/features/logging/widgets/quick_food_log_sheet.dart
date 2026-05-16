@@ -41,13 +41,6 @@ class _QuickFoodLogSheetState extends ConsumerState<QuickFoodLogSheet> {
     }
   }
 
-  String _buildLabel(double qty, String unit) {
-    final qtyStr = qty == qty.roundToDouble()
-        ? qty.toInt().toString()
-        : qty.toStringAsFixed(1);
-    return '$qtyStr $unit';
-  }
-
   Future<void> _log() async {
     if (_mealType == null) return;
     setState(() => _saving = true);
@@ -84,7 +77,7 @@ class _QuickFoodLogSheetState extends ConsumerState<QuickFoodLogSheet> {
         carbsGrams: food.carbsPerServing * (_servings / sq),
         fatGrams: food.fatPerServing * (_servings / sq),
         servings: _servings,
-        servingLabel: _buildLabel(_servings, _unit),
+        servingLabel: _unit,
         barcode: Value(food.barcode),
         foodId: Value(foodId),
         recipeId: const Value(null),

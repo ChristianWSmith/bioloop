@@ -37,6 +37,8 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
     setState(() => _currentDate = DateTime(date.year, date.month, date.day));
   }
 
+  String _formatDateText() => DayNavigator.format(_currentDate);
+
   Future<void> _onSearch() async {
     final searchService = ref.read(foodSearchServiceProvider);
     final apiClient = ref.read(openFoodFactsClientProvider);
@@ -207,11 +209,19 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: DayNavigator(
-          currentDate: _currentDate,
-          onDateChanged: _goToDate,
+        title: Text(
+          _formatDateText(),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left),
+          onPressed: () => _goToDate(_currentDate.subtract(const Duration(days: 1))),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: () => _goToDate(_currentDate.add(const Duration(days: 1))),
+          ),
           IconButton(
             icon: const Icon(Icons.menu_book),
             tooltip: 'Log recipe',

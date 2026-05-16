@@ -100,6 +100,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       builder: (ctx) => _QuantityDialog(
         foodName: food.name,
         unit: food.servingUnit,
+        initialValue: food.servingQuantity.toString(),
       ),
     );
     if (quantityStr == null || !mounted) return;
@@ -140,7 +141,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
           id: -1,
           recipeId: widget.recipeId ?? -1,
           foodId: food.id,
-          quantity: 1,
+          quantity: food.servingQuantity,
           createdAt: DateTime.now().toIso8601String(),
         ),
         food: food,

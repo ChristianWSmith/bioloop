@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/algorithms/mifflin_st_jeor.dart';
 import '../../core/database/database.dart';
@@ -17,7 +18,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
-  bool _canPop = false;
+  final bool _canPop = false;
   bool _saving = false;
 
   String _sex = 'male';
@@ -291,8 +292,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
 
     if (shouldPop == true && mounted) {
-      setState(() => _canPop = true);
-      Navigator.of(context).pop();
+      SystemNavigator.pop();
     }
   }
 
