@@ -12,11 +12,13 @@ import 'serving_size_picker.dart';
 class QuickFoodLogSheet extends ConsumerStatefulWidget {
   final FoodSearchItem food;
   final FoodEntry? sourceEntry;
+  final DateTime? loggedAt;
 
   const QuickFoodLogSheet({
     super.key,
     required this.food,
     this.sourceEntry,
+    this.loggedAt,
   });
 
   @override
@@ -47,7 +49,7 @@ class _QuickFoodLogSheetState extends ConsumerState<QuickFoodLogSheet> {
 
     final food = widget.food;
     final db = ref.read(databaseProvider);
-    final now = DateTime.now().toIso8601String();
+    final now = (widget.loggedAt ?? DateTime.now()).toIso8601String();
 
     try {
       int? foodId = food.localId;
@@ -190,7 +192,7 @@ class _QuickFoodLogSheetState extends ConsumerState<QuickFoodLogSheet> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Log to today'),
+                  : const Text('Log entry'),
             ),
           ),
           const SizedBox(height: 16),

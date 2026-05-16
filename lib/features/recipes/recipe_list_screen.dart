@@ -10,8 +10,9 @@ import 'widgets/log_recipe_sheet.dart';
 
 class RecipeListScreen extends ConsumerWidget {
   final bool pickerMode;
+  final DateTime? loggedAt;
 
-  const RecipeListScreen({super.key, this.pickerMode = false});
+  const RecipeListScreen({super.key, this.pickerMode = false, this.loggedAt});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -104,7 +105,7 @@ class RecipeListScreen extends ConsumerWidget {
       final result = await showModalBottomSheet<bool>(
         context: context,
         isScrollControlled: true,
-        builder: (_) => LogRecipeSheet(detail: detail),
+        builder: (_) => LogRecipeSheet(detail: detail, loggedAt: loggedAt),
       );
       if (result == true && context.mounted) {
         ref.invalidate(todaysFoodProvider);

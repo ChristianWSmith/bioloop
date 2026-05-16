@@ -8,7 +8,7 @@
 | 2 | [TKT-2](tickets/TKT-2-bodyweight-delete-timestamp.md) | Format bodyweight delete timestamp | <15min | ✅ Done | | `bodyweight_screen.dart` |
 | 3 | [TKT-3](tickets/TKT-3-longpress-food-delete.md) | Long press to delete food entries | <15min | ✅ Done | | `combined_log_screen.dart` |
 | 4 | [TKT-4](tickets/TKT-4-web-search-retries.md) | Web search retries + error differentiation | 2-3hr | ✅ Done | | Client + service + delegate |
-| 5 | [TKT-5](tickets/TKT-5-log-to-viewed-date.md) | Log food to viewed date | 2-3hr | ⬜ Pending | | 5 files, threading date through |
+| 5 | [TKT-5](tickets/TKT-5-log-to-viewed-date.md) | Log food to viewed date | 2-3hr | ✅ Done | | 5 files, threading date through |
 | 6 | [TKT-6](tickets/TKT-6-remove-bodyweight-goal.md) | Remove bodyweight goal feature | 4-6hr | ⬜ Pending | | Schema migration + 3 screens + tests |
 
 ## Per-ticket checkboxes
@@ -40,15 +40,15 @@
 - [ ] Manual: verify "No results found" vs "Search failed" in app (requires API access)
 
 ### TKT-5: Log food to viewed date
-- [ ] Add optional `loggedAt` to `QuickFoodLogSheet` + use in `_log()`
-- [ ] Add optional `loggedAt` to `LogRecipeSheet` + pass to `logRecipe()`
-- [ ] Add optional `loggedAt` to `RecipeService.logRecipe()` + use in insert
-- [ ] Add optional `loggedAt` field to `RecipeListScreen` + pass to `LogRecipeSheet`
-- [ ] Update `CombinedLogScreen._showQuickLogSheet()` to pass `_currentDate`
-- [ ] Update `CombinedLogScreen._onLogRecipe()` to pass `_currentDate`
-- [ ] Change button text: `"Log to today"` → `"Log entry"` (both sheets)
-- [ ] Run `flutter analyze` — zero issues
-- [ ] Run `flutter test` — all pass
+- [x] Add optional `loggedAt` to `QuickFoodLogSheet` + use in `_log()`
+- [x] Add optional `loggedAt` to `LogRecipeSheet` + pass to `logRecipe()`
+- [x] Add optional `loggedAt` to `RecipeService.logRecipe()` + use in insert
+- [x] Add optional `loggedAt` field to `RecipeListScreen` + pass to `LogRecipeSheet`
+- [x] Update `CombinedLogScreen._showQuickLogSheet()` to pass `_currentDate`
+- [x] Update `CombinedLogScreen._onLogRecipe()` to pass `_currentDate`
+- [x] Change button text: `"Log to today"` → `"Log entry"` (both sheets)
+- [x] Run `flutter analyze` — zero issues
+- [x] Run `flutter test` — all pass
 - [ ] Manual: log food while viewing a past date, verify it appears there
 
 ### TKT-6: Remove bodyweight goal feature

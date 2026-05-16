@@ -44,12 +44,13 @@ class RecipeService {
     required int recipeId,
     required double portion,
     required String mealType,
+    DateTime? loggedAt,
   }) async {
     final recipe = await db.getRecipe(recipeId);
     if (recipe == null) throw Exception('Recipe not found');
     final macros = await db.computeRecipeMacros(recipeId);
     final scale = recipe.servingSize > 0 ? portion / recipe.servingSize : 1.0;
-    final now = DateTime.now().toIso8601String();
+    final now = (loggedAt ?? DateTime.now()).toIso8601String();
 
     return await db.insertEntry(FoodEntriesCompanion.insert(
       name: recipe.name,
