@@ -122,6 +122,22 @@ class _FoodSearchContent extends StatefulWidget {
 }
 
 class _FoodSearchContentState extends State<_FoodSearchContent> {
+  late String _localSearchMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _localSearchMode = widget.searchMode;
+  }
+
+  @override
+  void didUpdateWidget(_FoodSearchContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.searchMode != oldWidget.searchMode) {
+      _localSearchMode = widget.searchMode;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -135,13 +151,16 @@ class _FoodSearchContentState extends State<_FoodSearchContent> {
                 ButtonSegment(value: 'local', label: Text('My Foods')),
                 ButtonSegment(value: 'web', label: Text('Search the Web')),
               ],
-              selected: {widget.searchMode},
-              onSelectionChanged: (v) => widget.onSearchModeChanged(v.first),
+              selected: {_localSearchMode},
+              onSelectionChanged: (v) {
+                setState(() => _localSearchMode = v.first);
+                widget.onSearchModeChanged(v.first);
+              },
             ),
           ),
         ),
         Expanded(
-          child: widget.searchMode == 'local'
+          child: _localSearchMode == 'local'
               ? _LocalSearchContent(
                   query: widget.query,
                   searchService: widget.searchService,
@@ -214,14 +233,9 @@ class _LocalSearchContent extends StatelessWidget {
                     '$macroText\n${item.servingLabel}',
                   ),
                   isThreeLine: true,
-                  onTap: () => onSelectItem(item),
-                  trailing: onQuickLog != null
-                      ? IconButton(
-                          icon: const Icon(Icons.add_circle_outline),
-                          tooltip: 'Quick log',
-                          onPressed: () => onQuickLog!(item),
-                        )
-                      : null,
+                  onTap: () => onQuickLog != null
+                      ? onQuickLog!(item)
+                      : onSelectItem(item),
                 );
               }),
           ],
