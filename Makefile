@@ -3,4 +3,4 @@
 IMAGE := bioloop-builder
 
 apk:
-	docker build -t $(IMAGE) . && docker run --rm -v $(PWD):/app $(IMAGE)
+	docker build --network host -t $(IMAGE) . && docker run --rm --network host -v $(PWD):/app $(IMAGE)

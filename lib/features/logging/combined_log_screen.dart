@@ -26,6 +26,20 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
   late DateTime _currentDate;
   bool _pendingCreateCustom = false;
 
+  static const _mealColors = {
+    'breakfast': Colors.orange,
+    'lunch': Colors.blue,
+    'dinner': Colors.purple,
+    'snack': Colors.teal,
+  };
+
+  static const _mealIcons = {
+    'breakfast': Icons.free_breakfast,
+    'lunch': Icons.lunch_dining,
+    'dinner': Icons.dinner_dining,
+    'snack': Icons.cookie,
+  };
+
   @override
   void initState() {
     super.initState();
@@ -152,35 +166,6 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
     return map;
   }
 
-  String? _timeFromLoggedAt(String loggedAt) {
-    if (loggedAt.length >= 16) return loggedAt.substring(11, 16);
-    return null;
-  }
-
-  Widget _mealTypeBadge(String mealType) {
-    final colors = {
-      'breakfast': Colors.orange,
-      'lunch': Colors.blue,
-      'dinner': Colors.purple,
-      'snack': Colors.teal,
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: (colors[mealType] ?? Colors.grey).withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        mealType[0].toUpperCase() + mealType.substring(1),
-        style: TextStyle(
-          fontSize: 11,
-          color: colors[mealType] ?? Colors.grey,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
   Future<void> _shareCsv() async {
     final db = ref.read(databaseProvider);
     final entries = await db.select(db.foodEntries).get();
@@ -209,19 +194,24 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text(
-          _formatDateText(),
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: () => _goToDate(_currentDate.subtract(const Duration(days: 1))),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              onPressed: () => _goToDate(_currentDate.subtract(const Duration(days: 1))),
+            ),
+            Text(
+              _formatDateText(),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              onPressed: () => _goToDate(_currentDate.add(const Duration(days: 1))),
+            ),
+          ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: () => _goToDate(_currentDate.add(const Duration(days: 1))),
-          ),
           IconButton(
             icon: const Icon(Icons.menu_book),
             tooltip: 'Log recipe',
@@ -320,23 +310,52 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
                 for (final mealType in sortedMeals) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
-                    child: Row(
-                      children: [
-                        Text(
-                          mealType[0].toUpperCase() + mealType.substring(1),
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          left: BorderSide(
+                            color: _mealColors[mealType] ?? Colors.grey,
+                            width: 3,
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${groups[mealType]!.length}',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                      ],
+                      ),
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _mealIcons[mealType] ?? Icons.circle,
+                            size: 18,
+                            color: _mealColors[mealType] ?? Colors.grey,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            mealType[0].toUpperCase() + mealType.substring(1),
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: _mealColors[mealType] ?? Colors.grey,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: (_mealColors[mealType] ?? Colors.grey)
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 1),
+                            child: Text(
+                              '${groups[mealType]!.length}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: _mealColors[mealType] ?? Colors.grey,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   for (final entry in groups[mealType]!) ...[
@@ -375,18 +394,20 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
                       },
                       child: ListTile(
                         title: Text(entry.name),
-                        subtitle: Text(
-                          '${entry.calories.toInt()} cal  •  '
-                          'P${entry.proteinGrams.toStringAsFixed(0)}g  '
-                          'C${entry.carbsGrams.toStringAsFixed(0)}g  '
-                          'F${entry.fatGrams.toStringAsFixed(0)}g'
-                          '${_timeFromLoggedAt(entry.loggedAt) != null ? "  •  ${_timeFromLoggedAt(entry.loggedAt)}" : ""}',
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: _MacroBreakdownBar(
+                            proteinGrams: entry.proteinGrams,
+                            carbsGrams: entry.carbsGrams,
+                            fatGrams: entry.fatGrams,
+                          ),
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _mealTypeBadge(entry.mealType),
-                          ],
+                        trailing: Text(
+                          '${entry.calories.toInt()} cal',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         onTap: () => _editEntry(entry),
                       ),
@@ -406,6 +427,51 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
         onPressed: _onSearch,
         tooltip: 'Log new food',
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class _MacroBreakdownBar extends StatelessWidget {
+  final double proteinGrams;
+  final double carbsGrams;
+  final double fatGrams;
+
+  const _MacroBreakdownBar({
+    required this.proteinGrams,
+    required this.carbsGrams,
+    required this.fatGrams,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final proteinCals = proteinGrams * 4;
+    final carbsCals = carbsGrams * 4;
+    final fatCals = fatGrams * 9;
+    final total = proteinCals + carbsCals + fatCals;
+
+    if (total == 0) return const SizedBox.shrink();
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: SizedBox(
+        height: 8,
+        child: Row(
+          children: [
+            Expanded(
+              flex: (proteinCals).toInt().clamp(1, 9999),
+              child: Container(color: Colors.blue),
+            ),
+            Expanded(
+              flex: (carbsCals).toInt().clamp(1, 9999),
+              child: Container(color: Colors.green),
+            ),
+            Expanded(
+              flex: (fatCals).toInt().clamp(1, 9999),
+              child: Container(color: Colors.orange),
+            ),
+          ],
+        ),
       ),
     );
   }
