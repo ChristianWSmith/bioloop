@@ -193,15 +193,6 @@ void main() {
   });
 
   group('default values', () {
-    test('goal_weight_kg is null by default', () async {
-      final now = DateTime.now().toIso8601String();
-      await db.into(db.userGoals).insert(
-        UserGoalsCompanion.insert(goalType: 'maintain', updatedAt: now),
-      );
-      final goal = await db.select(db.userGoals).getSingle();
-      expect(goal.goalWeightKg, isNull);
-    });
-
     test('use_imperial defaults to false (0)', () async {
       final now = DateTime.now().toIso8601String();
       await db.into(db.userGoals).insert(

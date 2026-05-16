@@ -68,8 +68,6 @@ class DashboardScreen extends ConsumerWidget {
     final consumedFat = entries.fold(0.0, (s, e) => s + e.fatGrams);
     final consumedCarbs = entries.fold(0.0, (s, e) => s + e.carbsGrams);
 
-    final latestWeight = weights.isNotEmpty ? weights.first.weightKg : null;
-
     return Scaffold(
       appBar: _buildAppBar(context),
       body: SingleChildScrollView(
@@ -78,13 +76,6 @@ class DashboardScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(context),
-            if (goals?.goalWeightKg != null && latestWeight != null)
-            _buildGoalWeightCard(
-              context,
-              currentKg: latestWeight,
-              goalKg: goals!.goalWeightKg!,
-              useImperial: unitPrefs.useImperial,
-            ),
           const SizedBox(height: 16),
           SizedBox(
             width: 220,
@@ -216,74 +207,6 @@ class DashboardScreen extends ConsumerWidget {
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGoalWeightCard(BuildContext context, {
-    required double currentKg,
-    required double goalKg,
-    required bool useImperial,
-  }) {
-    final factor = useImperial ? 2.20462 : 1.0;
-    final unit = useImperial ? 'lb' : 'kg';
-    final current = currentKg * factor;
-    final goal = goalKg * factor;
-    final diff = (goal - current).abs();
-    final isAtOrPastGoal = current >= goal;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: isAtOrPastGoal
-                  ? Text(
-                      'You reached your goal!',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                    )
-                  : Text.rich(
-                      TextSpan(
-                        text: '${current.toStringAsFixed(2)} $unit',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                        children: [
-                          TextSpan(
-                            text: ' → ',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          TextSpan(
-                            text: '${goal.toStringAsFixed(2)} $unit',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          WidgetSpan(
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 8),
-                              child: Text(
-                                '(${diff.toStringAsFixed(2)} $unit to go)',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(color: Colors.grey[600]),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-            ),
-          ],
         ),
       ),
     );

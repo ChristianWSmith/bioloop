@@ -25,7 +25,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
   final _heightController = TextEditingController();
   final _heightFeetController = TextEditingController();
   final _heightInchesController = TextEditingController();
-  final _goalWeightController = TextEditingController();
   bool _useImperial = false;
   int _activityLevel = 3;
   String _goalType = 'cut';
@@ -55,7 +54,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     _heightController.dispose();
     _heightFeetController.dispose();
     _heightInchesController.dispose();
-    _goalWeightController.dispose();
     _calorieAdjustmentController.dispose();
     super.dispose();
   }
@@ -76,14 +74,8 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               _heightInchesController.text =
                   (totalInches % 12).round().toString();
             }
-            if (goals.goalWeightKg != null) {
-              _goalWeightController.text =
-                  (goals.goalWeightKg! * 2.20462).toStringAsFixed(2);
-            }
           } else {
             _heightController.text = goals.heightCm?.toString() ?? '';
-            _goalWeightController.text =
-                goals.goalWeightKg?.toString() ?? '';
           }
           _activityLevel = goals.activityLevel;
           _goalType = goals.goalType;
@@ -211,12 +203,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
           _heightInchesController.text = inches.toString();
         }
         _heightController.clear();
-
-        final goalKg = double.tryParse(_goalWeightController.text);
-        if (goalKg != null && goalKg > 0) {
-          _goalWeightController.text =
-              (goalKg * 2.20462).toStringAsFixed(2);
-        }
       } else if (!imperial && _useImperial) {
         final feet = double.tryParse(_heightFeetController.text);
         final inches = double.tryParse(_heightInchesController.text);
@@ -226,12 +212,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         }
         _heightFeetController.clear();
         _heightInchesController.clear();
-
-        final goalLb = double.tryParse(_goalWeightController.text);
-        if (goalLb != null && goalLb > 0) {
-          _goalWeightController.text =
-              (goalLb / 2.20462).toStringAsFixed(2);
-        }
       }
       _useImperial = imperial;
     });
@@ -250,12 +230,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                 (double.tryParse(_heightInchesController.text) ?? 0))
         : double.parse(_heightController.text);
 
-    final goalWeightKg = _goalWeightController.text.isNotEmpty
-        ? _useImperial
-            ? double.parse(_goalWeightController.text) / 2.20462
-            : double.parse(_goalWeightController.text)
-        : null;
-
     try {
       await db.upsertGoals(UserGoalsCompanion(
         goalType: Value(_goalType),
@@ -267,9 +241,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         sex: Value(_sex),
         heightCm: Value(heightCm),
         birthdate: Value(_birthdate),
-        goalWeightKg: goalWeightKg != null
-            ? Value<double?>(goalWeightKg)
-            : const Value<double?>(null),
         useImperial: Value(_useImperial ? 1 : 0),
         activityLevel: Value(_activityLevel),
         updatedAt: Value(now),
@@ -433,23 +404,6 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
             ),
             const SizedBox(height: 12),
             _buildHeightField(),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _goalWeightController,
-              decoration: InputDecoration(
-                labelText: 'Goal weight (optional)',
-                hintText: 'e.g. ${_useImperial ? "154" : "70"}',
-                suffixText: _useImperial ? 'lb' : 'kg',
-              ),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              validator: (v) {
-                if (v == null || v.isEmpty) return null;
-                final n = double.tryParse(v);
-                if (n == null || n <= 0) return 'Enter a valid weight';
-                return null;
-              },
-            ),
             const Divider(height: 32),
             _sectionTitle(context, 'Activity Level'),
             const SizedBox(height: 4),

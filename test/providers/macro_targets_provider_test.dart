@@ -30,7 +30,6 @@ void main() {
         sex: sex,
         heightCm: heightCm,
         birthdate: birthdate,
-        goalWeightKg: null,
         useImperial: 0,
         activityLevel: activityLevel,
         onboardingCompleted: onboardingCompleted,
