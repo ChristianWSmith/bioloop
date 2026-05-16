@@ -212,6 +212,14 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
           ),
         );
         await db.deleteIngredientsForRecipe(widget.recipeId!);
+        for (final item in _ingredients) {
+          await db.insertIngredient(RecipeIngredientsCompanion.insert(
+            recipeId: widget.recipeId!,
+            foodId: item.ingredient.foodId,
+            quantity: item.ingredient.quantity,
+            createdAt: now,
+          ));
+        }
       } else {
         final recipeId = await db.insertRecipe(RecipesCompanion.insert(
           name: _nameController.text.trim(),

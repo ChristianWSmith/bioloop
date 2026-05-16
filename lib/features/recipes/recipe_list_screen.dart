@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/database.dart';
 import '../../providers/data_trigger_provider.dart';
@@ -168,7 +169,7 @@ class RecipeListScreen extends ConsumerWidget {
   }
 }
 
-class _RecipeCard extends StatelessWidget {
+class _RecipeCard extends StatefulWidget {
   final Recipe recipe;
   final bool pickerMode;
   final VoidCallback onTap;
@@ -184,39 +185,65 @@ class _RecipeCard extends StatelessWidget {
   });
 
   @override
+  State<_RecipeCard> createState() => _RecipeCardState();
+}
+
+class _RecipeCardState extends State<_RecipeCard> {
+  bool _isLongPressing = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: ListTile(
-        leading: const Icon(Icons.restaurant_menu),
-        title: Text(recipe.name),
-        subtitle: Text(
-          '${recipe.servingSize.toStringAsFixed(0)} ${recipe.servingLabel}',
+    return Tooltip(
+      message: widget.pickerMode ? 'Log this recipe' : 'Tap to edit',
+      child: AnimatedScale(
+        scale: _isLongPressing ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: Card(
+          color: _isLongPressing
+              ? Theme.of(context).colorScheme.surfaceContainerHighest
+              : null,
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: ListTile(
+            leading: const Icon(Icons.restaurant_menu),
+            title: Text(widget.recipe.name),
+            subtitle: Text(
+              '${widget.recipe.servingSize.toStringAsFixed(0)} ${widget.recipe.servingLabel}',
+            ),
+            trailing: widget.pickerMode
+                ? const Icon(Icons.chevron_right)
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        onPressed: widget.onTap,
+                        tooltip: 'Edit recipe',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy, size: 20),
+                        onPressed: widget.onDuplicate,
+                        tooltip: 'Duplicate recipe',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, size: 20),
+                        onPressed: widget.onDelete,
+                        tooltip: 'Delete recipe',
+                      ),
+                    ],
+                  ),
+            onTap: widget.onTap,
+            onLongPress: widget.pickerMode
+                ? null
+                : () async {
+                    setState(() => _isLongPressing = true);
+                    await HapticFeedback.mediumImpact();
+                    if (mounted) {
+                      setState(() => _isLongPressing = false);
+                      widget.onDelete();
+                    }
+                  },
+          ),
         ),
-        trailing: pickerMode
-            ? const Icon(Icons.chevron_right)
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: onTap,
-                    tooltip: 'Edit recipe',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.copy, size: 20),
-                    onPressed: onDuplicate,
-                    tooltip: 'Duplicate recipe',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 20),
-                    onPressed: onDelete,
-                    tooltip: 'Delete recipe',
-                  ),
-                ],
-              ),
-        onTap: onTap,
-        onLongPress: pickerMode ? null : onDelete,
       ),
     );
   }

@@ -15,6 +15,21 @@ class MaintenanceResult {
 }
 
 class MaintenanceCalculator {
+  /// Calculates maintenance calories using rolling linear regression.
+  ///
+  /// ## Forward-Fill Behavior
+  /// - Dates with actual weight entries use the logged weight
+  /// - Dates between first and last weight use last-known weight (forward-fill)
+  /// - **Dates before first weight entry use the oldest weight** (assumes no change prior to onboarding)
+  /// - Dates after last weight (up to yesterday) use last-known weight
+  ///
+  /// This ensures new users with sparse early data can still get maintenance estimates.
+  /// The algorithm assumes weight stability before the first logged weight.
+  ///
+  /// ## Requirements
+  /// - Minimum 7 weight points in 30-day window (after forward-fill)
+  /// - Minimum 14 paired (calories, weight-slope) data points
+  /// - Non-zero regression slope
   static MaintenanceResult? calculate({
     required List<FoodEntry> foodEntries,
     required List<BodyweightEntry> weightEntries,
@@ -57,7 +72,10 @@ class MaintenanceCalculator {
     final start = DateTime.parse(cutoffStr);
     final end = today;
     final filledWeights = <BodyweightEntry>[];
-    double? lastKnownWeight;
+
+    // Initialize to oldest weight so all prior dates use this assumption
+    final oldestWeight = recentWeights.isNotEmpty ? recentWeights.first.weightKg : null;
+    double? lastKnownWeight = oldestWeight;
     for (int d = 0; d <= end.difference(start).inDays; d++) {
       final date = start.add(Duration(days: d));
       final dateStr =
