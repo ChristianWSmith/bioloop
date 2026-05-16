@@ -1,0 +1,7 @@
+- the user should be able to delete saved recipes from the "Log Recipe" view
+
+- we should add an edit button to each saved recipe entry in the "Log Recipe" view so that the user can edit the composition of a recipe.  we can get rid of the right arrow in these entries as well, and we can replace it with the new edit button
+
+- the user should be able to change the accent color of the app by going to the dashboard and opening the settings
+
+- I was trying to test the maintenance calories regression algorithm by logging food to previous days, on the dashboard it only ever said I had logged 1/14 days.  then I tried logging my bodyweight for the previous day just in case that was causing the issue (it shouldn't), and it still said 1/14 on the dashboard.  we need to investigate and fix.  this issue persisted even after restarting the app.
