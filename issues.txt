@@ -1,0 +1,11 @@
+- the user should be able to long press logged food entries to delete them (with a confirmation)
+
+- the user should be able to long press recipes to delete them (with a confirmation)
+
+- for some reason searching the web in the food search screen intermittently fails.  this could be the fault of the openfoodfacts API.  we should add in some silent retries in case we fail a search.  the user shouldnt know when a retry occurs.  we should also differentiate the message when there's no results vs when the search failed. one indicates that the search succeeded but found nothing, the other indicates that the search didn't succeed at all.
+
+- when deleting bodyweight entries, the confirmation prompt uses a raw timestamp.  It should probably just be formatted the same way that it is on the bodyweight entry itself
+
+- we should just get rid of bodyweight goal entirely, it's not really that interesting or useful for the scope of this app
+
+- when logging food items, we should log them to the day we're currently viewing in the log tab.  this would be useful if a user remembers a food that they forgot to log on a previous day, that way they could go back and log it, which would improve the accuracy of the regression algorithm on their calculated maintenance calories
