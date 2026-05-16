@@ -357,26 +357,6 @@ void main() {
 
       expect(find.textContaining('Log 14+ days'), findsOneWidget);
     });
-
-    testWidgets('goal weight celebratory when at or past goal',
-        (tester) async {
-      final now = DateTime.now();
-      final dateStr =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      final weights = [
-        BodyweightEntry(id: 1, weightKg: 75, loggedAt: dateStr),
-      ];
-      final goals = makeGoals(calorieAdjustment: -500, goalWeightKg: 75);
-      final targets =
-          MacroTargets.compute(goals: goals, weightKg: 75, regressionMaintenance: 2500);
-
-      await pumpDashboard(
-        tester,
-        buildDashboard([], targets, weights: weights, goals: goals),
-      );
-
-      expect(find.text('You reached your goal!'), findsOneWidget);
-    });
   });
 
   group('todaysFoodProvider', () {

@@ -143,7 +143,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.byType(TextFormField), findsNWidgets(3));
+      expect(find.byType(TextFormField), findsNWidgets(2));
       expect(
         tester.widget<TextField>(
           find.descendant(
@@ -159,7 +159,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.byType(TextFormField), findsNWidgets(4));
+      expect(find.byType(TextFormField), findsNWidgets(3));
       expect(
         tester.widget<TextField>(
           find.descendant(

@@ -162,10 +162,6 @@ void main() {
       await tester.enterTextByLabel('Weight', '75');
       await tester.pumpAndSettle();
 
-      // Goal weight
-      await tester.enterTextByLabel('Goal weight (optional)', '70');
-      await tester.pumpAndSettle();
-
       // Activity level — Extra active
       await tester.scrollUntilVisible(find.text('Extra active'), 100, scrollable: _scrollable);
       await tester.tap(find.text('Extra active'));
