@@ -15,9 +15,9 @@
 | [002](#ticket-2-clamp-calorie-targets-to-non-negative-values) | Clamp calorie targets | High | ✅ Complete | 100% |
 | [003](#ticket-3-exclude-current-day-from-regression-calculation) | Exclude current day | Medium | ✅ Complete | 100% |
 | [004](#ticket-4-apply-calorie-clamping-at-openfoodfacts-import-time) | Calorie clamping timing | High | ✅ Complete | 100% |
-| [005](#ticket-5-improve-regression-algorithm--14-day-threshold--weight-stability-detection) | Regression improvements | Medium | ⬜ Pending | 0% |
+| [005](#ticket-5-improve-regression-algorithm--14-day-threshold--weight-stability-detection) | Regression improvements | Medium | ✅ Complete | 100% |
 
-**Overall Progress:** 4/5 tickets complete (80%)
+**Overall Progress:** 5/5 tickets complete (100%)
 
 ---
 
@@ -183,40 +183,40 @@ Recommended sequence (by risk and dependency):
 
 ### Checklist
 
-- [ ] **Implementation - Part A (Threshold)**
-  - [ ] Change line 175 in `maintenance_calculator.dart`: `if (pairedAvgCals.length < 14)`
+- [x] **Implementation - Part A (Threshold)**
+  - [x] Change line 175 in `maintenance_calculator.dart`: `if (pairedAvgCals.length < 14)`
   
-- [ ] **Implementation - Part B (Zero Slope)**
-  - [ ] Replace lines 203-210 to treat zero slope as valid maintenance
-  - [ ] Return `avgCalories = sx / np` as maintenance estimate
-  - [ ] Set `confidenceInterval = double.infinity` for zero-slope cases
+- [x] **Implementation - Part B (Zero Slope)**
+  - [x] Replace lines 203-210 to treat zero slope as valid maintenance
+  - [x] Return `avgCalories = sx / np` as maintenance estimate
+  - [x] Set `confidenceInterval = double.infinity` for zero-slope cases
   
-- [ ] **Testing - Update Existing Tests**
-  - [ ] Update test: "14 paired points at threshold produces result" (was 10)
-  - [ ] Update test: "no weight variance — all weights identical returns average calories" (was failure)
-  - [ ] Update test: "single weight entry — all 30 days use oldest weight, returns maintenance" (was failure)
+- [x] **Testing - Update Existing Tests**
+  - [x] Update test: "14 paired points at threshold produces result" (was 10)
+  - [x] Update test: "no weight variance — all weights identical returns average calories" (was failure)
+  - [x] Update test: "single weight entry — all 30 days use oldest weight, returns maintenance" (was failure)
   
-- [ ] **Testing - Add New Tests**
-  - [ ] Add test: "13 paired points returns insufficientPairedData failure"
-  - [ ] Add test: "stable weight with calorie variance returns average calories as maintenance"
-  - [ ] Add test: "zero slope case has infinite confidence interval"
+- [x] **Testing - Add New Tests**
+  - [x] Add test: "13 paired points returns insufficientPairedData failure"
+  - [x] Add test: "stable weight with calorie variance returns average calories as maintenance"
+  - [x] Add test: "zero slope case has infinite confidence interval"
   
-- [ ] **Verification**
-  - [ ] Run `flutter analyze` (must pass with 0 issues)
-  - [ ] Run `flutter test test/core/algorithms/maintenance_calculator_test.dart`
-  - [ ] All existing tests pass (updated for new threshold)
-  - [ ] New tests cover weight stability scenarios
-  - [ ] Manual test: Stable weight period shows maintenance estimate
+- [x] **Verification**
+  - [x] Run `flutter analyze` (must pass with 0 issues)
+  - [x] Run `flutter test test/core/algorithms/maintenance_calculator_test.dart`
+  - [x] All existing tests pass (updated for new threshold)
+  - [x] New tests cover weight stability scenarios
+  - [x] Manual test: Stable weight period shows maintenance estimate
 
 ### Notes
 
 ```
-[ ] Start: _____
-[ ] Part A Complete: _____
-[ ] Part B Complete: _____
-[ ] Tests Updated: _____
-[ ] Tests Added: _____
-[ ] Verified: _____
+[x] Start: May 17, 2026
+[x] Part A Complete: May 17, 2026
+[x] Part B Complete: May 17, 2026
+[x] Tests Updated: May 17, 2026
+[x] Tests Added: May 17, 2026
+[x] Verified: May 17, 2026
 ```
 
 ---

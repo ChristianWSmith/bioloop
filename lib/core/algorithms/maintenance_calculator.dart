@@ -172,7 +172,7 @@ class MaintenanceCalculator {
       pairedChanges.add(slope);
     }
 
-    if (pairedAvgCals.length < 10) {
+    if (pairedAvgCals.length < 14) {
       return MaintenanceResult(
         maintenanceCalories: 0,
         confidenceInterval: 0,
@@ -205,14 +205,11 @@ class MaintenanceCalculator {
 
     final rSlope = (np * sxy - sx * sy) / denom2;
     if (rSlope.abs() < 1e-10) {
-      final allWeightsIdentical = weights.toSet().length == 1;
+      final avgCalories = sx / np;
       return MaintenanceResult(
-        maintenanceCalories: 0,
-        confidenceInterval: 0,
+        maintenanceCalories: avgCalories,
+        confidenceInterval: double.infinity,
         dataPoints: np,
-        failureReason: allWeightsIdentical
-            ? MaintenanceFailureReason.noWeightVariance
-            : MaintenanceFailureReason.noCorrelation,
       );
     }
 
