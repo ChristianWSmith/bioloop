@@ -3,17 +3,17 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get light => ThemeData(
+  static ThemeData light([Color? seedColor]) => ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
+          seedColor: seedColor ?? Colors.deepPurple,
         ),
       );
 
-  static ThemeData get dark => ThemeData(
+  static ThemeData dark([Color? seedColor]) => ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
+          seedColor: seedColor ?? Colors.deepPurple,
           brightness: Brightness.dark,
         ),
       );

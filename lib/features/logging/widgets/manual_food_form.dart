@@ -10,7 +10,9 @@ const _commonUnits = [
 ];
 
 class ManualFoodForm extends ConsumerStatefulWidget {
-  const ManualFoodForm({super.key});
+  final Food? existingFood;
+
+  const ManualFoodForm({super.key, this.existingFood});
 
   @override
   ConsumerState<ManualFoodForm> createState() => _ManualFoodFormState();
@@ -29,6 +31,23 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
   String _selectedUnit = 'g';
   String? _customUnit;
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingFood != null) {
+      final food = widget.existingFood!;
+      _nameController.text = food.name;
+      _qtyController.text = food.servingQuantity.toString();
+      _caloriesController.text = food.caloriesPerServing.toString();
+      _proteinController.text = food.proteinPerServing.toString();
+      _carbsController.text = food.carbsPerServing.toString();
+      _fatController.text = food.fatPerServing.toString();
+      _selectedUnit = food.servingUnit;
+      if (!_commonUnits.contains(food.servingUnit)) {
+        _customUnit = food.servingUnit;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -118,38 +137,70 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
     try {
       final servingLabel = _buildLabel();
 
-      final id = await db.insertFood(FoodsCompanion.insert(
-        name: _nameController.text.trim(),
-        servingLabel: servingLabel,
-        servingQuantity: Value(qty),
-        servingUnit: Value(_unit),
-        caloriesPerServing: double.parse(_caloriesController.text),
-        proteinPerServing: double.parse(_proteinController.text),
-        carbsPerServing: double.parse(_carbsController.text),
-        fatPerServing: double.parse(_fatController.text),
-        barcode: const Value(null),
-        brand: const Value(null),
-        source: const Value('manual'),
-        createdAt: now,
-      ));
+      if (widget.existingFood != null) {
+        await db.updateFoodById(widget.existingFood!.id, FoodsCompanion(
+          name: Value(_nameController.text.trim()),
+          servingLabel: Value(servingLabel),
+          servingQuantity: Value(qty),
+          servingUnit: Value(_unit),
+          caloriesPerServing: Value(double.parse(_caloriesController.text)),
+          proteinPerServing: Value(double.parse(_proteinController.text)),
+          carbsPerServing: Value(double.parse(_carbsController.text)),
+          fatPerServing: Value(double.parse(_fatController.text)),
+        ));
 
-      if (mounted) {
-        final food = Food(
-          id: id,
+        if (mounted) {
+          final food = Food(
+            id: widget.existingFood!.id,
+            name: _nameController.text.trim(),
+            servingLabel: servingLabel,
+            servingQuantity: qty,
+            servingUnit: _unit,
+            caloriesPerServing: double.parse(_caloriesController.text),
+            proteinPerServing: double.parse(_proteinController.text),
+            carbsPerServing: double.parse(_carbsController.text),
+            fatPerServing: double.parse(_fatController.text),
+            barcode: widget.existingFood!.barcode,
+            brand: widget.existingFood!.brand,
+            source: widget.existingFood!.source,
+            createdAt: widget.existingFood!.createdAt,
+          );
+          Navigator.of(context).pop(food);
+        }
+      } else {
+        final id = await db.insertFood(FoodsCompanion.insert(
           name: _nameController.text.trim(),
           servingLabel: servingLabel,
-          servingQuantity: qty,
-          servingUnit: _unit,
+          servingQuantity: Value(qty),
+          servingUnit: Value(_unit),
           caloriesPerServing: double.parse(_caloriesController.text),
           proteinPerServing: double.parse(_proteinController.text),
           carbsPerServing: double.parse(_carbsController.text),
           fatPerServing: double.parse(_fatController.text),
-          barcode: null,
-          brand: null,
-          source: 'manual',
+          barcode: const Value(null),
+          brand: const Value(null),
+          source: const Value('manual'),
           createdAt: now,
-        );
-        Navigator.of(context).pop(food);
+        ));
+
+        if (mounted) {
+          final food = Food(
+            id: id,
+            name: _nameController.text.trim(),
+            servingLabel: servingLabel,
+            servingQuantity: qty,
+            servingUnit: _unit,
+            caloriesPerServing: double.parse(_caloriesController.text),
+            proteinPerServing: double.parse(_proteinController.text),
+            carbsPerServing: double.parse(_carbsController.text),
+            fatPerServing: double.parse(_fatController.text),
+            barcode: null,
+            brand: null,
+            source: 'manual',
+            createdAt: now,
+          );
+          Navigator.of(context).pop(food);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -174,7 +225,9 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Custom Food')),
+      appBar: AppBar(
+        title: Text(widget.existingFood != null ? 'Edit Food' : 'Custom Food'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
