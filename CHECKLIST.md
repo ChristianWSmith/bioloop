@@ -12,12 +12,12 @@
 | Ticket | Issue | Priority | Status | Progress |
 |--------|-------|----------|--------|----------|
 | [001](#ticket-1-set-log-screen-as-default-tab) | Log screen default tab | High | ✅ Complete | 100% |
-| [002](#ticket-2-clamp-calorie-targets-to-non-negative-values) | Clamp calorie targets | High | ⬜ Pending | 0% |
+| [002](#ticket-2-clamp-calorie-targets-to-non-negative-values) | Clamp calorie targets | High | ✅ Complete | 100% |
 | [003](#ticket-3-exclude-current-day-from-regression-calculation) | Exclude current day | Medium | ⬜ Pending | 0% |
 | [004](#ticket-4-apply-calorie-clamping-at-openfoodfacts-import-time) | Calorie clamping timing | High | ⬜ Pending | 0% |
 | [005](#ticket-5-improve-regression-algorithm--14-day-threshold--weight-stability-detection) | Regression improvements | Medium | ⬜ Pending | 0% |
 
-**Overall Progress:** 1/5 tickets complete (20%)
+**Overall Progress:** 2/5 tickets complete (40%)
 
 ---
 
@@ -79,28 +79,28 @@ Recommended sequence (by risk and dependency):
 
 ### Checklist
 
-- [ ] **Implementation**
-  - [ ] Add `targetCalories = max(0.0, targetCalories);` in `MacroTargets.compute()` after line 50
-  - [ ] Verify `dart:math` import exists (should already be there)
+- [x] **Implementation**
+  - [x] Add `targetCalories = max(0.0, targetCalories);` in `MacroTargets.compute()` after line 50
+  - [x] Verify `dart:math` import exists (should already be there)
   
-- [ ] **Testing**
-  - [ ] Add test: "target calories clamped to 0 when deficit exceeds regression maintenance"
-  - [ ] Add test: "target calories clamped to 0 when Mifflin-St Jeor estimate is very low"
-  - [ ] Add test: "normal deficit produces correct positive target (not clamped)"
-  - [ ] Run `flutter analyze` (must pass with 0 issues)
-  - [ ] Run `flutter test test/providers/macro_targets_provider_test.dart`
+- [x] **Testing**
+  - [x] Add test: "target calories clamped to 0 when deficit exceeds regression maintenance"
+  - [x] Add test: "target calories clamped to 0 when Mifflin-St Jeor estimate is very low"
+  - [x] Add test: "normal deficit produces correct positive target (not clamped)"
+  - [x] Run `flutter analyze` (must pass with 0 issues)
+  - [x] Run `flutter test test/providers/macro_targets_provider_test.dart`
   
-- [ ] **Verification**
-  - [ ] All existing tests pass
-  - [ ] New tests verify boundary conditions
-  - [ ] Target calories never negative in manual testing
+- [x] **Verification**
+  - [x] All existing tests pass
+  - [x] New tests verify boundary conditions
+  - [x] Target calories never negative in manual testing
 
 ### Notes
 
 ```
-[ ] Start: _____
-[ ] Complete: _____
-[ ] Verified: _____
+[x] Start: May 17, 2026
+[x] Complete: May 17, 2026
+[x] Verified: May 17, 2026
 ```
 
 ---
