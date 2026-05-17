@@ -60,11 +60,20 @@ class _AppState extends ConsumerState<App> {
       _checkOnboarding();
     });
 
+    final goalsAsync = ref.watch(userGoalsProvider);
+    final seedColor = goalsAsync.when(
+      data: (goals) => goals?.accentColorSeed != null
+          ? Color(goals!.accentColorSeed!)
+          : null,
+      loading: () => null,
+      error: (_, _) => null,
+    );
+
     return MaterialApp(
       title: 'BioLoop',
       themeMode: ThemeMode.system,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: AppTheme.light(seedColor),
+      darkTheme: AppTheme.dark(seedColor),
       home: _buildHome(),
     );
   }

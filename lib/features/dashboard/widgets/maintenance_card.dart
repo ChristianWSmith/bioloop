@@ -18,19 +18,13 @@ final _countDataDaysProvider = FutureProvider<int>((ref) async {
       '${cutoff.year}-${cutoff.month.toString().padLeft(2, '0')}-${cutoff.day.toString().padLeft(2, '0')}';
 
   final foods = await db.getEntriesPaginated(limit: 365);
-  final weights = await db.getWeights();
 
   final foodDates = foods
       .map((e) => e.loggedAt.substring(0, 10))
       .where((d) => d.compareTo(cutoffStr) >= 0)
       .toSet();
 
-  final weightDates = weights
-      .map((e) => e.loggedAt.substring(0, 10))
-      .where((d) => d.compareTo(cutoffStr) >= 0)
-      .toSet();
-
-  return foodDates.intersection(weightDates).length;
+  return foodDates.length;
 });
 
 class MaintenanceCard extends ConsumerWidget {

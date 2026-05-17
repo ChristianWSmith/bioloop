@@ -65,6 +65,8 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
         onQuickLog: (item) async {
           await _showQuickLogSheet(item);
         },
+        onEditFood: _openEditFood,
+        onDeleteFood: _deleteFood,
       ),
     );
 
@@ -79,7 +81,7 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
   Future<void> _onLogRecipe() async {
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => RecipeListScreen(pickerMode: true, loggedAt: _currentDate),
+        builder: (_) => RecipeListScreen(loggedAt: _currentDate),
       ),
     );
   }
@@ -101,6 +103,70 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
     if (food != null && mounted) {
       final item = FoodSearchItem.fromFood(food);
       _showQuickLogSheet(item);
+    }
+  }
+
+  Future<void> _openEditFood(Food food) async {
+    final edited = await Navigator.of(context).push<Food>(
+      MaterialPageRoute(
+        builder: (_) => ManualFoodForm(existingFood: food),
+      ),
+    );
+    if (edited != null && mounted) {
+      ref.invalidate(todaysFoodProvider);
+      ref.read(dataTriggerProvider.notifier).state++;
+    }
+  }
+
+  Future<void> _deleteFood(Food food) async {
+    final db = ref.read(databaseProvider);
+    final allEntries = await db.getEntriesPaginated(limit: 1000);
+    final entryCount = allEntries.where((e) => e.foodId == food.id).length;
+
+    if (!mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete food?'),
+        content: entryCount > 0
+            ? Text('Delete "${food.name}"? This will also delete $entryCount log entries.')
+            : Text('Delete "${food.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await db.deleteFood(food.id);
+      ref.invalidate(todaysFoodProvider);
+      ref.read(dataTriggerProvider.notifier).state++;
+    } catch (e) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Error'),
+            content: Text('Failed to delete: $e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
     }
   }
 

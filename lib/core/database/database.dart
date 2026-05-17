@@ -134,6 +134,17 @@ class AppDatabase extends _$AppDatabase {
     await into(foods).insert(food);
   }
 
+  Future<void> updateFoodById(int id, FoodsCompanion food) async {
+    await (update(foods)..where((f) => f.id.equals(id))).write(food);
+  }
+
+  Future<void> deleteFood(int id) async {
+    await transaction(() async {
+      await (delete(foodEntries)..where((e) => e.foodId.equals(id))).go();
+      await (delete(foods)..where((f) => f.id.equals(id))).go();
+    });
+  }
+
   // ── Food Entries DAO ──────────────────────────────────────────
 
   Future<int> insertEntry(FoodEntriesCompanion entry) async {

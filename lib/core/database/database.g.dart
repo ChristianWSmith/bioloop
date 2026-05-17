@@ -2329,6 +2329,17 @@ class $UserGoalsTable extends UserGoals
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _accentColorSeedMeta = const VerificationMeta(
+    'accentColorSeed',
+  );
+  @override
+  late final GeneratedColumn<int> accentColorSeed = GeneratedColumn<int>(
+    'accent_color_seed',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -2354,6 +2365,7 @@ class $UserGoalsTable extends UserGoals
     useImperial,
     activityLevel,
     onboardingCompleted,
+    accentColorSeed,
     updatedAt,
   ];
   @override
@@ -2457,6 +2469,15 @@ class $UserGoalsTable extends UserGoals
         ),
       );
     }
+    if (data.containsKey('accent_color_seed')) {
+      context.handle(
+        _accentColorSeedMeta,
+        accentColorSeed.isAcceptableOrUnknown(
+          data['accent_color_seed']!,
+          _accentColorSeedMeta,
+        ),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -2522,6 +2543,10 @@ class $UserGoalsTable extends UserGoals
         DriftSqlType.int,
         data['${effectivePrefix}onboarding_completed'],
       )!,
+      accentColorSeed: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}accent_color_seed'],
+      ),
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}updated_at'],
@@ -2548,6 +2573,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
   final int useImperial;
   final int activityLevel;
   final int onboardingCompleted;
+  final int? accentColorSeed;
   final String updatedAt;
   const UserGoal({
     required this.id,
@@ -2562,6 +2588,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     required this.useImperial,
     required this.activityLevel,
     required this.onboardingCompleted,
+    this.accentColorSeed,
     required this.updatedAt,
   });
   @override
@@ -2589,6 +2616,9 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     map['use_imperial'] = Variable<int>(useImperial);
     map['activity_level'] = Variable<int>(activityLevel);
     map['onboarding_completed'] = Variable<int>(onboardingCompleted);
+    if (!nullToAbsent || accentColorSeed != null) {
+      map['accent_color_seed'] = Variable<int>(accentColorSeed);
+    }
     map['updated_at'] = Variable<String>(updatedAt);
     return map;
   }
@@ -2613,6 +2643,9 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       useImperial: Value(useImperial),
       activityLevel: Value(activityLevel),
       onboardingCompleted: Value(onboardingCompleted),
+      accentColorSeed: accentColorSeed == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accentColorSeed),
       updatedAt: Value(updatedAt),
     );
   }
@@ -2639,6 +2672,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       onboardingCompleted: serializer.fromJson<int>(
         json['onboardingCompleted'],
       ),
+      accentColorSeed: serializer.fromJson<int?>(json['accentColorSeed']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
     );
   }
@@ -2658,6 +2692,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       'useImperial': serializer.toJson<int>(useImperial),
       'activityLevel': serializer.toJson<int>(activityLevel),
       'onboardingCompleted': serializer.toJson<int>(onboardingCompleted),
+      'accentColorSeed': serializer.toJson<int?>(accentColorSeed),
       'updatedAt': serializer.toJson<String>(updatedAt),
     };
   }
@@ -2675,6 +2710,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     int? useImperial,
     int? activityLevel,
     int? onboardingCompleted,
+    Value<int?> accentColorSeed = const Value.absent(),
     String? updatedAt,
   }) => UserGoal(
     id: id ?? this.id,
@@ -2691,6 +2727,9 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     useImperial: useImperial ?? this.useImperial,
     activityLevel: activityLevel ?? this.activityLevel,
     onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+    accentColorSeed: accentColorSeed.present
+        ? accentColorSeed.value
+        : this.accentColorSeed,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   UserGoal copyWithCompanion(UserGoalsCompanion data) {
@@ -2719,6 +2758,9 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       onboardingCompleted: data.onboardingCompleted.present
           ? data.onboardingCompleted.value
           : this.onboardingCompleted,
+      accentColorSeed: data.accentColorSeed.present
+          ? data.accentColorSeed.value
+          : this.accentColorSeed,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -2738,6 +2780,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
           ..write('useImperial: $useImperial, ')
           ..write('activityLevel: $activityLevel, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
+          ..write('accentColorSeed: $accentColorSeed, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -2757,6 +2800,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     useImperial,
     activityLevel,
     onboardingCompleted,
+    accentColorSeed,
     updatedAt,
   );
   @override
@@ -2775,6 +2819,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
           other.useImperial == this.useImperial &&
           other.activityLevel == this.activityLevel &&
           other.onboardingCompleted == this.onboardingCompleted &&
+          other.accentColorSeed == this.accentColorSeed &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -2791,6 +2836,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
   final Value<int> useImperial;
   final Value<int> activityLevel;
   final Value<int> onboardingCompleted;
+  final Value<int?> accentColorSeed;
   final Value<String> updatedAt;
   final Value<int> rowid;
   const UserGoalsCompanion({
@@ -2806,6 +2852,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     this.useImperial = const Value.absent(),
     this.activityLevel = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
+    this.accentColorSeed = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2822,6 +2869,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     this.useImperial = const Value.absent(),
     this.activityLevel = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
+    this.accentColorSeed = const Value.absent(),
     required String updatedAt,
     this.rowid = const Value.absent(),
   }) : goalType = Value(goalType),
@@ -2839,6 +2887,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     Expression<int>? useImperial,
     Expression<int>? activityLevel,
     Expression<int>? onboardingCompleted,
+    Expression<int>? accentColorSeed,
     Expression<String>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -2856,6 +2905,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
       if (activityLevel != null) 'activity_level': activityLevel,
       if (onboardingCompleted != null)
         'onboarding_completed': onboardingCompleted,
+      if (accentColorSeed != null) 'accent_color_seed': accentColorSeed,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2874,6 +2924,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     Value<int>? useImperial,
     Value<int>? activityLevel,
     Value<int>? onboardingCompleted,
+    Value<int?>? accentColorSeed,
     Value<String>? updatedAt,
     Value<int>? rowid,
   }) {
@@ -2890,6 +2941,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
       useImperial: useImperial ?? this.useImperial,
       activityLevel: activityLevel ?? this.activityLevel,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      accentColorSeed: accentColorSeed ?? this.accentColorSeed,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -2934,6 +2986,9 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     if (onboardingCompleted.present) {
       map['onboarding_completed'] = Variable<int>(onboardingCompleted.value);
     }
+    if (accentColorSeed.present) {
+      map['accent_color_seed'] = Variable<int>(accentColorSeed.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<String>(updatedAt.value);
     }
@@ -2958,6 +3013,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
           ..write('useImperial: $useImperial, ')
           ..write('activityLevel: $activityLevel, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
+          ..write('accentColorSeed: $accentColorSeed, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -5071,6 +5127,7 @@ typedef $$UserGoalsTableCreateCompanionBuilder =
       Value<int> useImperial,
       Value<int> activityLevel,
       Value<int> onboardingCompleted,
+      Value<int?> accentColorSeed,
       required String updatedAt,
       Value<int> rowid,
     });
@@ -5088,6 +5145,7 @@ typedef $$UserGoalsTableUpdateCompanionBuilder =
       Value<int> useImperial,
       Value<int> activityLevel,
       Value<int> onboardingCompleted,
+      Value<int?> accentColorSeed,
       Value<String> updatedAt,
       Value<int> rowid,
     });
@@ -5158,6 +5216,11 @@ class $$UserGoalsTableFilterComposer
 
   ColumnFilters<int> get onboardingCompleted => $composableBuilder(
     column: $table.onboardingCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get accentColorSeed => $composableBuilder(
+    column: $table.accentColorSeed,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5236,6 +5299,11 @@ class $$UserGoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get accentColorSeed => $composableBuilder(
+    column: $table.accentColorSeed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -5299,6 +5367,11 @@ class $$UserGoalsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get accentColorSeed => $composableBuilder(
+    column: $table.accentColorSeed,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
@@ -5343,6 +5416,7 @@ class $$UserGoalsTableTableManager
                 Value<int> useImperial = const Value.absent(),
                 Value<int> activityLevel = const Value.absent(),
                 Value<int> onboardingCompleted = const Value.absent(),
+                Value<int?> accentColorSeed = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => UserGoalsCompanion(
@@ -5358,6 +5432,7 @@ class $$UserGoalsTableTableManager
                 useImperial: useImperial,
                 activityLevel: activityLevel,
                 onboardingCompleted: onboardingCompleted,
+                accentColorSeed: accentColorSeed,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -5375,6 +5450,7 @@ class $$UserGoalsTableTableManager
                 Value<int> useImperial = const Value.absent(),
                 Value<int> activityLevel = const Value.absent(),
                 Value<int> onboardingCompleted = const Value.absent(),
+                Value<int?> accentColorSeed = const Value.absent(),
                 required String updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => UserGoalsCompanion.insert(
@@ -5390,6 +5466,7 @@ class $$UserGoalsTableTableManager
                 useImperial: useImperial,
                 activityLevel: activityLevel,
                 onboardingCompleted: onboardingCompleted,
+                accentColorSeed: accentColorSeed,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),

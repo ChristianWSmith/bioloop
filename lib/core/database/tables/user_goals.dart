@@ -13,5 +13,6 @@ class UserGoals extends Table {
   IntColumn get useImperial => integer().withDefault(const Constant(0))();
   IntColumn get activityLevel => integer().withDefault(const Constant(3))();
   IntColumn get onboardingCompleted => integer().withDefault(const Constant(0))();
+  IntColumn get accentColorSeed => integer().nullable()();
   TextColumn get updatedAt => text()();
 }

@@ -541,30 +541,11 @@ void main() {
       expect(find.text('400 g'), findsOneWidget);
     });
 
-    testWidgets('FAB is visible in non-picker mode', (tester) async {
+    testWidgets('FAB is visible', (tester) async {
       final db = AppDatabase.createInMemory();
       addTearDown(() => db.close());
 
       await tester.pumpWidget(buildTestApp(db));
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.add), findsAtLeast(1));
-    });
-
-    testWidgets('FAB is visible in picker mode', (tester) async {
-      final db = AppDatabase.createInMemory();
-      addTearDown(() => db.close());
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            databaseProvider.overrideWithValue(db),
-          ],
-          child: const MaterialApp(
-            home: RecipeListScreen(pickerMode: true),
-          ),
-        ),
-      );
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.add), findsAtLeast(1));
@@ -612,7 +593,7 @@ void main() {
       expect(find.textContaining('No recipes yet'), findsOneWidget);
     });
 
-    testWidgets('tooltip shows edit message in management mode', (tester) async {
+    testWidgets('tooltip shows unified message', (tester) async {
       final db = AppDatabase.createInMemory();
       addTearDown(() => db.close());
       final now = DateTime.now().toIso8601String();
@@ -632,37 +613,7 @@ void main() {
       expect(tooltipFinder, findsWidgets);
 
       final tooltips = tester.widgetList<Tooltip>(tooltipFinder).toList();
-      expect(tooltips.any((t) => t.message == 'Tap to edit'), isTrue);
-    });
-
-    testWidgets('tooltip shows log message in picker mode', (tester) async {
-      final db = AppDatabase.createInMemory();
-      addTearDown(() => db.close());
-      final now = DateTime.now().toIso8601String();
-
-      await db.insertRecipe(RecipesCompanion.insert(
-        name: 'Test',
-        servingSize: 100,
-        servingLabel: 'g',
-        createdAt: now,
-        updatedAt: now,
-      ));
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [databaseProvider.overrideWithValue(db)],
-          child: const MaterialApp(
-            home: RecipeListScreen(pickerMode: true),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final tooltipFinder = find.byType(Tooltip);
-      expect(tooltipFinder, findsWidgets);
-
-      final tooltips = tester.widgetList<Tooltip>(tooltipFinder).toList();
-      expect(tooltips.any((t) => t.message == 'Log this recipe'), isTrue);
+      expect(tooltips.any((t) => t.message == 'Tap to log, long-press to delete'), isTrue);
     });
   });
 
