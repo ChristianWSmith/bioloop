@@ -5,9 +5,6 @@ import '../database/database.dart';
 enum MaintenanceFailureReason {
   noWeights,
   insufficientPairedData,
-  noCalorieVariance,
-  noWeightVariance,
-  noCorrelation,
 }
 
 class MaintenanceResult {
@@ -39,7 +36,10 @@ class MaintenanceCalculator {
   /// ## Requirements
   /// - Minimum 7 weight points in 30-day window (after forward-fill)
   /// - Minimum 10 paired (calories, weight-slope) data points
-  /// - Non-zero regression slope
+  ///
+  /// ## Zero Slope Handling
+  /// If the regression slope is zero (weight stability despite calorie variance),
+  /// returns average calories as maintenance with infinite confidence interval.
   static MaintenanceResult? calculate({
     required List<FoodEntry> foodEntries,
     required List<BodyweightEntry> weightEntries,
@@ -172,7 +172,7 @@ class MaintenanceCalculator {
       pairedChanges.add(slope);
     }
 
-    if (pairedAvgCals.length < 14) {
+    if (pairedAvgCals.length < 10) {
       return MaintenanceResult(
         maintenanceCalories: 0,
         confidenceInterval: 0,
@@ -194,16 +194,7 @@ class MaintenanceCalculator {
     final my = sy / np;
 
     final denom2 = np * sx2 - sx * sx;
-    if (denom2.abs() < 1e-10) {
-      return MaintenanceResult(
-        maintenanceCalories: 0,
-        confidenceInterval: 0,
-        dataPoints: np,
-        failureReason: MaintenanceFailureReason.noCalorieVariance,
-      );
-    }
-
-    final rSlope = (np * sxy - sx * sy) / denom2;
+    final rSlope = denom2.abs() < 1e-10 ? 0 : (np * sxy - sx * sy) / denom2;
     if (rSlope.abs() < 1e-10) {
       final avgCalories = sx / np;
       return MaintenanceResult(

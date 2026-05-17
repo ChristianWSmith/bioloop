@@ -1,0 +1,12 @@
+We have some issues with maintenance calorie calculation.
+
+Currently, the dashboard indicates that 10 days of data are needed before the regression algorithm kicks in.  This is misleading because its actually 14 days.
+
+When the regression algorithm DOES kick in, it breaks the dashboard screen.  From the projected weight change indicator downward, the whole screen is just a gray box that seemingly scrolls forever.
+
+We need to get rid of the following MaintenanceFailureReasons
+  - noCalorieVariance: used, but shouldn't be necessary
+  - noWeightVariance: unused
+  - noCorrelation: unused
+
+If the regression slope IS zero, then that means the user ate perfectly at maintenance.  We can sidestep the whole algorithm, but we shouldn't just fail out.
