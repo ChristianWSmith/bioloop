@@ -79,14 +79,55 @@ Track progress on issues from `issues.txt`. See individual tickets in `tickets/`
 
 ---
 
+### Ticket 6: Food Edit/Delete UI in My Foods Tab
+**Priority:** Medium | **Complexity:** Medium | **File:** `tickets/006-food-edit-delete-ui.md`
+
+- [ ] Add edit button to each food item in "My Foods" tab
+- [ ] Add delete button to each food item
+- [ ] Implement long-press delete with confirmation
+- [ ] Pass edit/delete callbacks through `FoodSearchDelegate`
+- [ ] Implement delete confirmation dialog with cascade warning
+- [ ] Implement edit food handler in `CombinedLogScreen`
+- [ ] Test tap, long-press, edit, delete flows
+- [ ] Test cascade delete of referencing log entries
+- [ ] Run `flutter analyze > analyze.log 2>&1` — zero issues
+- [ ] Run `flutter test > test.log 2>&1` — all tests pass
+
+**Status:** ⬜ Not Started
+
+---
+
+### Ticket 7: Manual Food Edit Form
+**Priority:** Medium | **Complexity:** Medium | **File:** `tickets/007-manual-food-edit-form.md`
+
+- [ ] Add `existingFood` parameter to `ManualFoodForm`
+- [ ] Pre-fill form fields when editing
+- [ ] Update app bar title based on edit/create mode
+- [ ] Modify save logic to update existing food
+- [ ] Add `updateFoodById()` method to database
+- [ ] Test edit mode pre-filling
+- [ ] Test save updates database correctly
+- [ ] Test create mode still works unchanged
+- [ ] Run `flutter analyze > analyze.log 2>&1` — zero issues
+- [ ] Run `flutter test > test.log 2>&1` — all tests pass
+
+**Status:** ⬜ Not Started
+
+---
+
 ## Execution Order
 
 ```
 Ticket 1 → Ticket 2 → Ticket 3 → Ticket 4 → Ticket 5
-     │           │           └─────┬─────┘
-     │           │                 │
-     └───────────┴─────────────────┘
-          Independent         Dependent chain
+      │           │           └─────┬─────┘
+      │           │                 │
+      └───────────┴─────────────────┘
+           Independent         Dependent chain
+
+Ticket 7 → Ticket 6
+   │        │
+   └────────┘
+    Dependent
 ```
 
 **Recommended sequence:**
@@ -95,6 +136,8 @@ Ticket 1 → Ticket 2 → Ticket 3 → Ticket 4 → Ticket 5
 3. **Ticket 3** — Database schema (prerequisite for 4 & 5)
 4. **Ticket 4** — Theme system (requires 3)
 5. **Ticket 5** — Color picker UI (requires 3 & 4)
+6. **Ticket 7** — Manual food edit form (standalone, prerequisite for 6)
+7. **Ticket 6** — Food edit/delete UI (requires 7)
 
 ---
 

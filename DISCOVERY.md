@@ -269,3 +269,164 @@ final _countDataDaysProvider = FutureProvider<int>((ref) async {
 1. **Issue 4 first** - Smallest change, immediate user benefit, no UI risk
 2. **Issues 1 & 2 second** - Core functionality improvement, well-defined scope
 3. **Issue 3 last** - Requires most files changed, involves design decisions (color palette)
+
+---
+
+## Issue 5: Edit/Delete Saved Foods from "My Foods" View
+
+### Current Implementation
+
+**Files:** `lib/features/logging/widgets/food_search_delegate.dart`, `lib/features/logging/widgets/manual_food_form.dart`
+
+The "My Foods" tab in `FoodSearchDelegate` displays a list of local foods from `searchLocalByRecency()`. Current interaction:
+- Tap → Opens `QuickFoodLogSheet` to log the food
+- "Create custom food" ListTile → Opens `ManualFoodForm` to create new food
+- No edit or delete functionality
+
+**Key code sections:**
+- Line 182-243: `_LocalSearchContent` widget builds the list
+- Line 224-239: ListTile for each food item (tap only, no trailing actions)
+- Line 210-217: "Create custom food" ListTile at top of list
+
+**Current flow:**
+```
+FoodSearchDelegate (search mode: "local")
+  → _LocalSearchContent
+    → ListView
+      → "Create custom food" ListTile
+      → Food items (ListTile with onTap → onQuickLog or onSelectItem)
+```
+
+**ManualFoodForm capabilities** (creation only):
+- Name (required)
+- Quantity + Unit (dropdown with 11 common units + custom option)
+- Calories per serving (required)
+- Protein/Carbs/Fat per serving in grams (required, auto-computes calories via 4-4-9 rule)
+- Saves to `foods` table via `db.insertFood()`
+
+### Proposed Changes
+
+**Unified interaction model for "My Foods" tab:**
+
+| Action | Behavior |
+|--------|----------|
+| **Tap** | Open `QuickFoodLogSheet` to log the food (unchanged) |
+| **Long-press** | Delete food with confirmation dialog |
+| **Edit button** | Open `ManualFoodForm` in edit mode (pre-filled with existing data) |
+
+**UI changes to food list items:**
+- Add `Icons.edit` button to trailing of each ListTile
+- Add `Icons.delete_outline` button to trailing (or keep delete on long-press only)
+- Long-press triggers delete confirmation with haptic feedback (similar to recipe pattern)
+
+**Files to modify:**
+1. `lib/features/logging/widgets/food_search_delegate.dart`
+   - Update `_LocalSearchContent` to accept `onEditFood` and `onDeleteFood` callbacks
+   - Modify ListTile to include trailing edit/delete buttons
+   - Add long-press gesture detector for delete
+   - Pass callbacks from `FoodSearchDelegate`
+
+2. `lib/features/logging/widgets/manual_food_form.dart`
+   - Add optional `Food? existingFood` parameter
+   - Pre-fill all form fields when editing
+   - Change save logic to `db.upsertFood()` or `db.updateFood()` when editing
+   - Update app bar title ("Edit Food" vs "Custom Food")
+
+3. `lib/core/database/database.dart` (may need update)
+   - Add `updateFood()` method OR use existing `upsertFood()` (already exists, line 118-128)
+   - `upsertFood()` updates by barcode if present, otherwise inserts — may need modification for manual foods
+
+**Edge cases to consider:**
+- **Food entries reference deleted foods**: When deleting a food, what happens to existing `food_entries` that reference it?
+  - Option A: Prevent deletion if food has entries (show error dialog)
+  - Option B: Cascade delete (delete all entries referencing this food)
+  - Option C: Soft delete (mark food as deleted but keep in DB)
+  - **Recommendation:** Option A — show dialog "This food is used in X log entries. Delete anyway?" with cancel/confirm. If confirmed, cascade delete.
+
+- **Editing foods that are already logged**: Should changes propagate to past entries?
+  - **No** — past entries are snapshots at time of logging. Only affect future logs.
+
+- **API-imported foods**: Should users be able to edit foods from OpenFoodFacts?
+  - Per issue: only "My Foods" tab, which includes all local foods
+  - Foods with `source == 'open_food_facts'` can be edited (user may want to fix serving size, etc.)
+
+### Implementation Details
+
+**Edit form flow:**
+```
+Tap edit button on food item
+  → Open ManualFoodForm(existingFood: food)
+    → Form pre-filled with food's data
+    → User edits fields
+    → Tap Save
+      → db.upsertFood() with food.id
+      → Pop from navigator
+      → Food list refreshes (via callback or provider invalidation)
+```
+
+**Delete flow:**
+```
+Long-press or tap delete button
+  → Show confirmation dialog
+    → "Delete [food name]? This will also delete X log entries."
+    → Cancel / Delete buttons
+  → If confirmed:
+    → Delete food_entries referencing this food (FK-safe order)
+    → Delete food from foods table
+    → Show success snackbar or just close
+```
+
+**Database operations:**
+
+For editing:
+```dart
+await db.upsertFood(FoodsCompanion(
+  id: Value(existingFood.id),  // Include ID for update
+  name: Value(newName),
+  servingLabel: Value(newLabel),
+  servingQuantity: Value(newQty),
+  servingUnit: Value(newUnit),
+  caloriesPerServing: Value(newCals),
+  proteinPerServing: Value(newProtein),
+  carbsPerServing: Value(newCarbs),
+  fatPerServing: Value(newFat),
+  // barcode, brand, source, createdAt unchanged or Value.null
+));
+```
+
+For deletion (FK-safe order):
+```dart
+await transaction(() async {
+  // First delete entries that reference this food
+  await (delete(foodEntries)..where((e) => e.foodId.equals(foodId))).go();
+  // Then delete the food itself
+  await (delete(foods)..where((f) => f.id.equals(foodId))).go();
+});
+```
+
+### Complexity Assessment
+
+| Aspect | Complexity | Notes |
+|--------|-----------|-------|
+| Edit form | Medium | Reuse `ManualFoodForm`, add pre-fill logic |
+| Delete UI | Low | Add buttons + long-press, similar to recipes |
+| Database update | Low | `upsertFood()` exists, may need minor tweak |
+| Delete with FK handling | Medium | Need to count/delete referencing entries first |
+| Provider invalidation | Low | May need new trigger or refresh mechanism |
+
+**Estimated effort:**
+- Ticket 6 (UI changes): 45 minutes
+- Ticket 7 (Edit form + DB): 40 minutes
+
+---
+
+## Summary Table
+
+| Issue | Files | Estimated LOC | Complexity | Priority |
+|-------|-------|---------------|------------|----------|
+| 1 & 2: Recipe management | `recipe_list_screen.dart`, `combined_log_screen.dart` | ~40 | Low | High |
+| 3: Accent color | `user_goals.dart`, `settings_screen.dart`, `theme.dart`, `app.dart` | ~80 | Medium | Medium |
+| 4: Maintenance progress | `maintenance_card.dart` | ~5 | Low | High |
+| 5: Food edit/delete | `food_search_delegate.dart`, `manual_food_form.dart`, `database.dart` | ~90 | Medium | Medium |
+
+**Total:** ~215 lines across 9 files

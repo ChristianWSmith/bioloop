@@ -1,1 +1,0 @@
-- apart from editing and deleting recipes, we also need to add the ability to edit and delete saved foods.  this should be possible from the food search view while toggled to "my foods".  in that similarly there should be an edit button on the right side of each food item list entry, and long-pressing the item should delete it (with confirmation of course)
