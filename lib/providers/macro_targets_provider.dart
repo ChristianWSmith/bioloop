@@ -87,9 +87,14 @@ final macroTargetsProvider = FutureProvider<MacroTargets>((ref) async {
 
   final weightKg = entries.isNotEmpty ? entries.first.weightKg : null;
 
+  final hasValidMaintenance = maintenanceResult != null &&
+      maintenanceResult.failureReason == null;
+
   return MacroTargets.compute(
     goals: goals,
     weightKg: weightKg,
-    regressionMaintenance: maintenanceResult?.maintenanceCalories,
+    regressionMaintenance: hasValidMaintenance
+        ? maintenanceResult.maintenanceCalories
+        : null,
   );
 });

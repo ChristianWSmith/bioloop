@@ -80,16 +80,16 @@ void main() {
       expect(result, isNotNull);
       expect(result!.maintenanceCalories,
           closeTo(trueMaintenance, trueMaintenance * 0.05));
-      expect(result.dataPoints, greaterThanOrEqualTo(14));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
     });
 
-    test('insufficient data — 10 data points returns null', () {
+    test('insufficient data — 5 data points returns null with reason', () {
       final now = DateTime.now();
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
-      for (int i = 0; i < 10; i++) {
-        final day = now.subtract(Duration(days: 9 - i));
+      for (int i = 0; i < 5; i++) {
+        final day = now.subtract(Duration(days: 4 - i));
         foodEntries.add(makeFood(id: i, calories: 2500, date: day));
         weightEntries.add(makeWeight(id: i, weightKg: 80, date: day));
       }
@@ -100,26 +100,57 @@ void main() {
         now: now,
       );
 
-      expect(result, isNull);
+      expect(result, isNotNull);
+      expect(result!.failureReason, MaintenanceFailureReason.insufficientPairedData);
+      expect(result.dataPoints, lessThan(10));
     });
 
-    test('empty input returns null', () {
+    test('10 paired points at threshold produces result', () {
+      final now = DateTime.now();
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+
+      double weight = 80.0;
+      for (int i = 0; i < 30; i++) {
+        final day = now.subtract(Duration(days: 29 - i));
+        weight -= 0.05;
+        weightEntries.add(makeWeight(id: i, weightKg: weight, date: day));
+      }
+      for (int i = 0; i < 12; i++) {
+        final day = now.subtract(Duration(days: 29 - i));
+        final cals = 1200 + (i % 5) * 200.0;
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+    });
+
+    test('empty input returns null with noWeights reason', () {
       final result = MaintenanceCalculator.calculate(
         foodEntries: [],
         weightEntries: [],
       );
 
-      expect(result, isNull);
+      expect(result, isNotNull);
+      expect(result!.failureReason, MaintenanceFailureReason.noWeights);
     });
 
-    test('no weight variance — all weights identical returns null', () {
+    test('no weight variance — all weights identical returns null with reason', () {
       final now = DateTime.now();
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
       for (int i = 0; i < 30; i++) {
         final day = now.subtract(Duration(days: 29 - i));
-        foodEntries.add(makeFood(id: i, calories: 2500, date: day));
+        final cals = 2000.0 + (i % 5) * 200;
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
         weightEntries.add(makeWeight(id: i, weightKg: 80.0, date: day));
       }
 
@@ -129,10 +160,11 @@ void main() {
         now: now,
       );
 
-      expect(result, isNull);
+      expect(result, isNotNull);
+      expect(result!.failureReason, MaintenanceFailureReason.noWeightVariance);
     });
 
-    test('constant calories — no variance returns null', () {
+    test('constant calories — no variance returns null with reason', () {
       final now = DateTime.now();
       final rng = Random(42);
       final foodEntries = <FoodEntry>[];
@@ -154,7 +186,8 @@ void main() {
         now: now,
       );
 
-      expect(result, isNull);
+      expect(result, isNotNull);
+      expect(result!.failureReason, MaintenanceFailureReason.noCalorieVariance);
     });
 
     test('extreme outlier — spike smoothed, maintenance within 10%', () {
@@ -194,7 +227,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.maintenanceCalories,
           closeTo(trueMaintenance, trueMaintenance * 0.10));
-      expect(result.dataPoints, greaterThanOrEqualTo(14));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
     });
 
     test('confidence interval grows with data variance', () {
@@ -280,7 +313,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.maintenanceCalories,
           closeTo(trueMaintenance, trueMaintenance * 0.10));
-      expect(result.dataPoints, greaterThanOrEqualTo(14));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
     });
 
     test('single gap — one missing day does not break result', () {
@@ -322,7 +355,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.maintenanceCalories,
           closeTo(trueMaintenance, trueMaintenance * 0.05));
-      expect(result.dataPoints, greaterThanOrEqualTo(14));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
     });
 
     test('single weight entry — all 30 days use oldest weight', () {
@@ -330,10 +363,11 @@ void main() {
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
-      // 30 days of food at 2500 kcal
+      // 30 days of food with calorie variance
       for (int i = 0; i < 30; i++) {
         final day = now.subtract(Duration(days: 29 - i));
-        foodEntries.add(makeFood(id: i, calories: 2500, date: day));
+        final cals = 2000.0 + (i % 5) * 200;
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
       }
 
       // Single weight on last day (onboarding today)
@@ -346,8 +380,9 @@ void main() {
       );
 
       // Should have 30 weight points (all forward-filled with 80.0)
-      // But no weight variance → slope = 0 → returns null
-      expect(result, isNull);  // Expected: no variance means no maintenance estimate
+      // But no weight variance → slope = 0 → returns null with noWeightVariance
+      expect(result, isNotNull);
+      expect(result!.failureReason, MaintenanceFailureReason.noWeightVariance);
     });
 
     test('delete oldest weight — assumption shifts to new oldest', () {
@@ -438,7 +473,7 @@ void main() {
       expect(result!.dataPoints, greaterThanOrEqualTo(14));
     });
 
-    test('no weight entries — returns null (existing behavior)', () {
+    test('no weight entries — returns null with noWeights reason', () {
       final now = DateTime.now();
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
@@ -454,7 +489,8 @@ void main() {
         now: now,
       );
 
-      expect(result, isNull);  // Unchanged: no weights = no estimate
+      expect(result, isNotNull);
+      expect(result!.failureReason, MaintenanceFailureReason.noWeights);
     });
   });
 
@@ -506,7 +542,7 @@ void main() {
       final result = await container.read(maintenanceProvider.future);
       expect(result, isNotNull);
       expect(result!.maintenanceCalories, closeTo(2500, 125));
-      expect(result.dataPoints, greaterThanOrEqualTo(14));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
       expect(result.confidenceInterval, greaterThan(0));
     });
   });

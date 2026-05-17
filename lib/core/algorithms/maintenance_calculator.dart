@@ -2,15 +2,25 @@ import 'dart:math';
 
 import '../database/database.dart';
 
+enum MaintenanceFailureReason {
+  noWeights,
+  insufficientPairedData,
+  noCalorieVariance,
+  noWeightVariance,
+  noCorrelation,
+}
+
 class MaintenanceResult {
   final double maintenanceCalories;
   final double confidenceInterval;
   final int dataPoints;
+  final MaintenanceFailureReason? failureReason;
 
   MaintenanceResult({
     required this.maintenanceCalories,
     required this.confidenceInterval,
     required this.dataPoints,
+    this.failureReason,
   });
 }
 
@@ -28,7 +38,7 @@ class MaintenanceCalculator {
   ///
   /// ## Requirements
   /// - Minimum 7 weight points in 30-day window (after forward-fill)
-  /// - Minimum 14 paired (calories, weight-slope) data points
+  /// - Minimum 10 paired (calories, weight-slope) data points
   /// - Non-zero regression slope
   static MaintenanceResult? calculate({
     required List<FoodEntry> foodEntries,
@@ -95,7 +105,14 @@ class MaintenanceCalculator {
     recentWeights = filledWeights;
     recentDates = filledWeights.map((e) => e.loggedAt.substring(0, 10)).toList();
 
-    if (recentWeights.length < 7) return null;
+    if (recentWeights.length < 7) {
+      return MaintenanceResult(
+        maintenanceCalories: 0,
+        confidenceInterval: 0,
+        dataPoints: 0,
+        failureReason: MaintenanceFailureReason.noWeights,
+      );
+    }
 
     final epoch = DateTime(2000, 1, 1);
     final dates =
@@ -155,7 +172,14 @@ class MaintenanceCalculator {
       pairedChanges.add(slope);
     }
 
-    if (pairedAvgCals.length < 14) return null;
+    if (pairedAvgCals.length < 10) {
+      return MaintenanceResult(
+        maintenanceCalories: 0,
+        confidenceInterval: 0,
+        dataPoints: pairedAvgCals.length,
+        failureReason: MaintenanceFailureReason.insufficientPairedData,
+      );
+    }
 
     final np = pairedAvgCals.length;
     double sx = 0, sy = 0, sxy = 0, sx2 = 0;
@@ -170,10 +194,27 @@ class MaintenanceCalculator {
     final my = sy / np;
 
     final denom2 = np * sx2 - sx * sx;
-    if (denom2.abs() < 1e-10) return null;
+    if (denom2.abs() < 1e-10) {
+      return MaintenanceResult(
+        maintenanceCalories: 0,
+        confidenceInterval: 0,
+        dataPoints: np,
+        failureReason: MaintenanceFailureReason.noCalorieVariance,
+      );
+    }
 
     final rSlope = (np * sxy - sx * sy) / denom2;
-    if (rSlope.abs() < 1e-10) return null;
+    if (rSlope.abs() < 1e-10) {
+      final allWeightsIdentical = weights.toSet().length == 1;
+      return MaintenanceResult(
+        maintenanceCalories: 0,
+        confidenceInterval: 0,
+        dataPoints: np,
+        failureReason: allWeightsIdentical
+            ? MaintenanceFailureReason.noWeightVariance
+            : MaintenanceFailureReason.noCorrelation,
+      );
+    }
 
     final rIntercept = my - rSlope * mx;
     final maintenance = -rIntercept / rSlope;

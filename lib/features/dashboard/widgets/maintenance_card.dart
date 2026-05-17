@@ -43,8 +43,8 @@ class MaintenanceCard extends ConsumerWidget {
           loading: () => _buildLoading(),
           error: (_, _) => _buildError(),
           data: (result) {
-            if (result == null) {
-              return _buildInsufficientData(context, ref);
+            if (result == null || result.failureReason != null) {
+              return _buildInsufficientData(context, ref, result?.failureReason);
             }
             return _buildResult(result, theme);
           },
@@ -76,8 +76,32 @@ class MaintenanceCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildInsufficientData(BuildContext context, WidgetRef ref) {
+  Widget _buildInsufficientData(
+    BuildContext context,
+    WidgetRef ref,
+    MaintenanceFailureReason? reason,
+  ) {
     final countAsync = ref.watch(_countDataDaysProvider);
+
+    String message;
+    bool showProgress = false;
+
+    switch (reason) {
+      case MaintenanceFailureReason.noWeights:
+        message = 'Start logging your weight to get estimates';
+      case MaintenanceFailureReason.insufficientPairedData:
+        message = 'Log 10+ days of food + weight to calculate your maintenance';
+        showProgress = true;
+      case MaintenanceFailureReason.noCalorieVariance:
+        message = 'Try logging different calorie amounts on different days';
+      case MaintenanceFailureReason.noWeightVariance:
+        message = 'Your weight hasn\'t changed yet — keep logging';
+      case MaintenanceFailureReason.noCorrelation:
+        message = 'Keep logging — need more data to find the pattern';
+      case null:
+        message = 'Log 10+ days of food + weight to calculate your maintenance';
+        showProgress = true;
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -91,35 +115,37 @@ class MaintenanceCard extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Log 14+ days of food + weight to calculate your maintenance',
+          message,
           style: Theme.of(context).textTheme.bodySmall,
         ),
-        const SizedBox(height: 8),
-        countAsync.when(
-          loading: () => const LinearProgressIndicator(minHeight: 8),
-          error: (_, _) => const LinearProgressIndicator(minHeight: 8),
-          data: (count) {
-            final progress = (count / 14.0).clamp(0.0, 1.0);
-            return Row(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 8,
+        if (showProgress) ...[
+          const SizedBox(height: 8),
+          countAsync.when(
+            loading: () => const LinearProgressIndicator(minHeight: 8),
+            error: (_, _) => const LinearProgressIndicator(minHeight: 8),
+            data: (count) {
+              final progress = (count / 10.0).clamp(0.0, 1.0);
+              return Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 8,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '$count/14',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            );
-          },
-        ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$count/10',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
       ],
     );
   }

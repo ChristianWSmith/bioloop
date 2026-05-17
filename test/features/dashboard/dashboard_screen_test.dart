@@ -355,7 +355,7 @@ void main() {
         buildDashboard([], targets, goals: goals, maintenance: null),
       );
 
-      expect(find.textContaining('Log 14+ days'), findsOneWidget);
+      expect(find.textContaining('Log 10+ days'), findsOneWidget);
     });
   });
 

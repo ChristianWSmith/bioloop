@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/open_food_facts_client.dart';
 import '../../../core/api/models/food_result.dart';
 import '../../../core/database/database.dart';
 import '../../../providers/food_search_provider.dart';
+import '../../../providers/local_food_list_provider.dart';
 import 'barcode_scanner.dart';
 
 class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
@@ -107,7 +109,7 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
       );
 }
 
-class _FoodSearchContent extends StatefulWidget {
+class _FoodSearchContent extends ConsumerStatefulWidget {
   final String query;
   final FoodSearchService searchService;
   final String searchMode;
@@ -131,10 +133,10 @@ class _FoodSearchContent extends StatefulWidget {
   });
 
   @override
-  State<_FoodSearchContent> createState() => _FoodSearchContentState();
+  ConsumerState<_FoodSearchContent> createState() => _FoodSearchContentState();
 }
 
-class _FoodSearchContentState extends State<_FoodSearchContent> {
+class _FoodSearchContentState extends ConsumerState<_FoodSearchContent> {
   late String _localSearchMode;
 
   @override
@@ -176,7 +178,6 @@ class _FoodSearchContentState extends State<_FoodSearchContent> {
           child: _localSearchMode == 'local'
               ? _LocalSearchContent(
                   query: widget.query,
-                  searchService: widget.searchService,
                   onCreateCustomFood: widget.onCreateCustomFood,
                   onQuickLog: widget.onQuickLog,
                   onSelectItem: widget.onSelectItem,
@@ -194,9 +195,8 @@ class _FoodSearchContentState extends State<_FoodSearchContent> {
   }
 }
 
-class _LocalSearchContent extends StatelessWidget {
+class _LocalSearchContent extends ConsumerWidget {
   final String query;
-  final FoodSearchService searchService;
   final VoidCallback onCreateCustomFood;
   final Future<void> Function(FoodSearchItem)? onQuickLog;
   final void Function(FoodSearchItem item) onSelectItem;
@@ -205,7 +205,6 @@ class _LocalSearchContent extends StatelessWidget {
 
   const _LocalSearchContent({
     required this.query,
-    required this.searchService,
     required this.onCreateCustomFood,
     this.onQuickLog,
     required this.onSelectItem,
@@ -214,125 +213,124 @@ class _LocalSearchContent extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<FoodSearchItem>>(
-      future: searchService.searchLocal(query),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final itemsAsync = ref.watch(localFoodListProvider(query));
 
-        final items = snapshot.data ?? [];
+    return itemsAsync.when(
+      data: (items) => _buildList(context, items),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, _) => const Center(child: Text('Error loading foods')),
+    );
+  }
 
-        return ListView(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.add_circle_outline),
-              title: const Text('Create custom food'),
-              onTap: () {
-                onCreateCustomFood();
-                Navigator.of(context).pop<FoodSearchItem?>(null);
+  Widget _buildList(BuildContext context, List<FoodSearchItem> items) {
+    return ListView(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.add_circle_outline),
+          title: const Text('Create custom food'),
+          onTap: () {
+            onCreateCustomFood();
+            Navigator.of(context).pop<FoodSearchItem?>(null);
+          },
+        ),
+        if (items.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: Text('No foods found')),
+          )
+        else
+          ...items.map((item) {
+            final macroText =
+                '${item.caloriesPerServing.toStringAsFixed(0)} cal  '
+                '• ${item.proteinPerServing.toStringAsFixed(1)}g P  '
+                '• ${item.carbsPerServing.toStringAsFixed(1)}g C  '
+                '• ${item.fatPerServing.toStringAsFixed(1)}g F';
+            return ListTile(
+              title: Text(item.name),
+              subtitle: Text(
+                '$macroText\n${item.servingLabel}',
+              ),
+              isThreeLine: true,
+              onTap: () => onQuickLog != null
+                  ? onQuickLog!(item)
+                  : onSelectItem(item),
+              onLongPress: () async {
+                if (onDeleteFood != null && item.localId != null) {
+                  final food = Food(
+                    id: item.localId!,
+                    name: item.name,
+                    servingLabel: item.servingLabel,
+                    servingQuantity: item.servingQuantity,
+                    servingUnit: item.servingUnit,
+                    caloriesPerServing: item.caloriesPerServing,
+                    proteinPerServing: item.proteinPerServing,
+                    carbsPerServing: item.carbsPerServing,
+                    fatPerServing: item.fatPerServing,
+                    barcode: item.barcode,
+                    brand: item.brand,
+                    source: item.source,
+                    createdAt: '',
+                  );
+                  await onDeleteFood!(food);
+                }
               },
-            ),
-            if (items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: Text('No foods found')),
-              )
-            else
-              ...items.map((item) {
-                final macroText =
-                    '${item.caloriesPerServing.toStringAsFixed(0)} cal  '
-                    '• ${item.proteinPerServing.toStringAsFixed(1)}g P  '
-                    '• ${item.carbsPerServing.toStringAsFixed(1)}g C  '
-                    '• ${item.fatPerServing.toStringAsFixed(1)}g F';
-                return ListTile(
-                  title: Text(item.name),
-                  subtitle: Text(
-                    '$macroText\n${item.servingLabel}',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 20),
+                    onPressed: () {
+                      if (onEditFood != null && item.localId != null) {
+                        final food = Food(
+                          id: item.localId!,
+                          name: item.name,
+                          servingLabel: item.servingLabel,
+                          servingQuantity: item.servingQuantity,
+                          servingUnit: item.servingUnit,
+                          caloriesPerServing: item.caloriesPerServing,
+                          proteinPerServing: item.proteinPerServing,
+                          carbsPerServing: item.carbsPerServing,
+                          fatPerServing: item.fatPerServing,
+                          barcode: item.barcode,
+                          brand: item.brand,
+                          source: item.source,
+                          createdAt: '',
+                        );
+                        onEditFood!(food);
+                      }
+                    },
+                    tooltip: 'Edit food',
                   ),
-                  isThreeLine: true,
-                  onTap: () => onQuickLog != null
-                      ? onQuickLog!(item)
-                      : onSelectItem(item),
-                  onLongPress: () async {
-                    if (onDeleteFood != null && item.localId != null) {
-                      final food = Food(
-                        id: item.localId!,
-                        name: item.name,
-                        servingLabel: item.servingLabel,
-                        servingQuantity: item.servingQuantity,
-                        servingUnit: item.servingUnit,
-                        caloriesPerServing: item.caloriesPerServing,
-                        proteinPerServing: item.proteinPerServing,
-                        carbsPerServing: item.carbsPerServing,
-                        fatPerServing: item.fatPerServing,
-                        barcode: item.barcode,
-                        brand: item.brand,
-                        source: item.source,
-                        createdAt: '',
-                      );
-                      await onDeleteFood!(food);
-                    }
-                  },
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, size: 20),
-                        onPressed: () {
-                          if (onEditFood != null && item.localId != null) {
-                            final food = Food(
-                              id: item.localId!,
-                              name: item.name,
-                              servingLabel: item.servingLabel,
-                              servingQuantity: item.servingQuantity,
-                              servingUnit: item.servingUnit,
-                              caloriesPerServing: item.caloriesPerServing,
-                              proteinPerServing: item.proteinPerServing,
-                              carbsPerServing: item.carbsPerServing,
-                              fatPerServing: item.fatPerServing,
-                              barcode: item.barcode,
-                              brand: item.brand,
-                              source: item.source,
-                              createdAt: '',
-                            );
-                            onEditFood!(food);
-                          }
-                        },
-                        tooltip: 'Edit food',
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 20),
-                        onPressed: () async {
-                          if (onDeleteFood != null && item.localId != null) {
-                            final food = Food(
-                              id: item.localId!,
-                              name: item.name,
-                              servingLabel: item.servingLabel,
-                              servingQuantity: item.servingQuantity,
-                              servingUnit: item.servingUnit,
-                              caloriesPerServing: item.caloriesPerServing,
-                              proteinPerServing: item.proteinPerServing,
-                              carbsPerServing: item.carbsPerServing,
-                              fatPerServing: item.fatPerServing,
-                              barcode: item.barcode,
-                              brand: item.brand,
-                              source: item.source,
-                              createdAt: '',
-                            );
-                            await onDeleteFood!(food);
-                          }
-                        },
-                        tooltip: 'Delete food',
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    onPressed: () async {
+                      if (onDeleteFood != null && item.localId != null) {
+                        final food = Food(
+                          id: item.localId!,
+                          name: item.name,
+                          servingLabel: item.servingLabel,
+                          servingQuantity: item.servingQuantity,
+                          servingUnit: item.servingUnit,
+                          caloriesPerServing: item.caloriesPerServing,
+                          proteinPerServing: item.proteinPerServing,
+                          carbsPerServing: item.carbsPerServing,
+                          fatPerServing: item.fatPerServing,
+                          barcode: item.barcode,
+                          brand: item.brand,
+                          source: item.source,
+                          createdAt: '',
+                        );
+                        await onDeleteFood!(food);
+                      }
+                    },
+                    tooltip: 'Delete food',
                   ),
-                );
-              }),
-          ],
-        );
-      },
+                ],
+              ),
+            );
+          }),
+      ],
     );
   }
 }

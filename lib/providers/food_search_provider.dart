@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api/open_food_facts_client.dart';
 import '../core/api/models/food_result.dart';
 import '../core/database/database.dart';
+import '../core/utils/calorie_clamp.dart';
 import 'database_provider.dart';
 
 final openFoodFactsClientProvider = Provider<OpenFoodFactsClient>((ref) {
@@ -103,12 +104,18 @@ class FoodSearchService {
   }
 
   Future<int> saveApiResult(FoodSearchItem item) async {
+      final clampedCalories = clampCaloriesToMacros(
+        calories: item.caloriesPerServing,
+        protein: item.proteinPerServing,
+        carbs: item.carbsPerServing,
+        fat: item.fatPerServing,
+      );
       return await db.insertFood(FoodsCompanion.insert(
         name: item.name,
         servingLabel: item.servingLabel,
         servingQuantity: Value(item.servingQuantity),
         servingUnit: Value(item.servingUnit),
-        caloriesPerServing: item.caloriesPerServing,
+        caloriesPerServing: clampedCalories,
         proteinPerServing: item.proteinPerServing,
         carbsPerServing: item.carbsPerServing,
         fatPerServing: item.fatPerServing,
