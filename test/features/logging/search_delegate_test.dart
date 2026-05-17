@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'package:bioloop/core/database/database.dart';
 import 'package:bioloop/core/api/open_food_facts_client.dart';
+import 'package:bioloop/providers/data_trigger_provider.dart';
+import 'package:bioloop/providers/database_provider.dart';
 import 'package:bioloop/providers/food_search_provider.dart';
 import 'package:bioloop/features/logging/widgets/food_search_delegate.dart';
 
@@ -66,20 +69,27 @@ void main() {
       final service = FoodSearchService(db: db, apiClient: mockApiClient);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) => ElevatedButton(
-              onPressed: () {
-                showSearch<FoodSearchItem?>(
-                  context: context,
-                  delegate: FoodSearchDelegate(
-                    searchService: service,
-                    apiClient: mockApiClient,
-                    onCreateCustomFood: () {},
-                  ),
-                );
-              },
-              child: const Text('Open Search'),
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            openFoodFactsClientProvider.overrideWithValue(mockApiClient),
+            foodSearchServiceProvider.overrideWithValue(service),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  showSearch<FoodSearchItem?>(
+                    context: context,
+                    delegate: FoodSearchDelegate(
+                      searchService: service,
+                      apiClient: mockApiClient,
+                      onCreateCustomFood: () {},
+                    ),
+                  );
+                },
+                child: const Text('Open Search'),
+              ),
             ),
           ),
         ),
@@ -123,6 +133,87 @@ void main() {
       await tester.pump(); // async completes, FutureBuilder gets empty results
       // Web search with query 'chicken' uses debounce + mock API → "No results found"
       expect(find.text('No results found'), findsOneWidget);
+    });
+  });
+
+  group('FoodSearchDelegate deletion refresh', () {
+    testWidgets('deleted food disappears from list immediately', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+
+      final now = DateTime.now().toIso8601String();
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Oatmeal',
+        servingLabel: '1 cup',
+        caloriesPerServing: 150,
+        proteinPerServing: 5,
+        carbsPerServing: 27,
+        fatPerServing: 3,
+        createdAt: now,
+      ));
+      await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
+        name: 'Oatmeal',
+        calories: 150,
+        proteinGrams: 5,
+        carbsGrams: 27,
+        fatGrams: 3,
+        servings: 1,
+        servingLabel: '1 cup',
+        mealType: 'breakfast',
+        foodId: Value(1),
+        loggedAt: '2026-05-16T08:00:00',
+      ));
+
+      final mockApiClient = OpenFoodFactsClient(
+        client: MockClient((_) async => http.Response('{}', 200)),
+      );
+      final service = FoodSearchService(db: db, apiClient: mockApiClient);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            openFoodFactsClientProvider.overrideWithValue(mockApiClient),
+            foodSearchServiceProvider.overrideWithValue(service),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  showSearch<FoodSearchItem?>(
+                    context: context,
+                    delegate: FoodSearchDelegate(
+                      searchService: service,
+                      apiClient: mockApiClient,
+                      onCreateCustomFood: () {},
+                      onDeleteFood: (food) async {
+                        await db.deleteFood(food.id);
+                        ProviderScope.containerOf(context)
+                            .read(dataTriggerProvider.notifier)
+                            .state++;
+                      },
+                    ),
+                  );
+                },
+                child: const Text('Open Search'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Search'));
+      await tester.pumpAndSettle();
+
+      // Food should be visible
+      expect(find.text('Oatmeal'), findsOneWidget);
+
+      // Long-press to delete
+      await tester.longPress(find.text('Oatmeal'));
+      await tester.pumpAndSettle();
+
+      // Food should disappear from the list
+      expect(find.text('Oatmeal'), findsNothing);
     });
   });
 }

@@ -119,6 +119,7 @@ class SettingsScreen extends ConsumerWidget {
 
   Future<void> _pickAccentColor(BuildContext context, WidgetRef ref) async {
     final goalsAsync = await ref.read(userGoalsProvider.future);
+    if (!context.mounted) return;
     final currentColor = goalsAsync?.accentColorSeed != null
         ? Color(goalsAsync!.accentColorSeed!)
         : Colors.deepPurple;

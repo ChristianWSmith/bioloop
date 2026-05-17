@@ -34,7 +34,9 @@ lib/
     algorithms/
       maintenance_calculator.dart  # rolling linear regression
       mifflin_st_jeor.dart         # BMR estimator
-  providers/             # 12 Riverpod providers
+    utils/
+      calorie_clamp.dart           # clamp OFF calories to 4-4-9 max
+  providers/             # 13 Riverpod providers
   features/
     onboarding/          # first-launch setup flow
     dashboard/           # summary + progress rings + sparkline
@@ -76,7 +78,8 @@ lib/
 | `foodSearchServiceProvider` | `Provider<FoodSearchService>` | Local + API search |
 | `openFoodFactsClientProvider` | `Provider<OpenFoodFactsClient>` | API HTTP client |
 | `macroTargetsProvider` | `FutureProvider<MacroTargets>` | Calculated daily targets |
-| `maintenanceProvider` | `FutureProvider<MaintenanceResult?>` | Rolling regression output (watches dataTriggerProvider + resetTriggerProvider) |
+| `maintenanceProvider` | `FutureProvider<MaintenanceResult?>` | Rolling regression output (watches dataTriggerProvider + resetTriggerProvider); returns non-null result even on failure with `failureReason` set |
+| `localFoodListProvider` | `FutureProvider.family<List<FoodSearchItem>, String>` | Local food list by query (watches dataTriggerProvider for reactive refresh after mutations) |
 | `onboardingProvider` | `Provider<OnboardingService>` | Onboarding read/write |
 | `recipeListProvider` | `FutureProvider<List<Recipe>>` | All recipes |
 | `recipeDetailProvider` | `FutureProvider.family<RecipeDetail?, int>` | Single recipe with ingredients + macros |
@@ -94,7 +97,7 @@ lib/
 - For providers: override `databaseProvider` with the in-memory DB
 - For widget tests: `pumpWidget(ProviderScope(...))`, `pumpAndSettle()`
 - All DB operations inside widget tests (even assertions) work because the in-memory DB is synchronous
-- `test/features/logging/search_delegate_test.dart` tests `FoodSearchDelegate` toggle interaction (opening, toggling segments, typing + Enter)
+- `test/features/logging/search_delegate_test.dart` tests `FoodSearchDelegate` toggle interaction (opening, toggling segments, typing + Enter) and deletion refresh (food disappears from list immediately after delete)
 
 ## Design rules
 
@@ -103,13 +106,14 @@ lib/
 - **Macro targets**: protein/fat sliders physically clamped (protein 0.5–2.0 g/lb, fat 10–50%)
 - **Serving math**: all macro formulas normalize by `servingQuantity`: `macroPerServing * (quantity / servingQuantity)`. This handles both per-serving (servingQuantity=1) and per-100g (servingQuantity=100) foods correctly. Zero-division guard: `qty / (sq > 0 ? sq : 1)`
 - **Auto-calc calories**: `ManualFoodForm` auto-computes calories from protein/carbs/fat (4-4-9 rule) on every macro field change; a `_caloriesManuallyEdited` flag prevents overwriting user-entered values until all three macro fields are cleared
+- **Calorie clamping for OFF imports**: OpenFoodFacts foods are clamped to `min(apiCalories, protein*4 + carbs*4 + fat*9)` before saving to the database. This prevents inflated API calorie values (e.g. 170 cal for 10g carbs + 1g protein = 44 macro cal) from corrupting tracking. Foods with calories below macro-calories (sugar alcohols) are preserved as-is. Applied in `FoodSearchService.saveApiResult()` and `QuickFoodLogSheet._log()`. File: `lib/core/utils/calorie_clamp.dart`
 - **Recipe macros**: computed dynamically from ingredients (not stored as snapshots); scale = portion / servingSize
 - **Logging a recipe**: creates single `food_entry` with summed macros × scale, sets `recipe_id` FK
 - **CSV export**: sync (`compute`), writes to temp dir, shares via `share_plus`
 - **Log tab entry delete**: swipe-to-dismiss or delete button per entry in today's list; shows confirmation dialog; increments `dataTriggerProvider` (which `todaysFoodProvider` watches) to refresh the list on success
-- **Recipe management**: `RecipeListScreen` has `pickerMode` parameter — management mode (Recipes tab): tap to edit, long-press to delete with haptic feedback; picker mode (Log screen): tap to log recipe only. Edit flow re-inserts ingredients after save (bug fix #1). Files: `lib/features/recipes/recipe_list_screen.dart:171-240`, `lib/features/recipes/recipe_form_screen.dart:204-217`
+- **Recipe management**: `RecipeListScreen` has `pickerMode` parameter — management mode (Recipes tab): tap to edit, long-press to delete with haptic feedback; picker mode (Log screen): tap to log recipe only. Single FAB for "new recipe" (AppBar actions button removed). Edit flow re-inserts ingredients after save (bug fix #1). Files: `lib/features/recipes/recipe_list_screen.dart:171-240`, `lib/features/recipes/recipe_form_screen.dart:204-217`
 - **Unit filtering for imported foods**: `ServingSizePicker` filters unit dropdown to `[parsedUnit, 'Custom…']` when `source == 'open_food_facts'`. Manual foods show all 11 common units. Prevents confusion from selecting nonsensical units for API-imported foods. File: `lib/features/logging/widgets/serving_size_picker.dart:56-63`
-- **Search delegate**: `FoodSearchDelegate` accepts `searchService`, `apiClient` (`OpenFoodFactsClient`), `onCreateCustomFood`, and `onQuickLog` (async); shows a segmented toggle ("My Foods" / "Search the Web") wrapped in `SizedBox(width: double.infinity)` for width stability; `_searchMode` is stored on the delegate field so it survives `buildResults`/`buildSuggestions` rebuilds when Enter is pressed; `_FoodSearchContentState` keeps a local `_localSearchMode` synced via `didUpdateWidget` so the toggle responds even when the search field has focus; `Icons.qr_code_scanner` button in `buildActions` opens `BarcodeScannerScreen`; local search calls `searchService.searchLocal(query)` returning foods ordered by recency via `db.searchLocalByRecency()`; tapping a food list item calls `onQuickLog` (which opens `QuickFoodLogSheet` in-place) instead of selecting it — after the sheet closes, the delegate pops itself via `nav.pop<FoodSearchItem?>(null)`; `onSelectItem` is only used as fallback when `onQuickLog` is null (recipe form path); there is no trailing `+` button (removed — tapping the item does the same thing); "Create custom food" ListTile pops the delegate synchronously after setting the flag
+- **Search delegate**: `FoodSearchDelegate` accepts `searchService`, `apiClient` (`OpenFoodFactsClient`), `onCreateCustomFood`, and `onQuickLog` (async); shows a segmented toggle ("My Foods" / "Search the Web") wrapped in `SizedBox(width: double.infinity)` for width stability; `_searchMode` is stored on the delegate field so it survives `buildResults`/`buildSuggestions` rebuilds when Enter is pressed; `_FoodSearchContentState` keeps a local `_localSearchMode` synced via `didUpdateWidget` so the toggle responds even when the search field has focus; `Icons.qr_code_scanner` button in `buildActions` opens `BarcodeScannerScreen`; local search uses `localFoodListProvider` (a `FutureProvider.family` that watches `dataTriggerProvider`) so the list reactively refreshes after mutations; tapping a food list item calls `onQuickLog` (which opens `QuickFoodLogSheet` in-place) instead of selecting it — after the sheet closes, the delegate pops itself via `nav.pop<FoodSearchItem?>(null)`; `onSelectItem` is only used as fallback when `onQuickLog` is null (recipe form path); there is no trailing `+` button (removed — tapping the item does the same thing); "Create custom food" ListTile pops the delegate synchronously after setting the flag
 - **Quick-food log sheet**: `QuickFoodLogSheet` in `lib/features/logging/widgets/quick_food_log_sheet.dart` — reusable modal bottom sheet with serving picker, macro preview, meal type selector, and "Log to today" button; supports both fresh quick-log (`food` only) and duplicate (`food` + `sourceEntry` with pre-filled servings); `servingLabel` is saved as just `_unit` (not quantity + unit) so `EditEntrySheet` shows `"g"` instead of `"100 g"` as the quantity suffix
 - **Onboarding complete** (`_onOnboardingComplete` in `app.dart`): invalidates `bodyweightProvider`, `todaysFoodProvider`, and `userGoalsProvider` and increments `dataTriggerProvider` so providers re-fetch with the newly saved data
 - **Unit preference helpers** (`UnitPreferences` in `unit_preferences_provider.dart`): `displayWeight(double kg)` converts kg→lb, `kgWeight(double display)` converts lb→kg; use `unitPreferencesProvider` instead of reading `useImperial` directly from the DB
@@ -124,6 +128,8 @@ lib/
 - Schema version is 1 with onCreate only — no onUpgrade migration strategy implemented yet
 - `getRecentFoods()` / `searchLocalByRecency()` in `AppDatabase` fetches distinct `foodId`s from `food_entries` in a Dart-side loop (drift 2.31.0 has no `groupBy` on `SimpleSelectStatement`); orders by `MAX(loggedAt)` DESC, limit 10, then fetches `Food` records from the `foods` table
 - Maintenance calculator (`maintenance_provider.dart`) uses `DateTime.now().subtract(const Duration(days: 1))` so the 30-day regression window ends yesterday, excluding today's partial data
+- `MaintenanceResult` includes a `MaintenanceFailureReason? failureReason` field (null on success). Reasons: `noWeights` (no weight entries), `insufficientPairedData` (< 10 paired calorie+slope points), `noCalorieVariance` (same calories every day), `noWeightVariance` (all weights identical), `noCorrelation` (weight varies but doesn't correlate with calorie intake). `macroTargetsProvider` checks `failureReason == null` to decide whether to use regression maintenance.
+- Minimum paired data threshold is 10 (not 14). `_countDataDaysProvider` progress bar denominator is 10. `MaintenanceCard` shows reason-specific messages instead of a generic "insufficient data" prompt.
 - All macro calculations (save, preview, recipe totals, ingredient rows, `computeRecipeMacros()`) use `macroPerServing * (qty / servingQuantity)` with a zero-division guard. When adding new macro math, always use this pattern.
 - `_selectFood()` defaults to `_servings = food.servingQuantity` (not 1). This is correct with the formula fix — for per-100g foods, `_servings=100` means `macro * (100/100) = macro`, giving the right display for 1 serving.
 - **Recipe ingredient default quantity**: When adding ingredients to a recipe, the quantity defaults to `food.servingQuantity` (not `1`). Both paths (search dialog and custom food form) use `food.servingQuantity` as the default, matching the `_selectFood()` convention.

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/database.dart';
+import '../../../core/utils/calorie_clamp.dart';
 import '../../../providers/data_trigger_provider.dart';
 import '../../../providers/database_provider.dart';
 import '../../../providers/food_log_provider.dart';
@@ -55,12 +56,18 @@ class _QuickFoodLogSheetState extends ConsumerState<QuickFoodLogSheet> {
       int? foodId = food.localId;
 
       if (foodId == null && food.source == 'open_food_facts') {
+        final clampedCalories = clampCaloriesToMacros(
+          calories: food.caloriesPerServing,
+          protein: food.proteinPerServing,
+          carbs: food.carbsPerServing,
+          fat: food.fatPerServing,
+        );
         foodId = await db.insertFood(FoodsCompanion.insert(
           name: food.name,
           servingLabel: food.servingLabel,
           servingQuantity: Value(food.servingQuantity),
           servingUnit: Value(food.servingUnit),
-          caloriesPerServing: food.caloriesPerServing,
+          caloriesPerServing: clampedCalories,
           proteinPerServing: food.proteinPerServing,
           carbsPerServing: food.carbsPerServing,
           fatPerServing: food.fatPerServing,

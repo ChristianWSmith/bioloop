@@ -21,22 +21,6 @@ class RecipeListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Recipes'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () async {
-              final result = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                  builder: (_) => const RecipeFormScreen(),
-                ),
-              );
-              if (result == true) {
-                ref.invalidate(recipeListProvider);
-              }
-            },
-            tooltip: 'New recipe',
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'recipe_add',
