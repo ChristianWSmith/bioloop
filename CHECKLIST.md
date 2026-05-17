@@ -11,13 +11,13 @@
 
 | Ticket | Issue | Priority | Status | Progress |
 |--------|-------|----------|--------|----------|
-| [001](#ticket-1-set-log-screen-as-default-tab) | Log screen default tab | High | ⬜ Pending | 0% |
+| [001](#ticket-1-set-log-screen-as-default-tab) | Log screen default tab | High | ✅ Complete | 100% |
 | [002](#ticket-2-clamp-calorie-targets-to-non-negative-values) | Clamp calorie targets | High | ⬜ Pending | 0% |
 | [003](#ticket-3-exclude-current-day-from-regression-calculation) | Exclude current day | Medium | ⬜ Pending | 0% |
 | [004](#ticket-4-apply-calorie-clamping-at-openfoodfacts-import-time) | Calorie clamping timing | High | ⬜ Pending | 0% |
 | [005](#ticket-5-improve-regression-algorithm--14-day-threshold--weight-stability-detection) | Regression improvements | Medium | ⬜ Pending | 0% |
 
-**Overall Progress:** 0/5 tickets complete (0%)
+**Overall Progress:** 1/5 tickets complete (20%)
 
 ---
 
@@ -49,25 +49,25 @@ Recommended sequence (by risk and dependency):
 
 ### Checklist
 
-- [ ] **Implementation**
-  - [ ] Change `_currentIndex` from `0` to `1` in `lib/app.dart:99`
+- [x] **Implementation**
+  - [x] Change `_currentIndex` from `0` to `1` in `lib/app.dart:99`
   
-- [ ] **Testing**
-  - [ ] Run `flutter analyze` (must pass with 0 issues)
-  - [ ] Run `flutter test` (all tests must pass)
-  - [ ] Manual test: Launch app, verify Log tab is default
+- [x] **Testing**
+  - [x] Run `flutter analyze` (must pass with 0 issues)
+  - [x] Run `flutter test` (all tests must pass)
+  - [x] Manual test: Launch app, verify Log tab is default
   
-- [ ] **Verification**
-  - [ ] All 4 tabs accessible via bottom navigation
-  - [ ] Tab state persists when switching
-  - [ ] No console errors
+- [x] **Verification**
+  - [x] All 4 tabs accessible via bottom navigation
+  - [x] Tab state persists when switching
+  - [x] No console errors
 
 ### Notes
 
 ```
-[ ] Start: _____
-[ ] Complete: _____
-[ ] Verified: _____
+[x] Start: May 17, 2026
+[x] Complete: May 17, 2026
+[x] Verified: May 17, 2026
 ```
 
 ---

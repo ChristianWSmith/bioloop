@@ -99,7 +99,7 @@ class _AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<_AppShell> {
-  int _currentIndex = 0;
+  int _currentIndex = 1;
 
   static const _screens = <Widget>[
     DashboardScreen(),
