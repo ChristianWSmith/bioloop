@@ -238,6 +238,47 @@ void main() {
       expect(bulk.rateLbsPerWeek, closeTo(0.6, 0.01));
       expect(maintain.rateLbsPerWeek, closeTo(0.0, 0.01));
     });
+
+    test('target calories clamped to 0 when deficit exceeds regression maintenance', () {
+      final goals = goal(calorieAdjustment: -500);
+      final targets = MacroTargets.compute(
+        goals: goals,
+        weightKg: 80,
+        regressionMaintenance: 400,
+      );
+
+      expect(targets.targetCalories, 0.0);
+      expect(targets.maintenanceCalories, 400);
+    });
+
+    test('target calories clamped to 0 when Mifflin-St Jeor estimate is very low', () {
+      final goals = goal(
+        onboardingCompleted: 1,
+        calorieAdjustment: -1000,
+        sex: 'female',
+        heightCm: 150,
+        birthdate: '1950-01-01',
+        activityLevel: 1,
+      );
+      final targets = MacroTargets.compute(
+        goals: goals,
+        weightKg: 50,
+        regressionMaintenance: null,
+      );
+
+      expect(targets.targetCalories, greaterThanOrEqualTo(0.0));
+    });
+
+    test('normal deficit produces correct positive target (not clamped)', () {
+      final goals = goal(calorieAdjustment: -500);
+      final targets = MacroTargets.compute(
+        goals: goals,
+        weightKg: 80,
+        regressionMaintenance: 2500,
+      );
+
+      expect(targets.targetCalories, closeTo(2000, 1));
+    });
   });
 
   group('macroTargetsProvider', () {

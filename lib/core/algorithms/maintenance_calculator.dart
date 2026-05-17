@@ -46,7 +46,7 @@ class MaintenanceCalculator {
     int lookbackDays = 30,
     DateTime? now,
   }) {
-    final today = now ?? DateTime.now();
+    final today = now ?? DateTime.now().subtract(const Duration(days: 1));
     final cutoff = today.subtract(Duration(days: lookbackDays));
     final cutoffStr =
         '${cutoff.year}-${cutoff.month.toString().padLeft(2, '0')}-${cutoff.day.toString().padLeft(2, '0')}';
@@ -172,7 +172,7 @@ class MaintenanceCalculator {
       pairedChanges.add(slope);
     }
 
-    if (pairedAvgCals.length < 10) {
+    if (pairedAvgCals.length < 14) {
       return MaintenanceResult(
         maintenanceCalories: 0,
         confidenceInterval: 0,
@@ -205,14 +205,11 @@ class MaintenanceCalculator {
 
     final rSlope = (np * sxy - sx * sy) / denom2;
     if (rSlope.abs() < 1e-10) {
-      final allWeightsIdentical = weights.toSet().length == 1;
+      final avgCalories = sx / np;
       return MaintenanceResult(
-        maintenanceCalories: 0,
-        confidenceInterval: 0,
+        maintenanceCalories: avgCalories,
+        confidenceInterval: double.infinity,
         dataPoints: np,
-        failureReason: allWeightsIdentical
-            ? MaintenanceFailureReason.noWeightVariance
-            : MaintenanceFailureReason.noCorrelation,
       );
     }
 

@@ -6,6 +6,7 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 
 import 'package:bioloop/core/database/database.dart';
 import 'package:bioloop/core/api/open_food_facts_client.dart';
+import 'package:bioloop/core/api/models/food_result.dart';
 import 'package:bioloop/providers/food_search_provider.dart';
 
 void main() {
@@ -146,6 +147,55 @@ void main() {
       expect(items[0].name, 'Chicken Breast');
       expect(items[0].source, 'open_food_facts');
       expect(items[1].name, 'Beef Steak');
+    });
+
+    test('fromFoodResult clamps inflated calories from API', () {
+      final result = FoodResult(
+        name: 'Test Food',
+        servingLabel: '100g',
+        caloriesPerServing: 170,
+        proteinPerServing: 10,
+        carbsPerServing: 1,
+        fatPerServing: 0,
+        barcode: '123',
+      );
+
+      final item = FoodSearchItem.fromFoodResult(result);
+
+      expect(item.caloriesPerServing, 44);
+      expect(item.source, 'open_food_facts');
+    });
+
+    test('fromFoodResult preserves foods with calories below macro max', () {
+      final result = FoodResult(
+        name: 'Sugar Free Candy',
+        servingLabel: '100g',
+        caloriesPerServing: 10,
+        proteinPerServing: 0,
+        carbsPerServing: 50,
+        fatPerServing: 0,
+        barcode: '456',
+      );
+
+      final item = FoodSearchItem.fromFoodResult(result);
+
+      expect(item.caloriesPerServing, 10);
+    });
+
+    test('fromFoodResult preserves accurate calorie values', () {
+      final result = FoodResult(
+        name: 'Chicken Breast',
+        servingLabel: '100g',
+        caloriesPerServing: 165,
+        proteinPerServing: 31,
+        carbsPerServing: 0,
+        fatPerServing: 3.6,
+        barcode: '789',
+      );
+
+      final item = FoodSearchItem.fromFoodResult(result);
+
+      expect(item.caloriesPerServing, lessThanOrEqualTo(165));
     });
 
     test('searchWeb with empty query returns empty list', () async {

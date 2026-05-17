@@ -1,3 +1,4 @@
+import 'dart:math' show max;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/algorithms/mifflin_st_jeor.dart';
 import '../core/database/database.dart';
@@ -55,6 +56,8 @@ class MacroTargets {
     } else {
       targetCalories = adjustment > 1200 ? adjustment : 1200;
     }
+
+    targetCalories = max(0.0, targetCalories);
 
     final proteinGPerLb = goals?.proteinGPerLb ?? 1.0;
     final weightLb = weightKg != null ? weightKg * 2.20462 : 0.0;
