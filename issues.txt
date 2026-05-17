@@ -1,0 +1,7 @@
+- before saving any food to the local database, we should clamp it's calorie value for its serving size to the calculated calories based on its macros.  some foods from openfoodfacts will have an overinflated calorie count based on their macros alone.  foods should be allowed to enter the local database with less than or equal to their nominal calorie count based on their macros (for example sugar alcohols will show up as carbs but they contribute far fewer calories to the total).  for example I saw an entry for white rice on open food facts that said something like 10g carbs 1g protein, 0g fat, 170 calories.  this is clearly wrong and should be clamped to 44 calories before being saved to the local database.
+
+- the recipe management screen has two "add new" buttons currently.  one in the top right and one floating in the bottom left.  remove the top right one, it's redundant
+
+- when deleting a food from the food search screen while toggled to "my foods" the food doesn't disappear from the list until you leave the food search and re-enter it.  it should disappear immediately 
+
+- the regression algorithm currently never kicks in.  this is the standout feature of the app, so it HAS to work.  as a test I went back through the previous 14 days and logged some food FAR under what a user normally would.  it should have calculated a very low maintenance value based on that, but the value stayed unchanged, instead using the default fallback formula.  this persisted even after adding a bodyweight log for all 14 days prior to today.
