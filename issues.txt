@@ -1,0 +1,5 @@
+- macro/calorie bars at the top of the log food screen should turn red when they exceed their max values, just like the rings do on the dashboard
+
+- add historical calories consumed totals below bodyweight graph on dashboard
+
+- provide new toggle above historical bodyweight view in dashboard.  it should control both the bodyweight graph and the new calories consumed graph.  it should have three options: 1 month, 6 months, all time, and it should change the amount of time displayed on both graphs.  if the time range requested is greater than the difference between the first and last data point, the time displayed should be reduced to the first and last.  both graphs should always show the same exact time range, truncated to the longer of the two
