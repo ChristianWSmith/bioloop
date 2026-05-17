@@ -54,19 +54,27 @@ class FoodSearchItem {
         source: food.source,
       );
 
-  factory FoodSearchItem.fromFoodResult(FoodResult result) => FoodSearchItem(
-        name: result.name,
-        servingLabel: result.servingLabel,
-        servingQuantity: result.servingQuantity,
-        servingUnit: result.servingUnit,
-        caloriesPerServing: result.caloriesPerServing,
-        proteinPerServing: result.proteinPerServing,
-        carbsPerServing: result.carbsPerServing,
-        fatPerServing: result.fatPerServing,
-        barcode: result.barcode,
-        brand: result.brand,
-        source: result.source,
-      );
+  factory FoodSearchItem.fromFoodResult(FoodResult result) {
+    final clampedCalories = clampCaloriesToMacros(
+      calories: result.caloriesPerServing,
+      protein: result.proteinPerServing,
+      carbs: result.carbsPerServing,
+      fat: result.fatPerServing,
+    );
+    return FoodSearchItem(
+      name: result.name,
+      servingLabel: result.servingLabel,
+      servingQuantity: result.servingQuantity,
+      servingUnit: result.servingUnit,
+      caloriesPerServing: clampedCalories,
+      proteinPerServing: result.proteinPerServing,
+      carbsPerServing: result.carbsPerServing,
+      fatPerServing: result.fatPerServing,
+      barcode: result.barcode,
+      brand: result.brand,
+      source: result.source,
+    );
+  }
 }
 
 sealed class WebSearchResult {}

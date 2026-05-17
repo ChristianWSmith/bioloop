@@ -14,10 +14,10 @@
 | [001](#ticket-1-set-log-screen-as-default-tab) | Log screen default tab | High | ✅ Complete | 100% |
 | [002](#ticket-2-clamp-calorie-targets-to-non-negative-values) | Clamp calorie targets | High | ✅ Complete | 100% |
 | [003](#ticket-3-exclude-current-day-from-regression-calculation) | Exclude current day | Medium | ✅ Complete | 100% |
-| [004](#ticket-4-apply-calorie-clamping-at-openfoodfacts-import-time) | Calorie clamping timing | High | ⬜ Pending | 0% |
+| [004](#ticket-4-apply-calorie-clamping-at-openfoodfacts-import-time) | Calorie clamping timing | High | ✅ Complete | 100% |
 | [005](#ticket-5-improve-regression-algorithm--14-day-threshold--weight-stability-detection) | Regression improvements | Medium | ⬜ Pending | 0% |
 
-**Overall Progress:** 3/5 tickets complete (60%)
+**Overall Progress:** 4/5 tickets complete (80%)
 
 ---
 
@@ -147,31 +147,31 @@ Recommended sequence (by risk and dependency):
 
 ### Checklist
 
-- [ ] **Implementation**
-  - [ ] Modify `FoodSearchItem.fromFoodResult()` factory to clamp calories at import
-  - [ ] Remove duplicate clamping from `QuickFoodLogSheet._log()` method
-  - [ ] Simplify save logic in `QuickFoodLogSheet` (remove redundant clamp call)
+- [x] **Implementation**
+  - [x] Modify `FoodSearchItem.fromFoodResult()` factory to clamp calories at import
+  - [x] Remove duplicate clamping from `QuickFoodLogSheet._log()` method
+  - [x] Simplify save logic in `QuickFoodLogSheet` (remove redundant clamp call)
   
-- [ ] **Testing**
-  - [ ] Add test: "fromFoodResult clamps inflated calories from API"
-  - [ ] Add test: "fromFoodResult preserves foods with calories below macro max"
-  - [ ] Add test: "fromFoodResult preserves accurate calorie values"
-  - [ ] Optional: Widget test for QuickFoodLogSheet preview
-  - [ ] Run `flutter analyze` (must pass with 0 issues)
-  - [ ] Run `flutter test test/providers/food_search_provider_test.dart`
+- [x] **Testing**
+  - [x] Add test: "fromFoodResult clamps inflated calories from API"
+  - [x] Add test: "fromFoodResult preserves foods with calories below macro max"
+  - [x] Add test: "fromFoodResult preserves accurate calorie values"
+  - [x] Optional: Widget test for QuickFoodLogSheet preview
+  - [x] Run `flutter analyze` (must pass with 0 issues)
+  - [x] Run `flutter test test/providers/food_search_provider_test.dart`
   
-- [ ] **Verification**
-  - [ ] OFF foods show clamped calories in search results
-  - [ ] QuickFoodLogSheet preview matches saved values
-  - [ ] Sugar alcohol foods preserved correctly
-  - [ ] Manual foods unaffected
+- [x] **Verification**
+  - [x] OFF foods show clamped calories in search results
+  - [x] QuickFoodLogSheet preview matches saved values
+  - [x] Sugar alcohol foods preserved correctly
+  - [x] Manual foods unaffected
 
 ### Notes
 
 ```
-[ ] Start: _____
-[ ] Complete: _____
-[ ] Verified: _____
+[x] Start: May 17, 2026
+[x] Complete: May 17, 2026
+[x] Verified: May 17, 2026
 ```
 
 ---
