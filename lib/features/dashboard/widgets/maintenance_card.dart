@@ -92,12 +92,6 @@ class MaintenanceCard extends ConsumerWidget {
       case MaintenanceFailureReason.insufficientPairedData:
         message = 'Log 10+ days of food + weight to calculate your maintenance';
         showProgress = true;
-      case MaintenanceFailureReason.noCalorieVariance:
-        message = 'Try logging different calorie amounts on different days';
-      case MaintenanceFailureReason.noWeightVariance:
-        message = 'Your weight hasn\'t changed yet — keep logging';
-      case MaintenanceFailureReason.noCorrelation:
-        message = 'Keep logging — need more data to find the pattern';
       case null:
         message = 'Log 10+ days of food + weight to calculate your maintenance';
         showProgress = true;
@@ -199,8 +193,9 @@ class MaintenanceCard extends ConsumerWidget {
                 ),
               ),
               TextSpan(
-                text:
-                    ' (±${_kcalFmt.format(result.confidenceInterval.round())})',
+                text: result.confidenceInterval.isInfinite
+                    ? ' (perfect calibration)'
+                    : ' (±${_kcalFmt.format(result.confidenceInterval.round())})',
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.grey[600],

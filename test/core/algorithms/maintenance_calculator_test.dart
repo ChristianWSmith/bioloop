@@ -167,7 +167,7 @@ void main() {
       expect(result.confidenceInterval, equals(double.infinity));
     });
 
-    test('constant calories — no variance returns null with reason', () {
+    test('constant calories — no variance returns average calories as maintenance', () {
       final now = DateTime.now();
       final rng = Random(42);
       final foodEntries = <FoodEntry>[];
@@ -190,7 +190,9 @@ void main() {
       );
 
       expect(result, isNotNull);
-      expect(result!.failureReason, MaintenanceFailureReason.noCalorieVariance);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(2500, 100));
+      expect(result.confidenceInterval, equals(double.infinity));
     });
 
     test('extreme outlier — spike smoothed, maintenance within 10%', () {
