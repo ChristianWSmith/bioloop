@@ -46,7 +46,7 @@ class MaintenanceCalculator {
     int lookbackDays = 30,
     DateTime? now,
   }) {
-    final today = now ?? DateTime.now();
+    final today = now ?? DateTime.now().subtract(const Duration(days: 1));
     final cutoff = today.subtract(Duration(days: lookbackDays));
     final cutoffStr =
         '${cutoff.year}-${cutoff.month.toString().padLeft(2, '0')}-${cutoff.day.toString().padLeft(2, '0')}';

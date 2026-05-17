@@ -492,6 +492,48 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, MaintenanceFailureReason.noWeights);
     });
+
+    test('excludes today from calorie aggregation', () {
+      final today = DateTime.now();
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
+
+      // Add 30 days of food with varying calories (yesterday and prior)
+      for (int i = 0; i < 30; i++) {
+        final day = today.subtract(Duration(days: 30 - i));
+        final cals = 2500.0 + pattern[i % 5];  // Varying calories
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+      }
+
+      // Add today's food with VERY DIFFERENT calories (should be excluded)
+      foodEntries.add(makeFood(
+        id: 30,
+        calories: 5000.0,
+        date: today,
+      ));
+
+      // Add weights for all days with small variance (needed for regression)
+      for (int i = 0; i < 31; i++) {
+        final day = today.subtract(Duration(days: 30 - i));
+        // Small weight changes correlated with calorie pattern
+        final weight = 80.0 + (pattern[i % 5] / 3500.0) * (i / 5);
+        weightEntries.add(makeWeight(id: i, weightKg: weight, date: day));
+      }
+
+      // Call without `now` parameter — should default to excluding today
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+      );
+
+      // Should produce valid result (not skewed by today's 5000 cal outlier)
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      // If today was included, maintenance would be inflated
+      // With today excluded, should be close to 2500 (average of pattern)
+      expect(result.maintenanceCalories, closeTo(2500.0, 250));
+    });
   });
 
   group('maintenanceProvider', () {

@@ -13,11 +13,11 @@
 |--------|-------|----------|--------|----------|
 | [001](#ticket-1-set-log-screen-as-default-tab) | Log screen default tab | High | ✅ Complete | 100% |
 | [002](#ticket-2-clamp-calorie-targets-to-non-negative-values) | Clamp calorie targets | High | ✅ Complete | 100% |
-| [003](#ticket-3-exclude-current-day-from-regression-calculation) | Exclude current day | Medium | ⬜ Pending | 0% |
+| [003](#ticket-3-exclude-current-day-from-regression-calculation) | Exclude current day | Medium | ✅ Complete | 100% |
 | [004](#ticket-4-apply-calorie-clamping-at-openfoodfacts-import-time) | Calorie clamping timing | High | ⬜ Pending | 0% |
 | [005](#ticket-5-improve-regression-algorithm--14-day-threshold--weight-stability-detection) | Regression improvements | Medium | ⬜ Pending | 0% |
 
-**Overall Progress:** 2/5 tickets complete (40%)
+**Overall Progress:** 3/5 tickets complete (60%)
 
 ---
 
@@ -112,27 +112,29 @@ Recommended sequence (by risk and dependency):
 
 ### Checklist
 
-- [ ] **Implementation**
-  - [ ] Change line 49 in `lib/core/algorithms/maintenance_calculator.dart`:
+- [x] **Implementation**
+  - [x] Change line 49 in `lib/core/algorithms/maintenance_calculator.dart`:
     ```dart
-    final today = (now ?? DateTime.now()).subtract(const Duration(days: 1));
+    final today = now ?? DateTime.now().subtract(const Duration(days: 1));
     ```
   
-- [ ] **Testing**
-  - [ ] Add test: "excludes today from calorie aggregation"
-  - [ ] Run `flutter analyze` (must pass with 0 issues)
-  - [ ] Run `flutter test test/core/algorithms/maintenance_calculator_test.dart`
+- [x] **Testing**
+  - [x] Add test: "excludes today from calorie aggregation"
+  - [x] Run `flutter analyze` (must pass with 0 issues)
+  - [x] Run `flutter test test/core/algorithms/maintenance_calculator_test.dart`
   
-- [ ] **Verification**
-  - [ ] All existing tests pass (they use explicit `now` dates)
-  - [ ] New test verifies today's food not included
-  - [ ] Maintenance estimate unchanged for existing data
+- [x] **Verification**
+  - [x] All existing tests pass (they use explicit `now` dates)
+  - [x] New test verifies today's food not included
+  - [x] Maintenance estimate unchanged for existing data
 
 ### Notes
 
 ```
-[ ] Start: _____
-[ ] Complete: _____
+[x] Start: May 17, 2026
+[x] Complete: May 17, 2026
+[x] Verified: May 17, 2026
+```
 [ ] Verified: _____
 ```
 
