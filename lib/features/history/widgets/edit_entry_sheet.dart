@@ -36,7 +36,7 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
     final e = widget.entry;
     _entryName = e.name;
     _servingsController = TextEditingController(
-        text: e.servings.toStringAsFixed(1));
+        text: _formatQuantity(e.servings));
     _mealType = e.mealType;
 
     _baseCalories = e.calories / e.servings;
@@ -72,6 +72,9 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
       _updatingFromServings = false;
     }
   }
+
+  String _formatQuantity(double value) =>
+      value == value.roundToDouble() ? value.toInt().toString() : value.toStringAsFixed(1);
 
   bool get _isValid {
     final servings = double.tryParse(_servingsController.text);

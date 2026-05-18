@@ -537,7 +537,7 @@ void main() {
       await seedGoals(db);
       await pumpGoals(tester, db);
 
-      expect(find.text('Per lb bodyweight'), findsOneWidget);
+      expect(find.text('Per kg bodyweight'), findsOneWidget);
       expect(find.text('Per cm height'), findsOneWidget);
       expect(find.text('Protein: 2.2 g/kg'), findsOneWidget);
     });

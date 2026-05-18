@@ -16,83 +16,68 @@ class BodyweightScreen extends ConsumerWidget {
     final weightsAsync = ref.watch(bodyweightProvider);
     final prefs = ref.watch(unitPreferencesProvider);
 
-    return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Text(
-                  'Bodyweight',
-                  style: Theme.of(context).textTheme.headlineSmall,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Bodyweight'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              final db = ref.read(databaseProvider);
+              final entries =
+                  await db.select(db.bodyweightEntries).get();
+              if (!context.mounted) return;
+              final csv = exportBodyweightToCsv(entries, weightUnit: prefs.weightUnit);
+              if (value == 'share_weight') {
+                await shareCsv(csv, 'bodyweight.csv');
+              } else if (value == 'save_weight') {
+                final path = await saveCsvToDownloads(
+                  csv,
+                  'bodyweight.csv',
+                );
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Saved to $path')),
+                );
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'share_weight',
+                child: ListTile(
+                  leading: Icon(Icons.share),
+                  title: Text('Share CSV'),
+                  contentPadding: EdgeInsets.zero,
                 ),
-                const Spacer(),
-                FilledButton.icon(
-                  key: const Key('log_weight_button'),
-                  onPressed: () => _showSheet(context, ref),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Log weight'),
+              ),
+              const PopupMenuItem(
+                value: 'save_weight',
+                child: ListTile(
+                  leading: Icon(Icons.save_alt),
+                  title: Text('Save to device'),
+                  contentPadding: EdgeInsets.zero,
                 ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert),
-                  onSelected: (value) async {
-                    final db = ref.read(databaseProvider);
-                    final entries =
-                        await db.select(db.bodyweightEntries).get();
-                    if (!context.mounted) return;
-                    final csv = exportBodyweightToCsv(entries, weightUnit: prefs.weightUnit);
-                    if (value == 'share_weight') {
-                      await shareCsv(csv, 'bodyweight.csv');
-                    } else if (value == 'save_weight') {
-                      final path = await saveCsvToDownloads(
-                        csv,
-                        'bodyweight.csv',
-                      );
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Saved to $path')),
-                      );
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(
-                      value: 'share_weight',
-                      child: ListTile(
-                        leading: Icon(Icons.share),
-                        title: Text('Share CSV'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'save_weight',
-                      child: ListTile(
-                        leading: Icon(Icons.save_alt),
-                        title: Text('Save to device'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: weightsAsync.when(
-              data: (weights) => weights.isEmpty
-                  ? const Center(child: Text('No entries yet'))
-                  : ListView.builder(
-                      itemCount: weights.length,
-                      itemBuilder: (ctx, i) =>
-                          _buildEntry(context, ref, prefs, weights[i]),
-                    ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-            ),
+              ),
+            ],
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        key: const Key('log_weight_button'),
+        onPressed: () => _showSheet(context, ref),
+        tooltip: 'Log weight',
+        child: const Icon(Icons.add),
+      ),
+      body: weightsAsync.when(
+        data: (weights) => weights.isEmpty
+            ? const Center(child: Text('No entries yet'))
+            : ListView.builder(
+                itemCount: weights.length,
+                itemBuilder: (ctx, i) =>
+                    _buildEntry(context, ref, prefs, weights[i]),
+              ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
   }

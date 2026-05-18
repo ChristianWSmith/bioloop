@@ -463,8 +463,8 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
             _calorieWarning(_calorieAdjustmentController.text),
             const Divider(height: 32),
             SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'bodyweight', label: Text('Per lb bodyweight')),
+              segments: [
+                ButtonSegment(value: 'bodyweight', label: Text('Per ${_useImperial ? "lb" : "kg"} bodyweight')),
                 ButtonSegment(value: 'height', label: Text('Per cm height')),
               ],
               selected: {_proteinBasis},
