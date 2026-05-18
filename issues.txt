@@ -19,3 +19,6 @@ We SHOULD however launch a search if the search bar is non-empty AND the user to
 
 --- Recipe Management ---
 - Similar to foods, the user can already delete by long-pressing the recipe item in the recipe management screen.  We should remove the delete button and keep the long press functionality for deleting saved recipes.
+
+--- Macro Settings ---
+We need to offer another way for the user to set their protein.  Currently we only offer setting protein as a proportion of bodyweight, but this metric breaks down quickly for users with high bodyfat percentages.  We should offer a toggle between grams per bodyweight and grams per cm of height.  Coincidentally these should use the same ranges (0.8-1.4g g/cm recommended, total range should still be available).  This will require us to save this setting to the database, but we can put it right in the v1 schema without migration because the app hasn't been published yet.  We need to ensure that this option is presented as a toggle both during onboarding and also on the goals tab, and we should strive for perfect parity in the presentation of the two.
