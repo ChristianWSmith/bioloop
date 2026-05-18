@@ -78,7 +78,8 @@ class DashboardRange {
       today: today,
     );
 
-    final maxDays = effectiveEnd.difference(adjustedStart).inDays.toDouble();
+    final normalizedStart = DateTime(adjustedStart.year, adjustedStart.month, adjustedStart.day);
+    final maxDays = effectiveEnd.difference(normalizedStart).inDays.toDouble();
 
     final xInterval = maxDays <= 30
         ? 7.0
@@ -87,7 +88,7 @@ class DashboardRange {
             : 60.0;
 
     return DashboardRange(
-      start: adjustedStart,
+      start: normalizedStart,
       end: effectiveEnd,
       maxDays: maxDays,
       xInterval: xInterval.toInt(),

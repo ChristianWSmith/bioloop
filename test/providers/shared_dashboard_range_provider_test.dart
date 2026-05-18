@@ -270,5 +270,39 @@ void main() {
 
       expect(range.xInterval, 60);
     });
+
+    test('range.start is normalized to midnight when weight entries have time components', () {
+      final today = DateTime.now();
+      final todayMidnight = DateTime(today.year, today.month, today.day);
+      final yesterday = today.subtract(const Duration(days: 1));
+      final yesterdayWithTime = DateTime(yesterday.year, yesterday.month, yesterday.day, 8, 30, 15);
+
+      final weights = [
+        BodyweightEntry(
+          id: 1,
+          weightKg: 80.0,
+          loggedAt: yesterdayWithTime.toIso8601String(),
+        ),
+        BodyweightEntry(
+          id: 2,
+          weightKg: 80.5,
+          loggedAt: DateTime(today.year, today.month, today.day, 12, 0, 0).toIso8601String(),
+        ),
+      ];
+      final calories = [
+        (date: '${todayMidnight.year}-${todayMidnight.month.toString().padLeft(2, '0')}-${todayMidnight.day.toString().padLeft(2, '0')}', calories: 2200.0),
+      ];
+
+      final range = DashboardRange.compute(
+        timeRange: TimeRange.oneMonth,
+        weights: weights,
+        calories: calories,
+      );
+
+      expect(range.start.hour, 0);
+      expect(range.start.minute, 0);
+      expect(range.start.second, 0);
+      expect(range.start.millisecond, 0);
+    });
   });
 }
