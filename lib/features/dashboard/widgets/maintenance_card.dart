@@ -3,29 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/algorithms/maintenance_calculator.dart';
-import '../../../providers/data_trigger_provider.dart';
-import '../../../providers/database_provider.dart';
 import '../../../providers/maintenance_provider.dart';
 
 final _kcalFmt = NumberFormat('#,###');
-
-final _countDataDaysProvider = FutureProvider<int>((ref) async {
-  ref.watch(dataTriggerProvider);
-  final db = ref.watch(databaseProvider);
-  final now = DateTime.now();
-  final cutoff = now.subtract(const Duration(days: 30));
-  final cutoffStr =
-      '${cutoff.year}-${cutoff.month.toString().padLeft(2, '0')}-${cutoff.day.toString().padLeft(2, '0')}';
-
-  final foods = await db.getEntriesPaginated(limit: 365);
-
-  final foodDates = foods
-      .map((e) => e.loggedAt.substring(0, 10))
-      .where((d) => d.compareTo(cutoffStr) >= 0)
-      .toSet();
-
-  return foodDates.length;
-});
 
 class MaintenanceCard extends ConsumerWidget {
   const MaintenanceCard({super.key});
@@ -44,7 +24,7 @@ class MaintenanceCard extends ConsumerWidget {
           error: (_, _) => _buildError(),
           data: (result) {
             if (result == null || result.failureReason != null) {
-              return _buildInsufficientData(context, ref, result?.failureReason);
+              return _buildInsufficientData(context, maintenanceAsync, result?.failureReason);
             }
             return _buildResult(result, theme);
           },
@@ -78,11 +58,9 @@ class MaintenanceCard extends ConsumerWidget {
 
   Widget _buildInsufficientData(
     BuildContext context,
-    WidgetRef ref,
+    AsyncValue<MaintenanceResult?> maintenanceAsync,
     MaintenanceFailureReason? reason,
   ) {
-    final countAsync = ref.watch(_countDataDaysProvider);
-
     String message;
     bool showProgress = false;
 
@@ -114,11 +92,12 @@ class MaintenanceCard extends ConsumerWidget {
         ),
         if (showProgress) ...[
           const SizedBox(height: 8),
-          countAsync.when(
+          maintenanceAsync.when(
             loading: () => const LinearProgressIndicator(minHeight: 8),
             error: (_, _) => const LinearProgressIndicator(minHeight: 8),
-            data: (count) {
-              final progress = (count / 10.0).clamp(0.0, 1.0);
+            data: (result) {
+              final dataPoints = result?.dataPoints ?? 0;
+              final progress = (dataPoints / 10.0).clamp(0.0, 1.0);
               return Row(
                 children: [
                   Expanded(
@@ -132,7 +111,7 @@ class MaintenanceCard extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '$count/10',
+                    '$dataPoints/10',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],

@@ -484,8 +484,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               _calorieWarning(_calorieAdjustmentController.text),
               const SizedBox(height: 12),
               SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'bodyweight', label: Text('Per lb bodyweight')),
+                segments: [
+                  ButtonSegment(value: 'bodyweight', label: Text('Per ${_useImperial ? "lb" : "kg"} bodyweight')),
                   ButtonSegment(value: 'height', label: Text('Per cm height')),
                 ],
                 selected: {_proteinBasis},

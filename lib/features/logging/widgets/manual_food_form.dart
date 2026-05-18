@@ -37,7 +37,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
     if (widget.existingFood != null) {
       final food = widget.existingFood!;
       _nameController.text = food.name;
-      _qtyController.text = food.servingQuantity.toString();
+      _qtyController.text = _formatQuantity(food.servingQuantity);
       _caloriesController.text = food.caloriesPerServing.toString();
       _proteinController.text = food.proteinPerServing.toString();
       _carbsController.text = food.carbsPerServing.toString();
@@ -63,6 +63,9 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
   String get _unit => _customUnit ?? _selectedUnit;
 
   bool get _unitIsCommon => _commonUnits.contains(_unit);
+
+  String _formatQuantity(double value) =>
+      value == value.roundToDouble() ? value.toInt().toString() : value.toStringAsFixed(1);
 
   String _buildLabel() {
     final qty = double.tryParse(_qtyController.text) ?? 1;

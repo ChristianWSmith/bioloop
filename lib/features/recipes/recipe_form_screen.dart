@@ -86,7 +86,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       builder: (ctx) => _QuantityDialog(
         foodName: food.name,
         unit: food.servingUnit,
-        initialValue: food.servingQuantity.toString(),
+        initialValue: _formatQuantity(food.servingQuantity),
       ),
     );
     if (quantityStr == null || !mounted) return;
@@ -127,7 +127,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       builder: (ctx) => _QuantityDialog(
         foodName: item.food.name,
         unit: item.food.servingUnit,
-        initialValue: item.ingredient.quantity.toStringAsFixed(1),
+        initialValue: _formatQuantity(item.ingredient.quantity),
       ),
     );
     if (quantityStr == null || !mounted) return;
@@ -139,6 +139,9 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       );
     });
   }
+
+  String _formatQuantity(double value) =>
+      value == value.roundToDouble() ? value.toInt().toString() : value.toStringAsFixed(1);
 
   Future<void> _deleteIngredient(int index) async {
     final confirmed = await showDialog<bool>(
