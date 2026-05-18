@@ -1,0 +1,12 @@
+--- Dashboard Sparklines ---
+1. Both Sparklines shall ALWAYS show the exact same timespan.
+2. If the time range from the first point to the last point on the longer of the two Sparklines is less than the requested timespan, that should be the final timespan used. For example if there are food entries from May 1st to May 5th, and only a single bodyweight entry on May 1st, and the user sets the timespan toggle to 1 month, the final timespan shown should be May 1st to May 5th. There's no point in showing the user a large portion of empty graph. You could think of this as falling back to "all time" behavior.
+3. The current day should be included in the calorie sparkline.
+4. If there's only a single point on both Sparklines, and they're on the same day, the range should be extended backward by 1 day.  For example if the user is brand new, and they've logged their first bodyweight and food entries on May 2nd, the range shown should be May 1st to May 2nd.
+
+--- OpenFoodFacts API ---
+We're still seeing intermittent "no results" responses from OpenFoodFacts. This is odd because if the request fails, we report a different message to the user, meaning that these API calls are succeeding, but returning no results. This may be an issue on OpenFoodFacts' end, or it may be that we're not properly reporting failed API calls.
+- If the former is true, we ought to do retries on requests that are successful but return no results. We should use good API etiquette and not spam, so maybe some kind of back off strategy works there.
+- If the latter is true, we should actually not report the failed API call and instead silently retry without informing the user that anything went wrong.
+
+On the subject, we shouldn't immediately trigger an API call when the search bar receives focus, only on edit, and even then there should be a short timeout after the edit so that it doesn't launch a separate request for each keystroke.  Also, if it's already searching, hitting the enter key shouldn't launch a duplicate search, that's just poor API etiquette.
