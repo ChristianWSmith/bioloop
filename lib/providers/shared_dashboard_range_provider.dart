@@ -18,7 +18,6 @@ class DashboardRange {
   static DashboardRange compute({
     required TimeRange timeRange,
     required List<BodyweightEntry> weights,
-    required List<({String date, double calories})> calories,
   }) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -37,48 +36,18 @@ class DashboardRange {
       latestWeight = DateTime.parse(sorted.last.loggedAt);
     }
 
-    DateTime? earliestCalorie;
-    DateTime? latestCalorie;
-    if (calories.isNotEmpty) {
-      final sorted = List<({String date, double calories})>.from(calories)
-        ..sort((a, b) => a.date.compareTo(b.date));
-      earliestCalorie = DateTime.parse(sorted.first.date);
-      latestCalorie = DateTime.parse(sorted.last.date);
-    }
-
-    final earliestData = [earliestWeight, earliestCalorie]
-        .whereType<DateTime>()
-        .fold<DateTime?>(
-          null,
-          (prev, curr) => prev == null || curr.isBefore(prev) ? curr : prev,
-        );
-
-    final latestData = [latestWeight, latestCalorie]
-        .whereType<DateTime>()
-        .fold<DateTime?>(
-          null,
-          (prev, curr) => prev == null || curr.isAfter(prev) ? curr : prev,
-        );
-
-    final effectiveStart = earliestData != null && earliestData.isAfter(calculatedStart)
-        ? earliestData
+    final effectiveStart = earliestWeight != null && earliestWeight.isAfter(calculatedStart)
+        ? earliestWeight
         : calculatedStart;
 
-    final effectiveEndCandidates = [latestData, today].whereType<DateTime>();
+    final effectiveEndCandidates = [latestWeight, today].whereType<DateTime>();
     final effectiveEnd = effectiveEndCandidates.isEmpty
         ? today
         : effectiveEndCandidates.reduce(
             (a, b) => a.isAfter(b) ? a : b,
           );
 
-    final adjustedStart = _applySinglePointExtension(
-      weights: weights,
-      calories: calories,
-      currentStart: effectiveStart,
-      today: today,
-    );
-
-    final normalizedStart = DateTime(adjustedStart.year, adjustedStart.month, adjustedStart.day);
+    final normalizedStart = DateTime(effectiveStart.year, effectiveStart.month, effectiveStart.day);
     final maxDays = effectiveEnd.difference(normalizedStart).inDays.toDouble();
 
     final xInterval = maxDays <= 30
@@ -93,28 +62,5 @@ class DashboardRange {
       maxDays: maxDays,
       xInterval: xInterval.toInt(),
     );
-  }
-
-  static DateTime _applySinglePointExtension({
-    required List<BodyweightEntry> weights,
-    required List<({String date, double calories})> calories,
-    required DateTime currentStart,
-    required DateTime today,
-  }) {
-    if (weights.length != 1 || calories.length != 1) {
-      return currentStart;
-    }
-
-    final weightDate = DateTime.parse(weights.first.loggedAt);
-    final calorieDate = DateTime.parse(calories.first.date);
-
-    final weightDay = DateTime(weightDate.year, weightDate.month, weightDate.day);
-    final calorieDay = DateTime(calorieDate.year, calorieDate.month, calorieDate.day);
-
-    if (weightDay == calorieDay) {
-      return weightDay.subtract(const Duration(days: 1));
-    }
-
-    return currentStart;
   }
 }

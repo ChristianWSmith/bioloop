@@ -36,10 +36,10 @@ lib/
       mifflin_st_jeor.dart         # BMR estimator
     utils/
       calorie_clamp.dart           # clamp OFF calories to 4-4-9 max
-  providers/             # 22 Riverpod providers
+  providers/             # 21 Riverpod providers
   features/
     onboarding/          # first-launch setup flow
-    dashboard/           # summary + progress rings + dual sparklines (weight + calories) + time range toggle
+    dashboard/           # summary + progress rings + bodyweight sparkline + time range toggle
     logging/             # food search, log, barcode, macro bars, today's entries
     bodyweight/          # weight log + Scaffold + FAB
     history/             # CSV export + edit entry sheet
@@ -75,7 +75,6 @@ lib/
 | `foodLogProvider` | `Provider<FoodLogService>` | CRUD wrapper for food entries |
 | `todaysFoodProvider` | `FutureProvider<List<FoodEntry>>` | Today's entries (watches resetTrigger + dataTrigger) |
 | `dateFoodProvider` | `FutureProvider.family<List<FoodEntry>, DateTime>` | Entries for a specific date |
-| `historicalCaloriesProvider` | `FutureProvider.family<List<({String date, double calories})>, ({DateTime start, DateTime end})>` | Daily calorie totals for a date range (watches triggers) |
 | `dashboardTimeRangeProvider` | `StateProvider<TimeRange>` | Time range selection for dashboard graphs (1M/6M/All, non-persistent) |
 | `foodSearchServiceProvider` | `Provider<FoodSearchService>` | Local + API search |
 | `openFoodFactsClientProvider` | `Provider<OpenFoodFactsClient>` | API HTTP client |
@@ -144,10 +143,9 @@ lib/
 - **Log screen entry display**: Each food entry's `ListTile` subtitle is the `_MacroBreakdownBar` (no macro text or time). Trailing is bold `"XXX cal"` text (meal-type badge removed). Section headers have a 3px colored left border strip, meal-type icon (`Icons.free_breakfast`/`Icons.lunch_dining`/`Icons.dinner_dining`/`Icons.cookie`), bold colored heading, and tinted count badge.
 - **Maintenance forward-fill**: `MaintenanceCalculator.calculate()` assumes the oldest logged weight for all dates before the first weight entry. This ensures new users with sparse early data can get maintenance estimates. Example: If you onboard at 190 lbs on May 16, the algorithm assumes you were 190 lbs for all dates in the 30-day window before May 16. If you delete the May 16 weight, the assumption shifts to the new oldest weight. File: `lib/core/algorithms/maintenance_calculator.dart:57-78`
 - **Recipe edit bug fix**: When editing a recipe, the save logic re-inserts ingredients after deleting them. Previously, ingredients were deleted but not re-inserted, causing zero macros. File: `lib/features/recipes/recipe_form_screen.dart:204-217`
-- **Dashboard dual sparklines**: `DashboardScreen` shows two graphs — `BodyweightSparkline` (above) and `CaloriesSparkline` (below). Both graphs share the same time range computed from the **greater span** of both weight and calorie datasets. `DashboardRange.compute()` receives actual calorie data (not an empty list), so the range uses the earliest date from either dataset. Time range is non-persistent (resets to 1M on app restart). Files: `lib/features/dashboard/dashboard_screen.dart`, `lib/providers/shared_dashboard_range_provider.dart`
-- **Time range toggle**: `SegmentedButton<TimeRange>` positioned between `MaintenanceCard` and graphs. Three segments: "1M" (30 days), "6M" (180 days), "All" (all data). Both graphs filter data based on selected range with smart adjustment (uses earliest data point if less than selected range). X-axis intervals auto-adjust: 7 days (1M), 30 days (6M), 60 days (All). File: `lib/features/dashboard/dashboard_screen.dart:140-151`
-- **Dashboard range normalization**: `DashboardRange.compute()` normalizes `range.start` to midnight (`DateTime(year, month, day)`) before returning. This ensures consistent date comparisons with calorie entries whose date strings parse to `00:00:00`, preventing weight entries with time components (e.g. `"2026-05-17T08:30:00"`) from incorrectly filtering out calorie data on the same calendar day via `!date.isBefore(range.start)`. File: `lib/providers/shared_dashboard_range_provider.dart:81`
-- **Database date range method**: `AppDatabase.getEntriesForDateRange(DateTime start, DateTime end)` fetches all food entries within a date range, used by `historicalCaloriesProvider` to aggregate daily calorie totals. The `end` parameter is treated as inclusive — internally `end + 1 day` is used so that `loggedAt` timestamps with time components (e.g. `"2026-05-18 14:30:00"`) are correctly captured when querying for the end date. File: `lib/core/database/database.dart:165-174`
+- **Dashboard bodyweight sparkline**: `DashboardScreen` shows a single `BodyweightSparkline` graph. `DashboardRange.compute()` derives the time range from weight entries only. Time range is non-persistent (resets to 1M on app restart). Files: `lib/features/dashboard/dashboard_screen.dart`, `lib/providers/shared_dashboard_range_provider.dart`
+- **Time range toggle**: `SegmentedButton<TimeRange>` positioned between `MaintenanceCard` and the sparkline. Three segments: "1M" (30 days), "6M" (180 days), "All" (all data). The sparkline filters data based on selected range with smart adjustment (uses earliest data point if less than selected range). X-axis intervals auto-adjust: 7 days (1M), 30 days (6M), 60 days (All). File: `lib/features/dashboard/dashboard_screen.dart:140-151`
+- **Dashboard range normalization**: `DashboardRange.compute()` normalizes `range.start` to midnight (`DateTime(year, month, day)`) before returning. This ensures consistent date comparisons when weight entries have time components (e.g. `"2026-05-17T08:30:00"`). File: `lib/providers/shared_dashboard_range_provider.dart:81`
 - **Protein basis**: `UserGoals.proteinBasis` column stores `'bodyweight'` or `'height'`. Defaults to `'bodyweight'` for backward compatibility. Both `OnboardingScreen` and `GoalsScreen` present a `SegmentedButton<String>` toggle between "Per lb/kg bodyweight" (dynamic based on `_useImperial`) and "Per cm height" above the protein slider. File: `lib/core/database/tables/user_goals.dart:17`
 - **Height-based protein calculation**: `MacroTargets.compute` checks `proteinBasis` — if `'height'` and `heightCm` is set, protein = `heightCm * proteinValue`; otherwise falls back to bodyweight (`weightLb * proteinValue`). Same `proteinValue` field (`proteinGPerLb`) is used for both modes. File: `lib/providers/macro_targets_provider.dart:62-77`
 - **Protein unit labels**: `UnitPreferences.proteinUnitForBasis(String basis)` returns `'g/cm'` for height basis, or `'g/lb'`/`'g/kg'` for bodyweight basis depending on imperial/metric. Used in slider labels and recommended range text on both onboarding and goals screens. File: `lib/providers/unit_preferences_provider.dart:35-38`
