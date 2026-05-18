@@ -10,3 +10,12 @@ We're still seeing intermittent "no results" responses from OpenFoodFacts. This 
 - If the latter is true, we should actually not report the failed API call and instead silently retry without informing the user that anything went wrong.
 
 On the subject, we shouldn't immediately trigger an API call when the search bar receives focus, only on edit, and even then there should be a short timeout after the edit so that it doesn't launch a separate request for each keystroke.  Also, if it's already searching, hitting the enter key shouldn't launch a duplicate search, that's just poor API etiquette.
+
+We SHOULD however launch a search if the search bar is non-empty AND the user toggles from "My Foods" to "Search the Web".
+
+--- Food Search ---
+- Backing out of the custom food creation screen should return you to the food search.  It shouldn't send you all the way back to the log tab.
+- The delete button on food items while toggled to "my foods" is redundant, as the user can already delete them by long-pressing them.  We should remove that button and keep the long press functionality.
+
+--- Recipe Management ---
+- Similar to foods, the user can already delete by long-pressing the recipe item in the recipe management screen.  We should remove the delete button and keep the long press functionality for deleting saved recipes.
