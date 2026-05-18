@@ -60,20 +60,33 @@ class DashboardScreen extends ConsumerWidget {
     final weights = weightsAsync.value ?? [];
     final goals = goalsAsync.value;
 
-    final range = DashboardRange.compute(
-      timeRange: timeRange,
-      weights: weights,
-      calories: [],
-    );
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final calculatedStart = switch (timeRange) {
+      TimeRange.oneMonth => now.subtract(const Duration(days: 30)),
+      TimeRange.sixMonths => now.subtract(const Duration(days: 180)),
+      TimeRange.allTime => DateTime(2000, 1, 1),
+    };
 
     final allCaloriesAsync = ref.watch(
       historicalCaloriesProvider((
-        start: range.start,
-        end: range.end,
+        start: calculatedStart,
+        end: today,
       )),
     );
 
     final allCalories = allCaloriesAsync.value ?? [];
+
+    final range = DashboardRange.compute(
+      timeRange: timeRange,
+      weights: weights,
+      calories: allCalories,
+    );
+
+    final filteredCalories = allCalories.where((e) {
+      final date = DateTime.parse(e.date);
+      return !date.isBefore(range.start);
+    }).toList();
 
     if (entries.isEmpty && weights.isEmpty && goals == null) {
       return Scaffold(
@@ -192,7 +205,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
           ),
-          CaloriesSparkline(entries: allCalories, range: range),
+          CaloriesSparkline(entries: filteredCalories, range: range),
           ],
         ),
       ),

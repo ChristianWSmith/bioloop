@@ -8,6 +8,7 @@ import 'package:bioloop/core/algorithms/maintenance_calculator.dart';
 import 'package:bioloop/core/database/database.dart';
 import 'package:bioloop/features/dashboard/dashboard_screen.dart';
 import 'package:bioloop/features/dashboard/widgets/bodyweight_sparkline.dart';
+import 'package:bioloop/features/dashboard/widgets/calories_sparkline.dart';
 import 'package:bioloop/features/dashboard/widgets/macro_ring.dart';
 import 'package:bioloop/providers/bodyweight_provider.dart';
 import 'package:bioloop/providers/dashboard_time_range_provider.dart';
@@ -26,6 +27,7 @@ Widget buildDashboard(
   List<BodyweightEntry> weights = const [],
   UserGoal? goals,
   MaintenanceResult? maintenance,
+  List<({String date, double calories})> calories = const [],
   AppDatabase? db,
 }) {
   final database = db ?? AppDatabase.createInMemory();
@@ -40,7 +42,7 @@ Widget buildDashboard(
       dataTriggerProvider.overrideWith((ref) => 0),
       resetTriggerProvider.overrideWith((ref) => 0),
       historicalCaloriesProvider.overrideWith(
-        (ref, params) async => <({String date, double calories})>[],
+        (ref, params) async => calories,
       ),
     ],
     child: MaterialApp(
@@ -54,6 +56,9 @@ Widget buildDashboard(
 Future<void> pumpDashboard(WidgetTester tester, Widget widget) async {
   await tester.pumpWidget(widget);
   await tester.pump();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.pump(const Duration(milliseconds: 500));
   await tester.pump(const Duration(milliseconds: 500));
   await tester.pump(const Duration(milliseconds: 500));
   await tester.pump(const Duration(milliseconds: 500));
@@ -390,6 +395,38 @@ void main() {
       );
 
       expect(find.textContaining('Log 10+ days'), findsOneWidget);
+    });
+
+    testWidgets('calories sparkline shows data when weights are empty',
+        (tester) async {
+      final now = DateTime.now();
+      final twoDaysAgo = now.subtract(const Duration(days: 2));
+
+      final range = DashboardRange(
+        start: twoDaysAgo,
+        end: now,
+        maxDays: 2.0,
+        xInterval: 7,
+      );
+
+      final calories = [
+        (date: '${twoDaysAgo.year}-${twoDaysAgo.month.toString().padLeft(2, '0')}-${twoDaysAgo.day.toString().padLeft(2, '0')}', calories: 2000.0),
+        (date: '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}', calories: 2200.0),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: CaloriesSparkline(entries: calories, range: range),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Log your first food'), findsNothing);
+      expect(find.byType(LineChart), findsOneWidget);
     });
   });
 

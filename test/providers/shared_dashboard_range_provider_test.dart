@@ -101,6 +101,77 @@ void main() {
       expect(range.end.day, now.day);
     });
 
+    test('calories-only — range uses calorie dates when weights are empty', () {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final weekAgo = today.subtract(const Duration(days: 7));
+
+      final calories = [
+        (date: weekAgo.toIso8601String(), calories: 2000.0),
+        (date: today.toIso8601String(), calories: 2200.0),
+      ];
+
+      final range = DashboardRange.compute(
+        timeRange: TimeRange.allTime,
+        weights: [],
+        calories: calories,
+      );
+
+      expect(range.start.year, weekAgo.year);
+      expect(range.start.month, weekAgo.month);
+      expect(range.start.day, weekAgo.day);
+      expect(range.end.year, today.year);
+      expect(range.end.month, today.month);
+      expect(range.end.day, today.day);
+    });
+
+    test('weights-only — range uses weight dates when calories are empty', () {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final weekAgo = today.subtract(const Duration(days: 7));
+
+      final weights = [
+        BodyweightEntry(id: 1, weightKg: 80.0, loggedAt: weekAgo.toIso8601String()),
+        BodyweightEntry(id: 2, weightKg: 80.5, loggedAt: today.toIso8601String()),
+      ];
+
+      final range = DashboardRange.compute(
+        timeRange: TimeRange.allTime,
+        weights: weights,
+        calories: [],
+      );
+
+      expect(range.start.year, weekAgo.year);
+      expect(range.start.month, weekAgo.month);
+      expect(range.start.day, weekAgo.day);
+    });
+
+    test('greater span — earlier calorie date extends range beyond weight date', () {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final twoWeeksAgo = today.subtract(const Duration(days: 14));
+      final threeDaysAgo = today.subtract(const Duration(days: 3));
+
+      final weights = [
+        BodyweightEntry(id: 1, weightKg: 80.0, loggedAt: threeDaysAgo.toIso8601String()),
+        BodyweightEntry(id: 2, weightKg: 80.5, loggedAt: today.toIso8601String()),
+      ];
+      final calories = [
+        (date: twoWeeksAgo.toIso8601String(), calories: 2000.0),
+        (date: today.toIso8601String(), calories: 2200.0),
+      ];
+
+      final range = DashboardRange.compute(
+        timeRange: TimeRange.oneMonth,
+        weights: weights,
+        calories: calories,
+      );
+
+      expect(range.start.year, twoWeeksAgo.year);
+      expect(range.start.month, twoWeeksAgo.month);
+      expect(range.start.day, twoWeeksAgo.day);
+    });
+
     test('calorie end date extends to today even if latest entry is in the past', () {
       final today = DateTime.now();
       final yesterday = today.subtract(const Duration(days: 1));

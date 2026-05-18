@@ -114,6 +114,14 @@ class MaintenanceCalculator {
       );
     }
 
+    // Count actual calendar days with both weight and calorie data
+    int pairedDayCount = 0;
+    for (final w in filledWeights) {
+      if (calByDate.containsKey(w.loggedAt.substring(0, 10))) {
+        pairedDayCount++;
+      }
+    }
+
     final epoch = DateTime(2000, 1, 1);
     final dates =
         recentWeights.map((e) => DateTime.parse(e.loggedAt)).toList();
@@ -176,7 +184,7 @@ class MaintenanceCalculator {
       return MaintenanceResult(
         maintenanceCalories: 0,
         confidenceInterval: 0,
-        dataPoints: pairedAvgCals.length,
+        dataPoints: pairedDayCount,
         failureReason: MaintenanceFailureReason.insufficientPairedData,
       );
     }
