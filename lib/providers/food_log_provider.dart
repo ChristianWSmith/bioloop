@@ -13,6 +13,9 @@ class FoodLogService {
   Future<List<FoodEntry>> getEntriesForDate(DateTime date) =>
       db.getEntriesForDate(date);
 
+  Future<List<FoodEntry>> getEntriesForDateRange(DateTime start, DateTime end) =>
+      db.getEntriesForDateRange(start, end);
+
   Future<int> deleteEntry(int id) => db.deleteEntry(id);
 
   Future<List<FoodEntry>> getEntriesPaginated({int offset = 0, int limit = 20}) =>
@@ -40,4 +43,21 @@ final todaysFoodProvider = FutureProvider<List<FoodEntry>>((ref) async {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   return await logService.getEntriesForDate(today);
+});
+
+final historicalCaloriesProvider = FutureProvider<List<({String date, double calories})>>((ref) async {
+  ref.watch(resetTriggerProvider);
+  ref.watch(dataTriggerProvider);
+  final logService = ref.read(foodLogProvider);
+  final now = DateTime.now();
+  final thirtyDaysAgo = now.subtract(const Duration(days: 30));
+  final entries = await logService.getEntriesForDateRange(thirtyDaysAgo, now);
+  
+  final dailyTotals = <String, double>{};
+  for (final entry in entries) {
+    final dateStr = entry.loggedAt.substring(0, 10);
+    dailyTotals[dateStr] = (dailyTotals[dateStr] ?? 0) + entry.calories;
+  }
+  
+  return dailyTotals.entries.map((e) => (date: e.key, calories: e.value)).toList();
 });
