@@ -622,6 +622,629 @@ void main() {
       expect(result!.failureReason, isNull);
       expect(result.confidenceInterval, equals(double.infinity));
     });
+
+    List<FoodEntry> generateFoodPattern({
+      required double baseCalories,
+      required List<double> weeklyPattern,
+      required int days,
+      required DateTime endDate,
+      double maintenanceCalories = 2500,
+      double startWeightKg = 80.0,
+      double noiseLevel = 0.1,
+      Random? rng,
+    }) {
+      final random = rng ?? Random(42);
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+
+      for (int i = 0; i < days; i++) {
+        final day = endDate.subtract(Duration(days: days - 1 - i));
+        final weekday = day.weekday; // 1=Monday, 7=Sunday
+        final patternIndex = weekday <= 5 ? 0 : (weekday - 6);
+        final calorieOffset = patternIndex < weeklyPattern.length
+            ? weeklyPattern[patternIndex]
+            : 0;
+        final cals = baseCalories + calorieOffset;
+
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = (cals - maintenanceCalories) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+
+        final noisyWeight =
+            startWeightKg + cumulativeKg + (random.nextDouble() - 0.5) * noiseLevel;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      return foodEntries;
+    }
+
+    List<BodyweightEntry> generateWeightData({
+      required List<FoodEntry> foodEntries,
+      required double maintenanceCalories,
+      required double startWeightKg,
+      double noiseLevel = 0.1,
+      Random? rng,
+    }) {
+      final random = rng ?? Random(42);
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+
+      for (final food in foodEntries) {
+        final date = DateTime.parse(food.loggedAt);
+        final dailyChangeLbs = (food.calories - maintenanceCalories) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+
+        final noisyWeight =
+            startWeightKg + cumulativeKg + (random.nextDouble() - 0.5) * noiseLevel;
+        weightEntries.add(makeWeight(
+          id: food.id,
+          weightKg: noisyWeight,
+          date: date,
+        ));
+      }
+
+      return weightEntries;
+    }
+
+    test('cheat high but track accurately — weekend binge pattern', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+
+      final foodEntries = generateFoodPattern(
+        baseCalories: trueMaintenance,
+        weeklyPattern: [0, 0, 0, 0, 0, 750, 750],
+        days: 60,
+        endDate: now,
+        maintenanceCalories: trueMaintenance,
+        startWeightKg: startWeight,
+        noiseLevel: 0.2,
+        rng: Random(42),
+      );
+      final weightEntries = generateWeightData(
+        foodEntries: foodEntries,
+        maintenanceCalories: trueMaintenance,
+        startWeightKg: startWeight,
+        noiseLevel: 0.2,
+        rng: Random(42),
+      );
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.10));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('cheat low but track accurately — weekday restriction pattern', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final rng = Random(42);
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+
+      for (int i = 0; i < 60; i++) {
+        final day = now.subtract(Duration(days: 59 - i));
+        final weekday = day.weekday;
+        double cals;
+        if (weekday <= 5) {
+          cals = trueMaintenance - 500;
+        } else {
+          cals = trueMaintenance + 1000;
+        }
+
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+
+        final noisyWeight =
+            startWeight + cumulativeKg + (rng.nextDouble() - 0.5) * 0.2;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.15));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('inconsistent food logging — 4-5 days per week', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final rng = Random(42);
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+      int foodId = 0;
+
+      for (int i = 0; i < 60; i++) {
+        final day = now.subtract(Duration(days: 59 - i));
+        final logFood = rng.nextDouble() < 0.6;
+
+        if (logFood) {
+          final cals = trueMaintenance + (rng.nextDouble() - 0.5) * 500;
+          foodEntries.add(makeFood(id: foodId++, calories: cals, date: day));
+
+          final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
+          final dailyChangeKg = dailyChangeLbs / 2.20462;
+          cumulativeKg += dailyChangeKg;
+        }
+
+        final noisyWeight =
+            startWeight + cumulativeKg + (rng.nextDouble() - 0.5) * 0.1;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.10));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('barely sufficient user — exactly 10 paired days', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final rng = Random(42);
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+
+      for (int i = 0; i < 30; i++) {
+        final day = now.subtract(Duration(days: 29 - i));
+        final cals = trueMaintenance + (rng.nextDouble() - 0.5) * 400;
+
+        if (i < 10) {
+          foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+          final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
+          final dailyChangeKg = dailyChangeLbs / 2.20462;
+          cumulativeKg += dailyChangeKg;
+        }
+
+        final noisyWeight =
+            startWeight + cumulativeKg + (rng.nextDouble() - 0.5) * 0.1;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('new user with sparse data — 14 days total', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final rng = Random(42);
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+
+      for (int i = 0; i < 14; i++) {
+        final day = now.subtract(Duration(days: 13 - i));
+        final cals = trueMaintenance + (rng.nextDouble() - 0.5) * 400;
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+
+        final noisyWeight =
+            startWeight + cumulativeKg + (rng.nextDouble() - 0.5) * 0.1;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.20));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('perfect adherence user — same calories daily, stable weight', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+
+      for (int i = 0; i < 30; i++) {
+        final day = now.subtract(Duration(days: 29 - i));
+        foodEntries.add(makeFood(id: i, calories: trueMaintenance, date: day));
+        weightEntries.add(makeWeight(id: i, weightKg: startWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(trueMaintenance, 100));
+      expect(result.confidenceInterval, equals(double.infinity));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('long-term user — 180 days of data', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final rng = Random(42);
+      final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+
+      for (int i = 0; i < 180; i++) {
+        final day = now.subtract(Duration(days: 179 - i));
+        final cals = trueMaintenance + pattern[i % 5];
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+
+        final noisyWeight =
+            startWeight + cumulativeKg + (rng.nextDouble() - 0.5) * 0.1;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final stopwatch = Stopwatch()..start();
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+      stopwatch.stop();
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.05));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(stopwatch.elapsedMilliseconds, lessThan(500));
+    });
+
+    test('weight loss journey — 90 days, 1 lb/week loss', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final rng = Random(42);
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double weightKg = startWeight;
+
+      for (int i = 0; i < 90; i++) {
+        final day = now.subtract(Duration(days: 89 - i));
+        const weeklyDeficitLbs = 1.0;
+        const dailyDeficitCal = 500.0;
+        final cals = trueMaintenance - dailyDeficitCal + (rng.nextDouble() - 0.5) * 200;
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = weeklyDeficitLbs / 7.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        weightKg -= dailyChangeKg;
+
+        final noisyWeight = weightKg + (rng.nextDouble() - 0.5) * 0.2;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.15));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('weight gain journey — 90 days, 1 lb/week gain', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final rng = Random(42);
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double weightKg = startWeight;
+
+      for (int i = 0; i < 90; i++) {
+        final day = now.subtract(Duration(days: 89 - i));
+        const weeklySurplusLbs = 1.0;
+        const dailySurplusCal = 500.0;
+        final cals = trueMaintenance + dailySurplusCal + (rng.nextDouble() - 0.5) * 200;
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = weeklySurplusLbs / 7.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        weightKg += dailyChangeKg;
+
+        final noisyWeight = weightKg + (rng.nextDouble() - 0.5) * 0.2;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.15));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('plateau then change — 30 days stable, 30 days deficit', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final rng = Random(42);
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double weightKg = startWeight;
+
+      for (int i = 0; i < 60; i++) {
+        final day = now.subtract(Duration(days: 59 - i));
+        final cals = i < 30 ? trueMaintenance : (trueMaintenance - 500);
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        if (i >= 30) {
+          weightKg -= 0.03;
+        }
+        final noisyWeight = weightKg + (rng.nextDouble() - 0.5) * 0.1;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('adaptive thermogenesis — 180 days, shifting maintenance', () {
+      final now = DateTime(2026, 5, 17);
+      const startWeight = 80.0;
+      final rng = Random(42);
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double weightKg = startWeight;
+
+      for (int i = 0; i < 180; i++) {
+        final day = now.subtract(Duration(days: 179 - i));
+        double maintenance;
+        if (i < 90) {
+          maintenance = 2500.0;
+        } else {
+          maintenance = 2300.0;
+        }
+        final cals = maintenance + (rng.nextDouble() - 0.5) * 300;
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = (cals - maintenance) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        weightKg += dailyChangeKg;
+
+        final noisyWeight = weightKg + (rng.nextDouble() - 0.5) * 0.1;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(2400, 200));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('high variance weight measurements — ±2 lb scale noise', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final rng = Random(42);
+      final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+
+      for (int i = 0; i < 60; i++) {
+        final day = now.subtract(Duration(days: 59 - i));
+        final cals = trueMaintenance + pattern[i % 5];
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+
+        final noisyWeight =
+            startWeight + cumulativeKg + (rng.nextDouble() - 0.5) * 2.0;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.15));
+      expect(result.confidenceInterval, greaterThan(100));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('vacation gap — 10 day logging gap mid-stream', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final rng = Random(42);
+      final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+      int foodId = 0;
+
+      for (int i = 0; i < 60; i++) {
+        final day = now.subtract(Duration(days: 59 - i));
+        final cals = trueMaintenance + pattern[i % 5];
+
+        if (i < 25 || i >= 35) {
+          foodEntries.add(makeFood(id: foodId++, calories: cals, date: day));
+
+          final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
+          final dailyChangeKg = dailyChangeLbs / 2.20462;
+          cumulativeKg += dailyChangeKg;
+        }
+
+        final noisyWeight =
+            startWeight + cumulativeKg + (rng.nextDouble() - 0.5) * 0.1;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.10));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('reverse diet pattern — gradual calorie increase, stable weight', () {
+      final now = DateTime(2026, 5, 17);
+      const startWeight = 80.0;
+      final rng = Random(42);
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+
+      for (int i = 0; i < 90; i++) {
+        final day = now.subtract(Duration(days: 89 - i));
+        final baseCalories = 2000.0 + (i / 90.0) * 1000.0;
+        final cals = baseCalories + (rng.nextDouble() - 0.5) * 200;
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final noisyWeight = startWeight + (rng.nextDouble() - 0.5) * 0.1;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(2500, 500));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+    });
+
+    test('multi-year user — 2 years of data, performance test', () {
+      final now = DateTime(2026, 5, 17);
+      const trueMaintenance = 2500.0;
+      const startWeight = 80.0;
+      final rng = Random(42);
+      final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
+
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+
+      for (int i = 0; i < 730; i++) {
+        final day = now.subtract(Duration(days: 729 - i));
+        final cals = trueMaintenance + pattern[i % 5];
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+
+        final noisyWeight =
+            startWeight + cumulativeKg + (rng.nextDouble() - 0.5) * 0.1;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
+
+      final stopwatch = Stopwatch()..start();
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+      stopwatch.stop();
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.05));
+      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(stopwatch.elapsedMilliseconds, lessThan(2000));
+    });
   });
 
   group('maintenanceProvider', () {

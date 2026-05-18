@@ -39,7 +39,7 @@ lib/
   providers/             # 13 Riverpod providers
   features/
     onboarding/          # first-launch setup flow
-    dashboard/           # summary + progress rings + sparkline
+    dashboard/           # summary + progress rings + dual sparklines (weight + calories) + time range toggle
     logging/             # food search, log, barcode, macro bars, today's entries
     bodyweight/          # weight log + chart
     history/             # CSV export + edit entry sheet
@@ -75,6 +75,8 @@ lib/
 | `foodLogProvider` | `Provider<FoodLogService>` | CRUD wrapper for food entries |
 | `todaysFoodProvider` | `FutureProvider<List<FoodEntry>>` | Today's entries (watches resetTrigger + dataTrigger) |
 | `dateFoodProvider` | `FutureProvider.family<List<FoodEntry>, DateTime>` | Entries for a specific date |
+| `historicalCaloriesProvider` | `FutureProvider<List<({String date, double calories})>>` | Daily calorie totals for last 30 days (watches triggers) |
+| `dashboardTimeRangeProvider` | `StateProvider<TimeRange>` | Time range selection for dashboard graphs (1M/6M/All, non-persistent) |
 | `foodSearchServiceProvider` | `Provider<FoodSearchService>` | Local + API search |
 | `openFoodFactsClientProvider` | `Provider<OpenFoodFactsClient>` | API HTTP client |
 | `macroTargetsProvider` | `FutureProvider<MacroTargets>` | Calculated daily targets |
@@ -141,3 +143,7 @@ lib/
 - **Log screen entry display**: Each food entry's `ListTile` subtitle is the `_MacroBreakdownBar` (no macro text or time). Trailing is bold `"XXX cal"` text (meal-type badge removed). Section headers have a 3px colored left border strip, meal-type icon (`Icons.free_breakfast`/`Icons.lunch_dining`/`Icons.dinner_dining`/`Icons.cookie`), bold colored heading, and tinted count badge.
 - **Maintenance forward-fill**: `MaintenanceCalculator.calculate()` assumes the oldest logged weight for all dates before the first weight entry. This ensures new users with sparse early data can get maintenance estimates. Example: If you onboard at 190 lbs on May 16, the algorithm assumes you were 190 lbs for all dates in the 30-day window before May 16. If you delete the May 16 weight, the assumption shifts to the new oldest weight. File: `lib/core/algorithms/maintenance_calculator.dart:57-78`
 - **Recipe edit bug fix**: When editing a recipe, the save logic re-inserts ingredients after deleting them. Previously, ingredients were deleted but not re-inserted, causing zero macros. File: `lib/features/recipes/recipe_form_screen.dart:204-217`
+- **Dashboard dual sparklines**: `DashboardScreen` shows two graphs — `BodyweightSparkline` (above) and `CaloriesSparkline` (below). Both graphs share the same time range from `dashboardTimeRangeProvider` (1M/6M/All). Time range is non-persistent (resets to 1M on app restart). Files: `lib/features/dashboard/dashboard_screen.dart:136-165`, `lib/features/dashboard/widgets/bodyweight_sparkline.dart`, `lib/features/dashboard/widgets/calories_sparkline.dart`
+- **Time range toggle**: `SegmentedButton<TimeRange>` positioned between `MaintenanceCard` and graphs. Three segments: "1M" (30 days), "6M" (180 days), "All" (all data). Both graphs filter data based on selected range with smart adjustment (uses earliest data point if less than selected range). X-axis intervals auto-adjust: 7 days (1M), 30 days (6M), 60 days (All). File: `lib/features/dashboard/dashboard_screen.dart:140-151`
+- **Smart range adjustment**: Both sparklines use `effectiveStart = max(calculatedStart, earliestData)` to show actual data range when it's less than the selected range. Example: If "All" is selected but only 14 days of data exists, graphs show 14 days (not infinite). Files: `lib/features/dashboard/widgets/bodyweight_sparkline.dart:38-43`, `lib/features/dashboard/widgets/calories_sparkline.dart:38-43`
+- **Database date range method**: `AppDatabase.getEntriesForDateRange(DateTime start, DateTime end)` fetches all food entries within a date range, used by `historicalCaloriesProvider` to aggregate daily calorie totals. File: `lib/core/database/database.dart:165-174`

@@ -162,6 +162,17 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
+  Future<List<FoodEntry>> getEntriesForDateRange(DateTime start, DateTime end) async {
+    final startStr = '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
+    final endStr = '${end.year}-${end.month.toString().padLeft(2, '0')}-${end.day.toString().padLeft(2, '0')}';
+    return await (select(foodEntries)
+          ..where((f) => f.loggedAt.isBetweenValues(startStr, endStr))
+          ..orderBy([
+            (f) => OrderingTerm(expression: f.loggedAt, mode: OrderingMode.asc)
+          ]))
+        .get();
+  }
+
   Future<int> deleteEntry(int id) async {
     return await (delete(foodEntries)..where((f) => f.id.equals(id))).go();
   }

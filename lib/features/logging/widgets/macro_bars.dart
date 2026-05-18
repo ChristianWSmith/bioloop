@@ -39,6 +39,7 @@ class MacroBars extends StatelessWidget {
                   ? consumedCalories / targets.targetCalories
                   : 0.0,
               color: Theme.of(context).colorScheme.primary,
+              isOver: targets.targetCalories > 0 && consumedCalories > targets.targetCalories,
             ),
             const SizedBox(height: 16),
             Row(
@@ -95,6 +96,7 @@ class _MacroRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isOver = target > 0 && consumed > target;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -102,7 +104,7 @@ class _MacroRow extends StatelessWidget {
           label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: color,
+                color: isOver ? Colors.red : color,
               ),
         ),
         Text(
@@ -117,17 +119,19 @@ class _MacroRow extends StatelessWidget {
 class _ProgressBar extends StatelessWidget {
   final double value;
   final Color color;
+  final bool isOver;
 
-  const _ProgressBar({required this.value, required this.color});
+  const _ProgressBar({required this.value, required this.color, this.isOver = false});
 
   @override
   Widget build(BuildContext context) {
+    final barColor = isOver && value > 1.0 ? Colors.red : color;
     return ClipRRect(
       borderRadius: BorderRadius.circular(4),
       child: LinearProgressIndicator(
         value: value.clamp(0.0, 1.0),
-        backgroundColor: color.withValues(alpha: 0.15),
-        valueColor: AlwaysStoppedAnimation(color),
+        backgroundColor: barColor.withValues(alpha: 0.15),
+        valueColor: AlwaysStoppedAnimation(barColor),
         minHeight: 8,
       ),
     );
@@ -149,6 +153,7 @@ class _MacroColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isOver = target > 0 && consumed > target;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -156,7 +161,7 @@ class _MacroColumn extends StatelessWidget {
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: color,
+                color: isOver ? Colors.red : color,
               ),
         ),
         const SizedBox(height: 2),
@@ -170,6 +175,7 @@ class _MacroColumn extends StatelessWidget {
         _ProgressBar(
           value: target > 0 ? (consumed / target) : 0.0,
           color: color,
+          isOver: isOver,
         ),
       ],
     );

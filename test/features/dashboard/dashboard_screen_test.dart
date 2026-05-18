@@ -10,6 +10,7 @@ import 'package:bioloop/features/dashboard/dashboard_screen.dart';
 import 'package:bioloop/features/dashboard/widgets/bodyweight_sparkline.dart';
 import 'package:bioloop/features/dashboard/widgets/macro_ring.dart';
 import 'package:bioloop/providers/bodyweight_provider.dart';
+import 'package:bioloop/providers/dashboard_time_range_provider.dart';
 import 'package:bioloop/providers/food_log_provider.dart';
 import 'package:bioloop/providers/goals_provider.dart';
 import 'package:bioloop/providers/macro_targets_provider.dart';
@@ -321,6 +322,28 @@ void main() {
       expect(find.textContaining('loss'), findsOneWidget);
       expect(find.textContaining('Maintenance Calories'), findsOneWidget);
       expect(find.byType(LineChart), findsOneWidget);
+    });
+
+    testWidgets('time range toggle defaults to 1 month', (tester) async {
+      final goals = makeGoals();
+      final targets = makeTargets();
+      await pumpDashboard(tester, buildDashboard([], targets, goals: goals));
+
+      expect(find.text('1M'), findsOneWidget);
+      expect(find.text('6M'), findsOneWidget);
+      expect(find.text('All'), findsOneWidget);
+    });
+
+    testWidgets('time range toggle switches selection', (tester) async {
+      final goals = makeGoals();
+      final targets = makeTargets();
+      await pumpDashboard(tester, buildDashboard([], targets, goals: goals));
+
+      await tester.tap(find.text('6M'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('6M'), findsOneWidget);
+      expect(find.byType(SegmentedButton<TimeRange>), findsOneWidget);
     });
 
     testWidgets('maintenance card shows value when result present',

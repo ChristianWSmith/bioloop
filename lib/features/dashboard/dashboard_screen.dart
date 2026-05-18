@@ -4,12 +4,14 @@ import 'package:intl/intl.dart';
 
 import '../../core/database/database.dart';
 import '../../providers/bodyweight_provider.dart';
+import '../../providers/dashboard_time_range_provider.dart';
 import '../../providers/food_log_provider.dart';
 import '../../providers/goals_provider.dart';
 import '../../providers/macro_targets_provider.dart';
 import '../../providers/unit_preferences_provider.dart';
 import '../settings/settings_screen.dart';
 import 'widgets/bodyweight_sparkline.dart';
+import 'widgets/calories_sparkline.dart';
 import 'widgets/macro_ring.dart';
 import 'widgets/maintenance_card.dart';
 
@@ -24,12 +26,14 @@ class DashboardScreen extends ConsumerWidget {
     final targetsAsync = ref.watch(macroTargetsProvider);
     final weightsAsync = ref.watch(bodyweightProvider);
     final goalsAsync = ref.watch(userGoalsProvider);
+    final historicalCalsAsync = ref.watch(historicalCaloriesProvider);
     final unitPrefs = ref.watch(unitPreferencesProvider);
 
     if (entriesAsync.isLoading ||
         targetsAsync.isLoading ||
         weightsAsync.isLoading ||
-        goalsAsync.isLoading) {
+        goalsAsync.isLoading ||
+        historicalCalsAsync.isLoading) {
       return Scaffold(
         appBar: _buildAppBar(context),
         body: const Center(child: CircularProgressIndicator()),
@@ -55,6 +59,7 @@ class DashboardScreen extends ConsumerWidget {
     final targets = targetsAsync.value!;
     final weights = weightsAsync.value ?? [];
     final goals = goalsAsync.value;
+    final historicalCals = historicalCalsAsync.value ?? [];
 
     if (entries.isEmpty && weights.isEmpty && goals == null) {
       return Scaffold(
@@ -130,6 +135,21 @@ class DashboardScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           const MaintenanceCard(),
           const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<TimeRange>(
+              segments: const [
+                ButtonSegment(value: TimeRange.oneMonth, label: Text('1M')),
+                ButtonSegment(value: TimeRange.sixMonths, label: Text('6M')),
+                ButtonSegment(value: TimeRange.allTime, label: Text('All')),
+              ],
+              selected: {ref.watch(dashboardTimeRangeProvider)},
+              onSelectionChanged: (selected) {
+                ref.read(dashboardTimeRangeProvider.notifier).state = selected.first;
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
           const Padding(
             padding: EdgeInsets.only(left: 16, bottom: 8),
             child: Align(
@@ -144,6 +164,21 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
           BodyweightSparkline(entries: weights),
+          const SizedBox(height: 24),
+          const Padding(
+            padding: EdgeInsets.only(left: 16, bottom: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Calories Consumed',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          CaloriesSparkline(entries: historicalCals),
           ],
         ),
       ),
