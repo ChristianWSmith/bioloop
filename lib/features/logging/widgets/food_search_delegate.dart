@@ -11,7 +11,7 @@ import 'barcode_scanner.dart';
 class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   final FoodSearchService searchService;
   final OpenFoodFactsClient apiClient;
-  final VoidCallback onCreateCustomFood;
+  final Future<Food?> Function(BuildContext) onCreateCustomFood;
   final Future<void> Function(FoodSearchItem)? onQuickLog;
   final void Function(Food)? onEditFood;
   final Future<void> Function(Food)? onDeleteFood;
@@ -49,8 +49,11 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
             await onQuickLog?.call(item);
             navigator.pop<FoodSearchItem?>(null);
           } else if (result == 'manual') {
-            onCreateCustomFood();
-            navigator.pop<FoodSearchItem?>(null);
+            // ignore: use_build_context_synchronously
+            final food = await onCreateCustomFood(navigator.context);
+            if (food != null && navigator.mounted) {
+              navigator.pop<FoodSearchItem?>(FoodSearchItem.fromFood(food));
+            }
           }
         },
       ),
@@ -114,7 +117,7 @@ class _FoodSearchContent extends ConsumerStatefulWidget {
   final FoodSearchService searchService;
   final String searchMode;
   final ValueChanged<String> onSearchModeChanged;
-  final VoidCallback onCreateCustomFood;
+  final Future<Food?> Function(BuildContext) onCreateCustomFood;
   final Future<void> Function(FoodSearchItem)? onQuickLog;
   final void Function(FoodSearchItem item) onSelectItem;
   final void Function(Food)? onEditFood;
@@ -184,11 +187,14 @@ class _FoodSearchContentState extends ConsumerState<_FoodSearchContent> {
                   onEditFood: widget.onEditFood,
                   onDeleteFood: widget.onDeleteFood,
                 )
-              : _WebSearchContent(
-                  query: widget.query,
-                  searchService: widget.searchService,
-                  onSelectItem: widget.onSelectItem,
-                ),
+               : _WebSearchContent(
+                   query: widget.query,
+                   searchService: widget.searchService,
+                   onSelectItem: widget.onSelectItem,
+                   immediateQuery: _localSearchMode == 'web' && widget.query.isNotEmpty
+                       ? widget.query
+                       : null,
+                 ),
         ),
       ],
     );
@@ -197,7 +203,7 @@ class _FoodSearchContentState extends ConsumerState<_FoodSearchContent> {
 
 class _LocalSearchContent extends ConsumerWidget {
   final String query;
-  final VoidCallback onCreateCustomFood;
+  final Future<Food?> Function(BuildContext) onCreateCustomFood;
   final Future<void> Function(FoodSearchItem)? onQuickLog;
   final void Function(FoodSearchItem item) onSelectItem;
   final void Function(Food)? onEditFood;
@@ -229,9 +235,14 @@ class _LocalSearchContent extends ConsumerWidget {
         ListTile(
           leading: const Icon(Icons.add_circle_outline),
           title: const Text('Create custom food'),
-          onTap: () {
-            onCreateCustomFood();
-            Navigator.of(context).pop<FoodSearchItem?>(null);
+          onTap: () async {
+            final nav = Navigator.of(context);
+            final food = await onCreateCustomFood(context);
+            if (food != null && nav.mounted) {
+              nav.pop<FoodSearchItem?>(
+                FoodSearchItem.fromFood(food),
+              );
+            }
           },
         ),
         if (items.isEmpty)
@@ -275,58 +286,29 @@ class _LocalSearchContent extends ConsumerWidget {
                   await onDeleteFood!(food);
                 }
               },
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () {
-                      if (onEditFood != null && item.localId != null) {
-                        final food = Food(
-                          id: item.localId!,
-                          name: item.name,
-                          servingLabel: item.servingLabel,
-                          servingQuantity: item.servingQuantity,
-                          servingUnit: item.servingUnit,
-                          caloriesPerServing: item.caloriesPerServing,
-                          proteinPerServing: item.proteinPerServing,
-                          carbsPerServing: item.carbsPerServing,
-                          fatPerServing: item.fatPerServing,
-                          barcode: item.barcode,
-                          brand: item.brand,
-                          source: item.source,
-                          createdAt: '',
-                        );
-                        onEditFood!(food);
-                      }
-                    },
-                    tooltip: 'Edit food',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 20),
-                    onPressed: () async {
-                      if (onDeleteFood != null && item.localId != null) {
-                        final food = Food(
-                          id: item.localId!,
-                          name: item.name,
-                          servingLabel: item.servingLabel,
-                          servingQuantity: item.servingQuantity,
-                          servingUnit: item.servingUnit,
-                          caloriesPerServing: item.caloriesPerServing,
-                          proteinPerServing: item.proteinPerServing,
-                          carbsPerServing: item.carbsPerServing,
-                          fatPerServing: item.fatPerServing,
-                          barcode: item.barcode,
-                          brand: item.brand,
-                          source: item.source,
-                          createdAt: '',
-                        );
-                        await onDeleteFood!(food);
-                      }
-                    },
-                    tooltip: 'Delete food',
-                  ),
-                ],
+              trailing: IconButton(
+                icon: const Icon(Icons.edit, size: 20),
+                onPressed: () {
+                  if (onEditFood != null && item.localId != null) {
+                    final food = Food(
+                      id: item.localId!,
+                      name: item.name,
+                      servingLabel: item.servingLabel,
+                      servingQuantity: item.servingQuantity,
+                      servingUnit: item.servingUnit,
+                      caloriesPerServing: item.caloriesPerServing,
+                      proteinPerServing: item.proteinPerServing,
+                      carbsPerServing: item.carbsPerServing,
+                      fatPerServing: item.fatPerServing,
+                      barcode: item.barcode,
+                      brand: item.brand,
+                      source: item.source,
+                      createdAt: '',
+                    );
+                    onEditFood!(food);
+                  }
+                },
+                tooltip: 'Edit food',
               ),
             );
           }),
@@ -339,11 +321,13 @@ class _WebSearchContent extends StatefulWidget {
   final String query;
   final FoodSearchService searchService;
   final void Function(FoodSearchItem item) onSelectItem;
+  final String? immediateQuery;
 
   const _WebSearchContent({
     required this.query,
     required this.searchService,
     required this.onSelectItem,
+    this.immediateQuery,
   });
 
   @override
@@ -354,11 +338,15 @@ class _WebSearchContentState extends State<_WebSearchContent> {
   Timer? _debounceTimer;
   String _debouncedQuery = '';
   int _retryTrigger = 0;
+  bool _hasUserEdited = false;
 
   @override
   void initState() {
     super.initState();
-    _startDebounce();
+    if (widget.immediateQuery != null && widget.immediateQuery!.isNotEmpty) {
+      _debouncedQuery = widget.immediateQuery!;
+      _hasUserEdited = true;
+    }
   }
 
   @override
@@ -366,6 +354,7 @@ class _WebSearchContentState extends State<_WebSearchContent> {
     super.didUpdateWidget(oldWidget);
     if (widget.query != oldWidget.query) {
       _retryTrigger = 0;
+      _hasUserEdited = true;
       _startDebounce();
     }
   }
@@ -378,6 +367,7 @@ class _WebSearchContentState extends State<_WebSearchContent> {
 
   void _startDebounce() {
     _debounceTimer?.cancel();
+    if (!_hasUserEdited) return;
     _debounceTimer = Timer(const Duration(milliseconds: 400), () {
       if (mounted) {
         setState(() => _debouncedQuery = widget.query);
@@ -419,9 +409,12 @@ class _WebSearchContentState extends State<_WebSearchContent> {
 
         final items = (result as WebSearchSuccess?)?.items ?? [];
         if (items.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('No results found'),
+          return GestureDetector(
+            onTap: () => setState(() => _retryTrigger++),
+            child: const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('No results found. Tap to retry.'),
+            ),
           );
         }
 

@@ -26,7 +26,6 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   List<IngredientWithFood> _ingredients = [];
   bool _isLoading = true;
   bool _isSaving = false;
-  bool _pendingCreateCustom = false;
   final bool _readOnly = false;
 
   @override
@@ -63,12 +62,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   bool get _canSave =>
       _nameController.text.trim().isNotEmpty && _ingredients.isNotEmpty;
 
-  void _onCreateCustomFood() {
-    _pendingCreateCustom = true;
-  }
-
   Future<void> _addIngredient() async {
-    _pendingCreateCustom = false;
     final searchService = ref.read(foodSearchServiceProvider);
     final apiClient = ref.read(openFoodFactsClientProvider);
     final food = await showSearch<FoodSearchItem?>(
@@ -76,24 +70,16 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       delegate: FoodSearchDelegate(
         searchService: searchService,
         apiClient: apiClient,
-        onCreateCustomFood: _onCreateCustomFood,
+        onCreateCustomFood: (context) async {
+          return await Navigator.of(context).push<Food>(
+            MaterialPageRoute(
+              builder: (_) => const ManualFoodForm(),
+            ),
+          );
+        },
       ),
     );
-    if (food == null) {
-      if (_pendingCreateCustom && mounted) {
-        _pendingCreateCustom = false;
-        final created = await Navigator.of(context).push<Food>(
-          MaterialPageRoute(
-            builder: (_) => const ManualFoodForm(),
-          ),
-        );
-        if (created != null && mounted) {
-          _addIngredientFromFood(created);
-        }
-      }
-      return;
-    }
-    if (!mounted) return;
+    if (food == null || !mounted) return;
 
     final quantityStr = await showDialog<String>(
       context: context,
@@ -130,21 +116,6 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
           source: food.source,
           createdAt: '',
         ),
-      ));
-    });
-  }
-
-  void _addIngredientFromFood(Food food) {
-    setState(() {
-      _ingredients.add(IngredientWithFood(
-        ingredient: RecipeIngredient(
-          id: -1,
-          recipeId: widget.recipeId ?? -1,
-          foodId: food.id,
-          quantity: food.servingQuantity,
-          createdAt: DateTime.now().toIso8601String(),
-        ),
-        food: food,
       ));
     });
   }

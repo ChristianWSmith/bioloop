@@ -20,6 +20,7 @@ class OpenFoodFactsClient {
 
   Future<List<FoodResult>> search(String query) async {
     int attempts = 0;
+    int emptyAttempts = 0;
     while (true) {
       attempts++;
       try {
@@ -44,6 +45,15 @@ class OpenFoodFactsClient {
 
         final products = body['products'] as List<dynamic>?;
         if (products == null) return [];
+
+        if (products.isEmpty) {
+          if (emptyAttempts < 2) {
+            emptyAttempts++;
+            await Future.delayed(Duration(seconds: emptyAttempts));
+            continue;
+          }
+          return [];
+        }
 
         return products
             .map((p) => FoodResult.fromJson(p as Map<String, dynamic>))

@@ -157,46 +157,38 @@ class _RecipeCardState extends State<_RecipeCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: 'Tap to log, long-press to delete',
-      child: AnimatedScale(
-        scale: _isLongPressing ? 0.95 : 1.0,
-        duration: const Duration(milliseconds: 150),
-        child: Card(
-          color: _isLongPressing
-              ? Theme.of(context).colorScheme.surfaceContainerHighest
-              : null,
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: ListTile(
-            leading: const Icon(Icons.restaurant_menu),
-            title: Text(widget.recipe.name),
-            subtitle: Text(
-              '${widget.recipe.servingSize.toStringAsFixed(0)} ${widget.recipe.servingLabel}',
+    return GestureDetector(
+      onLongPress: () async {
+        setState(() => _isLongPressing = true);
+        await HapticFeedback.mediumImpact();
+        if (mounted) {
+          setState(() => _isLongPressing = false);
+          widget.onDelete();
+        }
+      },
+      child: Tooltip(
+        message: 'Tap to log, long-press to delete',
+        child: AnimatedScale(
+          scale: _isLongPressing ? 0.95 : 1.0,
+          duration: const Duration(milliseconds: 150),
+          child: Card(
+            color: _isLongPressing
+                ? Theme.of(context).colorScheme.surfaceContainerHighest
+                : null,
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: ListTile(
+              leading: const Icon(Icons.restaurant_menu),
+              title: Text(widget.recipe.name),
+              subtitle: Text(
+                '${widget.recipe.servingSize.toStringAsFixed(0)} ${widget.recipe.servingLabel}',
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.edit, size: 20),
+                onPressed: widget.onEdit,
+                tooltip: 'Edit recipe',
+              ),
+              onTap: widget.onTap,
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20),
-                  onPressed: widget.onEdit,
-                  tooltip: 'Edit recipe',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
-                  onPressed: widget.onDelete,
-                  tooltip: 'Delete recipe',
-                ),
-              ],
-            ),
-            onTap: widget.onTap,
-            onLongPress: () async {
-              setState(() => _isLongPressing = true);
-              await HapticFeedback.mediumImpact();
-              if (mounted) {
-                setState(() => _isLongPressing = false);
-                widget.onDelete();
-              }
-            },
           ),
         ),
       ),

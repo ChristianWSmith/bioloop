@@ -14,6 +14,7 @@ void main() {
       String goalType = 'cut',
       double? calorieAdjustment = 0,
       double proteinGPerLb = 1.0,
+      String proteinBasis = 'bodyweight',
       double fatCaloriePct = 25.0,
       String? sex = 'male',
       double? heightCm = 178,
@@ -33,6 +34,7 @@ void main() {
         useImperial: 0,
         activityLevel: activityLevel,
         onboardingCompleted: onboardingCompleted,
+        proteinBasis: proteinBasis,
         updatedAt: '2026-01-01',
       );
     }
@@ -278,6 +280,35 @@ void main() {
       );
 
       expect(targets.targetCalories, closeTo(2000, 1));
+    });
+
+    test('height-based protein: 175cm × 1.0 g/cm = 175g protein/day', () {
+      final targets = MacroTargets.compute(
+        goals: goal(
+          proteinBasis: 'height',
+          proteinGPerLb: 1.0,
+          heightCm: 175,
+        ),
+        weightKg: 80,
+        regressionMaintenance: 2500,
+      );
+
+      expect(targets.proteinGrams, closeTo(175, 1));
+    });
+
+    test('null heightCm falls back to bodyweight calculation', () {
+      final targets = MacroTargets.compute(
+        goals: goal(
+          proteinBasis: 'height',
+          proteinGPerLb: 1.0,
+          heightCm: null,
+        ),
+        weightKg: 80,
+        regressionMaintenance: 2500,
+      );
+
+      // Falls back to bodyweight: 80 * 2.20462 * 1.0 = 176.4
+      expect(targets.proteinGrams, closeTo(176, 1));
     });
   });
 

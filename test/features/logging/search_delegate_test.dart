@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,7 +65,22 @@ void main() {
       ));
 
       final mockApiClient = OpenFoodFactsClient(
-        client: MockClient((_) async => http.Response('{}', 200)),
+        client: MockClient((_) async => http.Response(
+          jsonEncode({'products': [
+            {
+              'product_name': 'Test Product',
+              'serving_size': '100g',
+              'nutriments': {
+                'energy-kcal_serving': 100,
+                'proteins_serving': 10,
+                'carbohydrates_serving': 10,
+                'fat_serving': 5,
+              },
+              'code': '123',
+            }
+          ]}),
+          200,
+        )),
       );
       final service = FoodSearchService(db: db, apiClient: mockApiClient);
 
@@ -84,7 +100,7 @@ void main() {
                     delegate: FoodSearchDelegate(
                       searchService: service,
                       apiClient: mockApiClient,
-                      onCreateCustomFood: () {},
+                      onCreateCustomFood: (context) async => null,
                     ),
                   );
                 },
@@ -125,14 +141,13 @@ void main() {
       // Toggle still on My Foods after Enter
       expect(find.text('Create custom food'), findsOneWidget);
 
-      // Toggle to Search the Web — should still work after Enter
+      // Toggle to Search the Web — should trigger immediate search
       await tester.tap(find.text('Search the Web'));
-      await tester.pump(); // rebuild with web content, start 400ms debounce
-      await tester.pump(const Duration(milliseconds: 500)); // fire debounce → _debouncedQuery set
-      await tester.pump(); // FutureBuilder starts async searchWeb
-      await tester.pump(); // async completes, FutureBuilder gets empty results
-      // Web search with query 'chicken' uses debounce + mock API → "No results found"
-      expect(find.text('No results found'), findsOneWidget);
+      await tester.pump(); // rebuild with web content, immediateQuery triggers search
+      await tester.pump(); // FutureBuilder starts
+      await tester.pump(); // Future completes (mock returns results immediately)
+      // Web search with query 'chicken' uses immediateQuery → shows results
+      expect(find.text('Test Product'), findsOneWidget);
     });
   });
 
@@ -185,7 +200,7 @@ void main() {
                     delegate: FoodSearchDelegate(
                       searchService: service,
                       apiClient: mockApiClient,
-                      onCreateCustomFood: () {},
+                      onCreateCustomFood: (context) async => null,
                       onDeleteFood: (food) async {
                         await db.deleteFood(food.id);
                         ProviderScope.containerOf(context)
@@ -214,6 +229,252 @@ void main() {
 
       // Food should disappear from the list
       expect(find.text('Oatmeal'), findsNothing);
+    });
+  });
+
+  group('Web search retry', () {
+    testWidgets('tap retry on empty results re-triggers search', (tester) async {
+      int callCount = 0;
+      OpenFoodFactsClient buildClient() {
+        return OpenFoodFactsClient(
+          client: MockClient((request) async {
+            callCount++;
+            if (callCount <= 3) {
+              return http.Response(jsonEncode({'products': []}), 200);
+            }
+            return http.Response(
+              jsonEncode({
+                'products': [
+                  {
+                    'product_name': 'Chicken Breast',
+                    'serving_size': '100g',
+                    'nutriments': {
+                      'energy-kcal_serving': 165,
+                      'proteins_serving': 31,
+                      'carbohydrates_serving': 0,
+                      'fat_serving': 3.6,
+                    },
+                    'code': '123',
+                  }
+                ]
+              }),
+              200,
+            );
+          }),
+        );
+      }
+
+      final mockApiClient = buildClient();
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+
+      final service = FoodSearchService(db: db, apiClient: mockApiClient);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            openFoodFactsClientProvider.overrideWithValue(mockApiClient),
+            foodSearchServiceProvider.overrideWithValue(service),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  showSearch<FoodSearchItem?>(
+                    context: context,
+                    delegate: FoodSearchDelegate(
+                      searchService: service,
+                      apiClient: mockApiClient,
+                      onCreateCustomFood: (context) async => null,
+                    ),
+                  );
+                },
+                child: const Text('Open Search'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Search'));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Switch to web search (query is empty, so no immediate search)
+      await tester.tap(find.text('Search the Web'));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Enter a search term'), findsOneWidget);
+
+      // Type query and press Enter
+      await tester.enterText(find.byType(TextField), 'chicken');
+      await tester.pump();
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pump();
+      // Wait for debounce (400ms)
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+      // Client retries empty results: 1s + 2s backoff
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+
+      expect(find.text('No results found. Tap to retry.'), findsOneWidget);
+
+      // Tap retry — triggers new search (callCount is now 3, next call returns results)
+      await tester.tap(find.text('No results found. Tap to retry.'));
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+
+      // Results should appear after retry
+      expect(find.text('Chicken Breast'), findsOneWidget);
+    });
+  });
+
+  group('Custom food creation navigation', () {
+    testWidgets('back out of form returns to search delegate', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+
+      final mockApiClient = OpenFoodFactsClient(
+        client: MockClient((_) async => http.Response('{"products": []}', 200)),
+      );
+      final service = FoodSearchService(db: db, apiClient: mockApiClient);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            openFoodFactsClientProvider.overrideWithValue(mockApiClient),
+            foodSearchServiceProvider.overrideWithValue(service),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  showSearch<FoodSearchItem?>(
+                    context: context,
+                    delegate: FoodSearchDelegate(
+                      searchService: service,
+                      apiClient: mockApiClient,
+                      onCreateCustomFood: (context) async {
+                        return await Navigator.of(context).push<Food>(
+                          MaterialPageRoute(
+                            builder: (_) => Scaffold(
+                              appBar: AppBar(),
+                              body: const Text('Manual Food Form'),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+                child: const Text('Open Search'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Search'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Create custom food'), findsOneWidget);
+
+      await tester.tap(find.text('Create custom food'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Manual Food Form'), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Create custom food'), findsOneWidget);
+      expect(find.text('Manual Food Form'), findsNothing);
+    });
+
+    testWidgets('save food returns it for quick-logging', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+
+      final mockApiClient = OpenFoodFactsClient(
+        client: MockClient((_) async => http.Response('{"products": []}', 200)),
+      );
+      final service = FoodSearchService(db: db, apiClient: mockApiClient);
+      FoodSearchItem? returnedItem;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            openFoodFactsClientProvider.overrideWithValue(mockApiClient),
+            foodSearchServiceProvider.overrideWithValue(service),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () async {
+                  returnedItem = await showSearch<FoodSearchItem?>(
+                    context: context,
+                    delegate: FoodSearchDelegate(
+                      searchService: service,
+                      apiClient: mockApiClient,
+                      onCreateCustomFood: (buildContext) async {
+                        return await Navigator.of(buildContext).push<Food>(
+                          MaterialPageRoute(
+                            builder: (formContext) => Scaffold(
+                              body: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(formContext).pop(
+                                    Food(
+                                      id: 1,
+                                      name: 'Custom Oats',
+                                      servingLabel: 'cup',
+                                      servingQuantity: 1,
+                                      servingUnit: 'cup',
+                                      caloriesPerServing: 150,
+                                      proteinPerServing: 5,
+                                      carbsPerServing: 27,
+                                      fatPerServing: 3,
+                                      barcode: null,
+                                      brand: null,
+                                      source: 'manual',
+                                      createdAt: '',
+                                    ),
+                                  );
+                                },
+                                child: const Text('Save'),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+                child: const Text('Open Search'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Search'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Create custom food'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(returnedItem, isNotNull);
+      expect(returnedItem!.name, 'Custom Oats');
+      expect(returnedItem!.caloriesPerServing, 150);
     });
   });
 }

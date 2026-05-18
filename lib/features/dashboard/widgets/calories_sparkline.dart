@@ -3,17 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../providers/dashboard_time_range_provider.dart';
+import '../../../providers/shared_dashboard_range_provider.dart';
 
 class CaloriesSparkline extends ConsumerWidget {
   final List<({String date, double calories})> entries;
+  final DashboardRange range;
 
-  const CaloriesSparkline({super.key, required this.entries});
+  const CaloriesSparkline({
+    super.key,
+    required this.entries,
+    required this.range,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final timeRange = ref.watch(dashboardTimeRangeProvider);
-
     if (entries.isEmpty) {
       return const SizedBox(
         height: 200,
@@ -24,23 +27,9 @@ class CaloriesSparkline extends ConsumerWidget {
     final sorted = List<({String date, double calories})>.from(entries)
       ..sort((a, b) => a.date.compareTo(b.date));
 
-    final now = DateTime.now();
-    final calculatedStart = switch (timeRange) {
-      TimeRange.oneMonth => now.subtract(const Duration(days: 30)),
-      TimeRange.sixMonths => now.subtract(const Duration(days: 180)),
-      TimeRange.allTime => DateTime(2000, 1, 1),
-    };
-
-    final earliestData = sorted.isNotEmpty
-        ? DateTime.parse(sorted.first.date)
-        : now;
-    final effectiveStart = earliestData.isAfter(calculatedStart)
-        ? earliestData
-        : calculatedStart;
-
     final filtered = sorted.where((e) {
       final date = DateTime.parse(e.date);
-      return !date.isBefore(effectiveStart);
+      return !date.isBefore(range.start);
     }).toList();
 
     if (filtered.isEmpty) {
@@ -50,7 +39,7 @@ class CaloriesSparkline extends ConsumerWidget {
       );
     }
 
-    final refDate = effectiveStart;
+    final refDate = range.start;
     final rawSpots = filtered.map((e) {
       final date = DateTime.parse(e.date);
       final day = date.difference(refDate).inDays.toDouble();
@@ -60,14 +49,8 @@ class CaloriesSparkline extends ConsumerWidget {
     final allCals = rawSpots.map((s) => s.y).toList();
     final minCals = allCals.reduce((a, b) => a < b ? a : b);
     final maxCals = allCals.reduce((a, b) => a > b ? a : b);
-    final range = maxCals - minCals;
-    final pad = range.clamp(100.0, double.infinity) * 0.15;
-
-    final maxDays = switch (timeRange) {
-      TimeRange.oneMonth => 30.0,
-      TimeRange.sixMonths => 180.0,
-      TimeRange.allTime => rawSpots.isNotEmpty ? rawSpots.last.x : 30.0,
-    };
+    final range_ = maxCals - minCals;
+    final pad = range_.clamp(100.0, double.infinity) * 0.15;
 
     return SizedBox(
       height: 200,
@@ -81,7 +64,7 @@ class CaloriesSparkline extends ConsumerWidget {
                 _rawLine(rawSpots),
               ],
               minX: 0,
-              maxX: maxDays,
+              maxX: range.maxDays,
               minY: (minCals - pad).floorToDouble(),
               maxY: (maxCals + pad).ceilToDouble(),
               clipData: const FlClipData.all(),
@@ -90,7 +73,7 @@ class CaloriesSparkline extends ConsumerWidget {
                   sideTitles: SideTitles(
                     showTitles: true,
                     reservedSize: 22,
-                    interval: _getInterval(timeRange),
+                    interval: range.xInterval.toDouble(),
                     getTitlesWidget: (value, meta) {
                       final day = refDate.add(Duration(days: value.toInt()));
                       return SideTitleWidget(
@@ -153,14 +136,6 @@ class CaloriesSparkline extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  double _getInterval(TimeRange timeRange) {
-    return switch (timeRange) {
-      TimeRange.oneMonth => 7,
-      TimeRange.sixMonths => 30,
-      TimeRange.allTime => 60,
-    };
   }
 
   LineChartBarData _rawLine(List<FlSpot> spots) {

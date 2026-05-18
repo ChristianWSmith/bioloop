@@ -89,7 +89,8 @@ void main() {
       expect(find.text('Goals'), findsWidgets);
 
       await tester.tap(find.text('Dashboard'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('Dashboard'), findsWidgets);
     });
 

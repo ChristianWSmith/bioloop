@@ -4,19 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/database/database.dart';
-import '../../../providers/dashboard_time_range_provider.dart';
+import '../../../providers/shared_dashboard_range_provider.dart';
 import '../../../providers/unit_preferences_provider.dart';
 
 class BodyweightSparkline extends ConsumerWidget {
   final List<BodyweightEntry> entries;
+  final DashboardRange range;
 
-  const BodyweightSparkline({super.key, required this.entries});
+  const BodyweightSparkline({
+    super.key,
+    required this.entries,
+    required this.range,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(unitPreferencesProvider);
     final useImperial = prefs.useImperial;
-    final timeRange = ref.watch(dashboardTimeRangeProvider);
 
     if (entries.isEmpty) {
       return const SizedBox(
@@ -28,21 +32,9 @@ class BodyweightSparkline extends ConsumerWidget {
     final sorted = List<BodyweightEntry>.from(entries)
       ..sort((a, b) => a.loggedAt.compareTo(b.loggedAt));
 
-    final now = DateTime.now();
-    final calculatedStart = switch (timeRange) {
-      TimeRange.oneMonth => now.subtract(const Duration(days: 30)),
-      TimeRange.sixMonths => now.subtract(const Duration(days: 180)),
-      TimeRange.allTime => DateTime(2000, 1, 1),
-    };
-
-    final earliestData = DateTime.parse(sorted.first.loggedAt);
-    final effectiveStart = earliestData.isAfter(calculatedStart)
-        ? earliestData
-        : calculatedStart;
-
     final filtered = sorted.where((e) {
       final date = DateTime.parse(e.loggedAt);
-      return !date.isBefore(effectiveStart);
+      return !date.isBefore(range.start);
     }).toList();
 
     if (filtered.isEmpty) {
@@ -52,7 +44,7 @@ class BodyweightSparkline extends ConsumerWidget {
       );
     }
 
-    final refDate = effectiveStart;
+    final refDate = range.start;
     final factor = useImperial ? 2.20462 : 1.0;
     final unitLabel = useImperial ? 'lb' : 'kg';
 
@@ -74,14 +66,8 @@ class BodyweightSparkline extends ConsumerWidget {
     final allW = rawSpots.map((s) => s.y).toList();
     final minW = allW.reduce((a, b) => a < b ? a : b);
     final maxW = allW.reduce((a, b) => a > b ? a : b);
-    final range = maxW - minW;
-    final pad = range.clamp(1.0, double.infinity) * 0.15;
-
-    final maxDays = switch (timeRange) {
-      TimeRange.oneMonth => 30.0,
-      TimeRange.sixMonths => 180.0,
-      TimeRange.allTime => rawSpots.isNotEmpty ? rawSpots.last.x : 30.0,
-    };
+    final range_ = maxW - minW;
+    final pad = range_.clamp(1.0, double.infinity) * 0.15;
 
     return SizedBox(
       height: 200,
@@ -96,7 +82,7 @@ class BodyweightSparkline extends ConsumerWidget {
                 if (trendSpots != null) _trendLine(trendSpots, unitLabel),
               ],
               minX: 0,
-              maxX: maxDays,
+              maxX: range.maxDays,
               minY: (minW - pad).floorToDouble(),
               maxY: (maxW + pad).ceilToDouble(),
               clipData: const FlClipData.all(),
@@ -105,7 +91,7 @@ class BodyweightSparkline extends ConsumerWidget {
                   sideTitles: SideTitles(
                     showTitles: true,
                     reservedSize: 22,
-                    interval: _getInterval(timeRange),
+                    interval: range.xInterval.toDouble(),
                     getTitlesWidget: (value, meta) {
                       final day = refDate.add(Duration(days: value.toInt()));
                       return SideTitleWidget(
@@ -171,14 +157,6 @@ class BodyweightSparkline extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  double _getInterval(TimeRange timeRange) {
-    return switch (timeRange) {
-      TimeRange.oneMonth => 7,
-      TimeRange.sixMonths => 30,
-      TimeRange.allTime => 60,
-    };
   }
 
   LineChartBarData _rawLine(List<FlSpot> spots, String unit) {

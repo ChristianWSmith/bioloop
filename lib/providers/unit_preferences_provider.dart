@@ -32,6 +32,11 @@ class UnitPreferences {
   double displayProteinGPerLb(double gPerLb) => gPerLb * proteinDisplayFactor;
   double proteinGPerLbFromDisplay(double display) => display / proteinDisplayFactor;
 
+  String proteinUnitForBasis(String basis) {
+    if (basis == 'height') return 'g/cm';
+    return useImperial ? 'g/lb' : 'g/kg';
+  }
+
   factory UnitPreferences.metric() => const UnitPreferences(
         useImperial: false,
         weightFactor: 1.0,

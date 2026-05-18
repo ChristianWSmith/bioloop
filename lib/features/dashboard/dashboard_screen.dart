@@ -9,6 +9,7 @@ import '../../providers/food_log_provider.dart';
 import '../../providers/goals_provider.dart';
 import '../../providers/macro_targets_provider.dart';
 import '../../providers/unit_preferences_provider.dart';
+import '../../providers/shared_dashboard_range_provider.dart';
 import '../settings/settings_screen.dart';
 import 'widgets/bodyweight_sparkline.dart';
 import 'widgets/calories_sparkline.dart';
@@ -26,14 +27,13 @@ class DashboardScreen extends ConsumerWidget {
     final targetsAsync = ref.watch(macroTargetsProvider);
     final weightsAsync = ref.watch(bodyweightProvider);
     final goalsAsync = ref.watch(userGoalsProvider);
-    final historicalCalsAsync = ref.watch(historicalCaloriesProvider);
     final unitPrefs = ref.watch(unitPreferencesProvider);
+    final timeRange = ref.watch(dashboardTimeRangeProvider);
 
     if (entriesAsync.isLoading ||
         targetsAsync.isLoading ||
         weightsAsync.isLoading ||
-        goalsAsync.isLoading ||
-        historicalCalsAsync.isLoading) {
+        goalsAsync.isLoading) {
       return Scaffold(
         appBar: _buildAppBar(context),
         body: const Center(child: CircularProgressIndicator()),
@@ -59,7 +59,21 @@ class DashboardScreen extends ConsumerWidget {
     final targets = targetsAsync.value!;
     final weights = weightsAsync.value ?? [];
     final goals = goalsAsync.value;
-    final historicalCals = historicalCalsAsync.value ?? [];
+
+    final range = DashboardRange.compute(
+      timeRange: timeRange,
+      weights: weights,
+      calories: [],
+    );
+
+    final allCaloriesAsync = ref.watch(
+      historicalCaloriesProvider((
+        start: range.start,
+        end: range.end,
+      )),
+    );
+
+    final allCalories = allCaloriesAsync.value ?? [];
 
     if (entries.isEmpty && weights.isEmpty && goals == null) {
       return Scaffold(
@@ -163,7 +177,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
           ),
-          BodyweightSparkline(entries: weights),
+          BodyweightSparkline(entries: weights, range: range),
           const SizedBox(height: 24),
           const Padding(
             padding: EdgeInsets.only(left: 16, bottom: 8),
@@ -178,7 +192,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
           ),
-          CaloriesSparkline(entries: historicalCals),
+          CaloriesSparkline(entries: allCalories, range: range),
           ],
         ),
       ),

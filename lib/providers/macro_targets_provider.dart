@@ -59,9 +59,22 @@ class MacroTargets {
 
     targetCalories = max(0.0, targetCalories);
 
-    final proteinGPerLb = goals?.proteinGPerLb ?? 1.0;
-    final weightLb = weightKg != null ? weightKg * 2.20462 : 0.0;
-    final proteinGrams = weightLb * proteinGPerLb;
+    final proteinBasis = goals?.proteinBasis ?? 'bodyweight';
+    final proteinValue = goals?.proteinGPerLb ?? 1.0;
+
+    double proteinGrams;
+    if (proteinBasis == 'height') {
+      final heightCm = goals?.heightCm;
+      if (heightCm != null && heightCm > 0) {
+        proteinGrams = heightCm * proteinValue;
+      } else {
+        final weightLb = weightKg != null ? weightKg * 2.20462 : 0.0;
+        proteinGrams = weightLb * proteinValue;
+      }
+    } else {
+      final weightLb = weightKg != null ? weightKg * 2.20462 : 0.0;
+      proteinGrams = weightLb * proteinValue;
+    }
     final proteinCal = proteinGrams * 4;
 
     final fatPct = (goals?.fatCaloriePct ?? 25.0) / 100;

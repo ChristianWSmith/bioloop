@@ -296,5 +296,34 @@ void main() {
       expect(results, isEmpty);
       expect(callCount, 1);
     });
+
+    test('retries on empty products then succeeds', () async {
+      int callCount = 0;
+      final mock = MockClient((_) async {
+        callCount++;
+        if (callCount <= 2) {
+          return http.Response(jsonEncode({'products': []}), 200);
+        }
+        return http.Response(jsonEncode(_sampleSearchResponse()), 200);
+      });
+      client = OpenFoodFactsClient(client: mock);
+
+      final results = await client.search('chicken');
+      expect(results.length, 1);
+      expect(callCount, 3);
+    });
+
+    test('returns empty after exhausting empty-product retries', () async {
+      int callCount = 0;
+      final mock = MockClient((_) async {
+        callCount++;
+        return http.Response(jsonEncode({'products': []}), 200);
+      });
+      client = OpenFoodFactsClient(client: mock);
+
+      final results = await client.search('nonexistent');
+      expect(results, isEmpty);
+      expect(callCount, 3);
+    });
   });
 }
