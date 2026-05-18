@@ -3,14 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bioloop/features/dashboard/widgets/calories_sparkline.dart';
+import 'package:bioloop/providers/shared_dashboard_range_provider.dart';
 
 void main() {
+  final defaultRange = DashboardRange(
+    start: DateTime.now().subtract(const Duration(days: 30)),
+    end: DateTime.now(),
+    maxDays: 30.0,
+    xInterval: 7,
+  );
+
   testWidgets('empty state shows prompt when no entries', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
-            body: CaloriesSparkline(entries: []),
+            body: CaloriesSparkline(entries: [], range: defaultRange),
           ),
         ),
       ),
@@ -28,7 +36,7 @@ void main() {
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
-            body: CaloriesSparkline(entries: entries),
+            body: CaloriesSparkline(entries: entries, range: defaultRange),
           ),
         ),
       ),
@@ -47,7 +55,7 @@ void main() {
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
-            body: CaloriesSparkline(entries: entries),
+            body: CaloriesSparkline(entries: entries, range: defaultRange),
           ),
         ),
       ),
@@ -66,7 +74,7 @@ void main() {
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
-            body: CaloriesSparkline(entries: entries),
+            body: CaloriesSparkline(entries: entries, range: defaultRange),
           ),
         ),
       ),
@@ -86,7 +94,7 @@ void main() {
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
-            body: CaloriesSparkline(entries: entries),
+            body: CaloriesSparkline(entries: entries, range: defaultRange),
           ),
         ),
       ),
@@ -95,11 +103,18 @@ void main() {
     expect(find.byType(LineChart), findsOneWidget);
   });
 
-  testWidgets('filters to last 30 days only', (tester) async {
+  testWidgets('filters entries before range start', (tester) async {
     final now = DateTime.now();
     final thirtyFiveDaysAgo = now.subtract(const Duration(days: 35));
     final tenDaysAgo = now.subtract(const Duration(days: 10));
     
+    final range = DashboardRange(
+      start: now.subtract(const Duration(days: 30)),
+      end: now,
+      maxDays: 30.0,
+      xInterval: 7,
+    );
+
     final entries = [
       (date: thirtyFiveDaysAgo.toString().substring(0, 10), calories: 3000.0),
       (date: tenDaysAgo.toString().substring(0, 10), calories: 2000.0),
@@ -109,7 +124,7 @@ void main() {
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
-            body: CaloriesSparkline(entries: entries),
+            body: CaloriesSparkline(entries: entries, range: range),
           ),
         ),
       ),

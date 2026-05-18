@@ -24,7 +24,6 @@ class CombinedLogScreen extends ConsumerStatefulWidget {
 
 class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
   late DateTime _currentDate;
-  bool _pendingCreateCustom = false;
 
   static const _mealColors = {
     'breakfast': Colors.orange,
@@ -61,7 +60,11 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
       delegate: FoodSearchDelegate(
         searchService: searchService,
         apiClient: apiClient,
-        onCreateCustomFood: () => _pendingCreateCustom = true,
+        onCreateCustomFood: (context) async {
+          return await Navigator.of(context).push<Food>(
+            MaterialPageRoute(builder: (_) => const ManualFoodForm()),
+          );
+        },
         onQuickLog: (item) async {
           await _showQuickLogSheet(item);
         },
@@ -72,9 +75,6 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
 
     if (result != null) {
       _showQuickLogSheet(result);
-    } else if (_pendingCreateCustom) {
-      _pendingCreateCustom = false;
-      _openCreateCustom();
     }
   }
 
@@ -92,18 +92,6 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
       isScrollControlled: true,
       builder: (_) => QuickFoodLogSheet(food: item, loggedAt: _currentDate),
     );
-  }
-
-  Future<void> _openCreateCustom() async {
-    final food = await Navigator.of(context).push<Food>(
-      MaterialPageRoute(
-        builder: (_) => const ManualFoodForm(),
-      ),
-    );
-    if (food != null && mounted) {
-      final item = FoodSearchItem.fromFood(food);
-      _showQuickLogSheet(item);
-    }
   }
 
   Future<void> _openEditFood(Food food) async {

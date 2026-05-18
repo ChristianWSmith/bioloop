@@ -32,6 +32,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String _goalType = 'maintain';
   final _calorieAdjustmentController = TextEditingController(text: '0');
   double _proteinGPerLb = 1.0;
+  String _proteinBasis = 'bodyweight';
   double _fatCaloriePct = 25.0;
 
   UnitPreferences get _unitPrefs =>
@@ -182,6 +183,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           double.tryParse(_calorieAdjustmentController.text),
         ),
         proteinGPerLb: Value(_proteinGPerLb),
+        proteinBasis: Value(_proteinBasis),
         fatCaloriePct: Value(_fatCaloriePct),
         sex: Value(_sex),
         heightCm: Value(heightCm),
@@ -481,8 +483,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
               _calorieWarning(_calorieAdjustmentController.text),
               const SizedBox(height: 12),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'bodyweight', label: Text('Per lb bodyweight')),
+                  ButtonSegment(value: 'height', label: Text('Per cm height')),
+                ],
+                selected: {_proteinBasis},
+                onSelectionChanged: (v) => setState(() => _proteinBasis = v.first),
+              ),
+              const SizedBox(height: 12),
               Text(
-                'Protein: ${_unitPrefs.displayProteinGPerLb(_proteinGPerLb).toStringAsFixed(1)} ${_unitPrefs.proteinUnit}',
+                'Protein: ${_unitPrefs.displayProteinGPerLb(_proteinGPerLb).toStringAsFixed(1)} ${_unitPrefs.proteinUnitForBasis(_proteinBasis)}',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               Slider(
@@ -490,12 +501,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 min: _unitPrefs.displayProteinGPerLb(0.5),
                 max: _unitPrefs.displayProteinGPerLb(2.0),
                 divisions: 30,
-                label: '${_unitPrefs.displayProteinGPerLb(_proteinGPerLb).toStringAsFixed(1)} ${_unitPrefs.proteinUnit}',
+                label: '${_unitPrefs.displayProteinGPerLb(_proteinGPerLb).toStringAsFixed(1)} ${_unitPrefs.proteinUnitForBasis(_proteinBasis)}',
                 onChanged: (v) => setState(() =>
                     _proteinGPerLb = _unitPrefs.proteinGPerLbFromDisplay(v)),
               ),
               Text(
-                'Recommended: ${_unitPrefs.displayProteinGPerLb(0.8).toStringAsFixed(1)}\u2013${_unitPrefs.displayProteinGPerLb(1.4).toStringAsFixed(1)} ${_unitPrefs.proteinUnit}',
+                _proteinBasis == 'bodyweight'
+                    ? 'Recommended: ${_unitPrefs.displayProteinGPerLb(0.8).toStringAsFixed(1)}\u2013${_unitPrefs.displayProteinGPerLb(1.4).toStringAsFixed(1)} ${_unitPrefs.proteinUnitForBasis(_proteinBasis)}'
+                    : 'Recommended: 0.8\u20131.4 ${_unitPrefs.proteinUnitForBasis(_proteinBasis)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

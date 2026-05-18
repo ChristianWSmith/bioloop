@@ -530,5 +530,58 @@ void main() {
       expect(find.text('Error'), findsOneWidget);
       expect(find.textContaining('Failed to save'), findsOneWidget);
     });
+
+    testWidgets('protein basis toggle defaults to bodyweight', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      await seedGoals(db);
+      await pumpGoals(tester, db);
+
+      expect(find.text('Per lb bodyweight'), findsOneWidget);
+      expect(find.text('Per cm height'), findsOneWidget);
+      expect(find.text('Protein: 2.2 g/kg'), findsOneWidget);
+    });
+
+    testWidgets('protein basis toggle switches to height', (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      await seedGoals(db);
+      await pumpGoals(tester, db);
+
+      await tester.tap(find.text('Per cm height'));
+      await tester.pump();
+
+      expect(find.text('Protein: 2.2 g/cm'), findsOneWidget);
+      expect(find.text('Recommended: 0.8\u20131.4 g/cm'), findsOneWidget);
+    });
+
+    testWidgets('protein basis toggle persists after save and reopen',
+        (tester) async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+      await seedGoals(db);
+      await pumpGoals(tester, db);
+
+      await tester.tap(find.text('Per cm height'));
+      await tester.pump();
+
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      final goals = await db.getGoals();
+      expect(goals, isNotNull);
+      expect(goals!.proteinBasis, 'height');
+
+      await tester.pumpWidget(buildGoalsScreen(db));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Protein: 2.2 g/cm'), findsOneWidget);
+    });
   });
 }

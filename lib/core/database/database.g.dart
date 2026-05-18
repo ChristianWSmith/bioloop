@@ -2340,6 +2340,18 @@ class $UserGoalsTable extends UserGoals
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _proteinBasisMeta = const VerificationMeta(
+    'proteinBasis',
+  );
+  @override
+  late final GeneratedColumn<String> proteinBasis = GeneratedColumn<String>(
+    'protein_basis',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('bodyweight'),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -2366,6 +2378,7 @@ class $UserGoalsTable extends UserGoals
     activityLevel,
     onboardingCompleted,
     accentColorSeed,
+    proteinBasis,
     updatedAt,
   ];
   @override
@@ -2478,6 +2491,15 @@ class $UserGoalsTable extends UserGoals
         ),
       );
     }
+    if (data.containsKey('protein_basis')) {
+      context.handle(
+        _proteinBasisMeta,
+        proteinBasis.isAcceptableOrUnknown(
+          data['protein_basis']!,
+          _proteinBasisMeta,
+        ),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -2547,6 +2569,10 @@ class $UserGoalsTable extends UserGoals
         DriftSqlType.int,
         data['${effectivePrefix}accent_color_seed'],
       ),
+      proteinBasis: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}protein_basis'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}updated_at'],
@@ -2574,6 +2600,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
   final int activityLevel;
   final int onboardingCompleted;
   final int? accentColorSeed;
+  final String proteinBasis;
   final String updatedAt;
   const UserGoal({
     required this.id,
@@ -2589,6 +2616,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     required this.activityLevel,
     required this.onboardingCompleted,
     this.accentColorSeed,
+    required this.proteinBasis,
     required this.updatedAt,
   });
   @override
@@ -2619,6 +2647,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     if (!nullToAbsent || accentColorSeed != null) {
       map['accent_color_seed'] = Variable<int>(accentColorSeed);
     }
+    map['protein_basis'] = Variable<String>(proteinBasis);
     map['updated_at'] = Variable<String>(updatedAt);
     return map;
   }
@@ -2646,6 +2675,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       accentColorSeed: accentColorSeed == null && nullToAbsent
           ? const Value.absent()
           : Value(accentColorSeed),
+      proteinBasis: Value(proteinBasis),
       updatedAt: Value(updatedAt),
     );
   }
@@ -2673,6 +2703,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
         json['onboardingCompleted'],
       ),
       accentColorSeed: serializer.fromJson<int?>(json['accentColorSeed']),
+      proteinBasis: serializer.fromJson<String>(json['proteinBasis']),
       updatedAt: serializer.fromJson<String>(json['updatedAt']),
     );
   }
@@ -2693,6 +2724,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       'activityLevel': serializer.toJson<int>(activityLevel),
       'onboardingCompleted': serializer.toJson<int>(onboardingCompleted),
       'accentColorSeed': serializer.toJson<int?>(accentColorSeed),
+      'proteinBasis': serializer.toJson<String>(proteinBasis),
       'updatedAt': serializer.toJson<String>(updatedAt),
     };
   }
@@ -2711,6 +2743,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     int? activityLevel,
     int? onboardingCompleted,
     Value<int?> accentColorSeed = const Value.absent(),
+    String? proteinBasis,
     String? updatedAt,
   }) => UserGoal(
     id: id ?? this.id,
@@ -2730,6 +2763,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     accentColorSeed: accentColorSeed.present
         ? accentColorSeed.value
         : this.accentColorSeed,
+    proteinBasis: proteinBasis ?? this.proteinBasis,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   UserGoal copyWithCompanion(UserGoalsCompanion data) {
@@ -2761,6 +2795,9 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
       accentColorSeed: data.accentColorSeed.present
           ? data.accentColorSeed.value
           : this.accentColorSeed,
+      proteinBasis: data.proteinBasis.present
+          ? data.proteinBasis.value
+          : this.proteinBasis,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -2781,6 +2818,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
           ..write('activityLevel: $activityLevel, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
           ..write('accentColorSeed: $accentColorSeed, ')
+          ..write('proteinBasis: $proteinBasis, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -2801,6 +2839,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
     activityLevel,
     onboardingCompleted,
     accentColorSeed,
+    proteinBasis,
     updatedAt,
   );
   @override
@@ -2820,6 +2859,7 @@ class UserGoal extends DataClass implements Insertable<UserGoal> {
           other.activityLevel == this.activityLevel &&
           other.onboardingCompleted == this.onboardingCompleted &&
           other.accentColorSeed == this.accentColorSeed &&
+          other.proteinBasis == this.proteinBasis &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -2837,6 +2877,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
   final Value<int> activityLevel;
   final Value<int> onboardingCompleted;
   final Value<int?> accentColorSeed;
+  final Value<String> proteinBasis;
   final Value<String> updatedAt;
   final Value<int> rowid;
   const UserGoalsCompanion({
@@ -2853,6 +2894,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     this.activityLevel = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
     this.accentColorSeed = const Value.absent(),
+    this.proteinBasis = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2870,6 +2912,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     this.activityLevel = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
     this.accentColorSeed = const Value.absent(),
+    this.proteinBasis = const Value.absent(),
     required String updatedAt,
     this.rowid = const Value.absent(),
   }) : goalType = Value(goalType),
@@ -2888,6 +2931,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     Expression<int>? activityLevel,
     Expression<int>? onboardingCompleted,
     Expression<int>? accentColorSeed,
+    Expression<String>? proteinBasis,
     Expression<String>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -2906,6 +2950,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
       if (onboardingCompleted != null)
         'onboarding_completed': onboardingCompleted,
       if (accentColorSeed != null) 'accent_color_seed': accentColorSeed,
+      if (proteinBasis != null) 'protein_basis': proteinBasis,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2925,6 +2970,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     Value<int>? activityLevel,
     Value<int>? onboardingCompleted,
     Value<int?>? accentColorSeed,
+    Value<String>? proteinBasis,
     Value<String>? updatedAt,
     Value<int>? rowid,
   }) {
@@ -2942,6 +2988,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
       activityLevel: activityLevel ?? this.activityLevel,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       accentColorSeed: accentColorSeed ?? this.accentColorSeed,
+      proteinBasis: proteinBasis ?? this.proteinBasis,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -2989,6 +3036,9 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
     if (accentColorSeed.present) {
       map['accent_color_seed'] = Variable<int>(accentColorSeed.value);
     }
+    if (proteinBasis.present) {
+      map['protein_basis'] = Variable<String>(proteinBasis.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<String>(updatedAt.value);
     }
@@ -3014,6 +3064,7 @@ class UserGoalsCompanion extends UpdateCompanion<UserGoal> {
           ..write('activityLevel: $activityLevel, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
           ..write('accentColorSeed: $accentColorSeed, ')
+          ..write('proteinBasis: $proteinBasis, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -5128,6 +5179,7 @@ typedef $$UserGoalsTableCreateCompanionBuilder =
       Value<int> activityLevel,
       Value<int> onboardingCompleted,
       Value<int?> accentColorSeed,
+      Value<String> proteinBasis,
       required String updatedAt,
       Value<int> rowid,
     });
@@ -5146,6 +5198,7 @@ typedef $$UserGoalsTableUpdateCompanionBuilder =
       Value<int> activityLevel,
       Value<int> onboardingCompleted,
       Value<int?> accentColorSeed,
+      Value<String> proteinBasis,
       Value<String> updatedAt,
       Value<int> rowid,
     });
@@ -5221,6 +5274,11 @@ class $$UserGoalsTableFilterComposer
 
   ColumnFilters<int> get accentColorSeed => $composableBuilder(
     column: $table.accentColorSeed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get proteinBasis => $composableBuilder(
+    column: $table.proteinBasis,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5304,6 +5362,11 @@ class $$UserGoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get proteinBasis => $composableBuilder(
+    column: $table.proteinBasis,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -5372,6 +5435,11 @@ class $$UserGoalsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get proteinBasis => $composableBuilder(
+    column: $table.proteinBasis,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
@@ -5417,6 +5485,7 @@ class $$UserGoalsTableTableManager
                 Value<int> activityLevel = const Value.absent(),
                 Value<int> onboardingCompleted = const Value.absent(),
                 Value<int?> accentColorSeed = const Value.absent(),
+                Value<String> proteinBasis = const Value.absent(),
                 Value<String> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => UserGoalsCompanion(
@@ -5433,6 +5502,7 @@ class $$UserGoalsTableTableManager
                 activityLevel: activityLevel,
                 onboardingCompleted: onboardingCompleted,
                 accentColorSeed: accentColorSeed,
+                proteinBasis: proteinBasis,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -5451,6 +5521,7 @@ class $$UserGoalsTableTableManager
                 Value<int> activityLevel = const Value.absent(),
                 Value<int> onboardingCompleted = const Value.absent(),
                 Value<int?> accentColorSeed = const Value.absent(),
+                Value<String> proteinBasis = const Value.absent(),
                 required String updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => UserGoalsCompanion.insert(
@@ -5467,6 +5538,7 @@ class $$UserGoalsTableTableManager
                 activityLevel: activityLevel,
                 onboardingCompleted: onboardingCompleted,
                 accentColorSeed: accentColorSeed,
+                proteinBasis: proteinBasis,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),

@@ -45,13 +45,11 @@ final todaysFoodProvider = FutureProvider<List<FoodEntry>>((ref) async {
   return await logService.getEntriesForDate(today);
 });
 
-final historicalCaloriesProvider = FutureProvider<List<({String date, double calories})>>((ref) async {
+final historicalCaloriesProvider = FutureProvider.family<List<({String date, double calories})>, ({DateTime start, DateTime end})>((ref, params) async {
   ref.watch(resetTriggerProvider);
   ref.watch(dataTriggerProvider);
   final logService = ref.read(foodLogProvider);
-  final now = DateTime.now();
-  final thirtyDaysAgo = now.subtract(const Duration(days: 30));
-  final entries = await logService.getEntriesForDateRange(thirtyDaysAgo, now);
+  final entries = await logService.getEntriesForDateRange(params.start, params.end);
   
   final dailyTotals = <String, double>{};
   for (final entry in entries) {
@@ -60,4 +58,10 @@ final historicalCaloriesProvider = FutureProvider<List<({String date, double cal
   }
   
   return dailyTotals.entries.map((e) => (date: e.key, calories: e.value)).toList();
+});
+
+final historicalCalories30DaysProvider = FutureProvider<List<({String date, double calories})>>((ref) async {
+  final now = DateTime.now();
+  final thirtyDaysAgo = now.subtract(const Duration(days: 30));
+  return await ref.watch(historicalCaloriesProvider((start: thirtyDaysAgo, end: now)).future);
 });

@@ -581,12 +581,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('To Delete'), findsOneWidget);
+      expect(find.byIcon(Icons.edit), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
 
-      await tester.tap(find.byIcon(Icons.delete_outline));
-      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(tester.element(find.byType(RecipeListScreen)));
+      await db.deleteIngredientsForRecipe(1);
+      await db.deleteRecipe(1);
+      container.invalidate(recipeListProvider);
 
-      expect(find.text('Delete recipe?'), findsOneWidget);
-      await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
       expect(find.text('To Delete'), findsNothing);

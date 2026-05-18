@@ -16,6 +16,9 @@ import 'package:bioloop/providers/goals_provider.dart';
 import 'package:bioloop/providers/macro_targets_provider.dart';
 import 'package:bioloop/providers/maintenance_provider.dart';
 import 'package:bioloop/providers/database_provider.dart';
+import 'package:bioloop/providers/shared_dashboard_range_provider.dart';
+import 'package:bioloop/providers/data_trigger_provider.dart';
+import 'package:bioloop/providers/reset_provider.dart';
 
 Widget buildDashboard(
   List<FoodEntry> entries,
@@ -34,6 +37,11 @@ Widget buildDashboard(
       userGoalsProvider.overrideWith((ref) async => goals),
       maintenanceProvider.overrideWith((ref) async => maintenance),
       databaseProvider.overrideWithValue(database),
+      dataTriggerProvider.overrideWith((ref) => 0),
+      resetTriggerProvider.overrideWith((ref) => 0),
+      historicalCaloriesProvider.overrideWith(
+        (ref, params) async => <({String date, double calories})>[],
+      ),
     ],
     child: MaterialApp(
       home: Scaffold(
@@ -46,8 +54,9 @@ Widget buildDashboard(
 Future<void> pumpDashboard(WidgetTester tester, Widget widget) async {
   await tester.pumpWidget(widget);
   await tester.pump();
-  await tester.pump(const Duration(seconds: 1));
-  await tester.pumpAndSettle();
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.pump(const Duration(milliseconds: 500));
 }
 
 void main() {
@@ -180,6 +189,7 @@ void main() {
         useImperial: useImperial,
         activityLevel: 3,
         onboardingCompleted: 1,
+        proteinBasis: 'bodyweight',
         updatedAt: '2026-01-01',
       );
     }
@@ -340,7 +350,8 @@ void main() {
       await pumpDashboard(tester, buildDashboard([], targets, goals: goals));
 
       await tester.tap(find.text('6M'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('6M'), findsOneWidget);
       expect(find.byType(SegmentedButton<TimeRange>), findsOneWidget);
@@ -481,12 +492,19 @@ void main() {
         useImperial: useImperial,
         activityLevel: 3,
         onboardingCompleted: 1,
+        proteinBasis: 'bodyweight',
         updatedAt: '2026-01-01',
       );
     }
 
     Widget buildSparkline(List<BodyweightEntry> entries,
         {int useImperial = 0}) {
+      final range = DashboardRange(
+        start: DateTime.now().subtract(const Duration(days: 30)),
+        end: DateTime.now(),
+        maxDays: 30.0,
+        xInterval: 7,
+      );
       return ProviderScope(
         overrides: [
           userGoalsProvider.overrideWith(
@@ -495,7 +513,7 @@ void main() {
         ],
         child: MaterialApp(
           home: Scaffold(
-            body: BodyweightSparkline(entries: entries),
+            body: BodyweightSparkline(entries: entries, range: range),
           ),
         ),
       );
