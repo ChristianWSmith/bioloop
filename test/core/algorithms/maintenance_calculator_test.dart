@@ -102,7 +102,51 @@ void main() {
 
       expect(result, isNotNull);
       expect(result!.failureReason, MaintenanceFailureReason.insufficientPairedData);
-      expect(result.dataPoints, lessThan(10));
+      expect(result.dataPoints, 5);
+    });
+
+    test('1 paired day returns dataPoints == 1', () {
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+
+      final foodEntries = [
+        makeFood(id: 0, calories: 2500, date: yesterday),
+      ];
+      final weightEntries = [
+        makeWeight(id: 0, weightKg: 80, date: yesterday),
+      ];
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, MaintenanceFailureReason.insufficientPairedData);
+      expect(result.dataPoints, 1);
+    });
+
+    test('5 paired days returns dataPoints == 5', () {
+      final now = DateTime.now();
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+
+      for (int i = 0; i < 5; i++) {
+        final day = now.subtract(Duration(days: 5 - i));
+        foodEntries.add(makeFood(id: i, calories: 2500, date: day));
+        weightEntries.add(makeWeight(id: i, weightKg: 80, date: day));
+      }
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, MaintenanceFailureReason.insufficientPairedData);
+      expect(result.dataPoints, 5);
     });
 
     test('14 paired points at threshold produces result', () {

@@ -12,7 +12,6 @@ import '../../providers/unit_preferences_provider.dart';
 import '../../providers/shared_dashboard_range_provider.dart';
 import '../settings/settings_screen.dart';
 import 'widgets/bodyweight_sparkline.dart';
-import 'widgets/calories_sparkline.dart';
 import 'widgets/macro_ring.dart';
 import 'widgets/maintenance_card.dart';
 
@@ -63,17 +62,7 @@ class DashboardScreen extends ConsumerWidget {
     final range = DashboardRange.compute(
       timeRange: timeRange,
       weights: weights,
-      calories: [],
     );
-
-    final allCaloriesAsync = ref.watch(
-      historicalCaloriesProvider((
-        start: range.start,
-        end: range.end,
-      )),
-    );
-
-    final allCalories = allCaloriesAsync.value ?? [];
 
     if (entries.isEmpty && weights.isEmpty && goals == null) {
       return Scaffold(
@@ -178,21 +167,6 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
           BodyweightSparkline(entries: weights, range: range),
-          const SizedBox(height: 24),
-          const Padding(
-            padding: EdgeInsets.only(left: 16, bottom: 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Calories Consumed',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          CaloriesSparkline(entries: allCalories, range: range),
           ],
         ),
       ),

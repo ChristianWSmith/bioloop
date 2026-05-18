@@ -39,9 +39,6 @@ Widget buildDashboard(
       databaseProvider.overrideWithValue(database),
       dataTriggerProvider.overrideWith((ref) => 0),
       resetTriggerProvider.overrideWith((ref) => 0),
-      historicalCaloriesProvider.overrideWith(
-        (ref, params) async => <({String date, double calories})>[],
-      ),
     ],
     child: MaterialApp(
       home: Scaffold(
@@ -54,6 +51,9 @@ Widget buildDashboard(
 Future<void> pumpDashboard(WidgetTester tester, Widget widget) async {
   await tester.pumpWidget(widget);
   await tester.pump();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.pump(const Duration(milliseconds: 500));
   await tester.pump(const Duration(milliseconds: 500));
   await tester.pump(const Duration(milliseconds: 500));
   await tester.pump(const Duration(milliseconds: 500));
