@@ -210,24 +210,34 @@ class AppDatabase extends _$AppDatabase {
         .get();
 
     final seenIds = <int>{};
-    final orderedIds = <int>[];
+    final lastLoggedAt = <int, String>{};
     for (final entry in allEntries) {
       if (entry.foodId != null && seenIds.add(entry.foodId!)) {
-        orderedIds.add(entry.foodId!);
+        lastLoggedAt[entry.foodId!] = entry.loggedAt;
       }
     }
 
     final allFoods = await (select(foods).get());
-    final rest = allFoods.where((f) => !seenIds.contains(f.id)).toList();
-    rest.sort((a, b) => a.name.compareTo(b.name));
 
-    final foodMap = {for (final f in allFoods) f.id: f};
-    final orderedFoods = orderedIds
-        .map((id) => foodMap[id])
-        .whereType<Food>()
-        .toList();
+    final unlogged = <Food>[];
+    final logged = <Food>[];
 
-    final combined = [...orderedFoods, ...rest];
+    for (final food in allFoods) {
+      if (lastLoggedAt.containsKey(food.id)) {
+        logged.add(food);
+      } else {
+        unlogged.add(food);
+      }
+    }
+
+    unlogged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    logged.sort((a, b) {
+      final aTime = lastLoggedAt[a.id] ?? '';
+      final bTime = lastLoggedAt[b.id] ?? '';
+      return bTime.compareTo(aTime);
+    });
+
+    final combined = [...unlogged, ...logged];
 
     if (query != null && query.trim().isNotEmpty) {
       final q = query.toLowerCase();

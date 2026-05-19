@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/database.dart';
+import '../../../providers/data_trigger_provider.dart';
 import '../../../providers/database_provider.dart';
 
 const _commonUnits = [
@@ -23,6 +24,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
   bool _saving = false;
 
   final _nameController = TextEditingController();
+  final _brandController = TextEditingController();
   final _qtyController = TextEditingController(text: '1');
   final _caloriesController = TextEditingController();
   final _proteinController = TextEditingController();
@@ -37,11 +39,12 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
     if (widget.existingFood != null) {
       final food = widget.existingFood!;
       _nameController.text = food.name;
+      _brandController.text = food.brand ?? '';
       _qtyController.text = _formatQuantity(food.servingQuantity);
-      _caloriesController.text = food.caloriesPerServing.toString();
-      _proteinController.text = food.proteinPerServing.toString();
-      _carbsController.text = food.carbsPerServing.toString();
-      _fatController.text = food.fatPerServing.toString();
+      _caloriesController.text = _formatMacro(food.caloriesPerServing, 0);
+      _proteinController.text = _formatMacro(food.proteinPerServing, 1);
+      _carbsController.text = _formatMacro(food.carbsPerServing, 1);
+      _fatController.text = _formatMacro(food.fatPerServing, 1);
       _selectedUnit = food.servingUnit;
       if (!_commonUnits.contains(food.servingUnit)) {
         _customUnit = food.servingUnit;
@@ -52,6 +55,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
   @override
   void dispose() {
     _nameController.dispose();
+    _brandController.dispose();
     _qtyController.dispose();
     _caloriesController.dispose();
     _proteinController.dispose();
@@ -66,6 +70,11 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
 
   String _formatQuantity(double value) =>
       value == value.roundToDouble() ? value.toInt().toString() : value.toStringAsFixed(1);
+
+  String _formatMacro(double value, int decimals) =>
+      value == value.roundToDouble()
+          ? value.toInt().toString()
+          : value.toStringAsFixed(decimals);
 
   String _buildLabel() {
     final qty = double.tryParse(_qtyController.text) ?? 1;
@@ -139,8 +148,10 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
 
     try {
       final servingLabel = _buildLabel();
+      final brand = _brandController.text.trim();
+      final brandValue = brand.isEmpty ? null : brand;
 
-      if (widget.existingFood != null) {
+      if (widget.existingFood != null && widget.existingFood!.id > 0) {
         await db.updateFoodById(widget.existingFood!.id, FoodsCompanion(
           name: Value(_nameController.text.trim()),
           servingLabel: Value(servingLabel),
@@ -150,6 +161,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
           proteinPerServing: Value(double.parse(_proteinController.text)),
           carbsPerServing: Value(double.parse(_carbsController.text)),
           fatPerServing: Value(double.parse(_fatController.text)),
+          brand: Value(brandValue),
         ));
 
         if (mounted) {
@@ -164,7 +176,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
             carbsPerServing: double.parse(_carbsController.text),
             fatPerServing: double.parse(_fatController.text),
             barcode: widget.existingFood!.barcode,
-            brand: widget.existingFood!.brand,
+            brand: brandValue,
             source: widget.existingFood!.source,
             createdAt: widget.existingFood!.createdAt,
           );
@@ -180,11 +192,12 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
           proteinPerServing: double.parse(_proteinController.text),
           carbsPerServing: double.parse(_carbsController.text),
           fatPerServing: double.parse(_fatController.text),
-          barcode: const Value(null),
-          brand: const Value(null),
-          source: const Value('manual'),
+          barcode: Value(widget.existingFood?.barcode),
+          brand: Value(brandValue),
+          source: Value(widget.existingFood?.source ?? 'manual'),
           createdAt: now,
         ));
+        ref.read(dataTriggerProvider.notifier).state++;
 
         if (mounted) {
           final food = Food(
@@ -197,9 +210,9 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
             proteinPerServing: double.parse(_proteinController.text),
             carbsPerServing: double.parse(_carbsController.text),
             fatPerServing: double.parse(_fatController.text),
-            barcode: null,
-            brand: null,
-            source: 'manual',
+            barcode: widget.existingFood?.barcode,
+            brand: brandValue,
+            source: widget.existingFood?.source ?? 'manual',
             createdAt: now,
           );
           Navigator.of(context).pop(food);
@@ -246,6 +259,14 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
                 if (v == null || v.trim().isEmpty) return 'Required';
                 return null;
               },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _brandController,
+              decoration: const InputDecoration(
+                labelText: 'Brand (optional)',
+                hintText: 'e.g. Quaker',
+              ),
             ),
             const SizedBox(height: 12),
             Row(
@@ -333,9 +354,9 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _proteinController,
+              controller: _fatController,
               decoration: const InputDecoration(
-                labelText: 'Protein per serving (g)',
+                labelText: 'Fat per serving (g)',
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
@@ -365,9 +386,9 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _fatController,
+              controller: _proteinController,
               decoration: const InputDecoration(
-                labelText: 'Fat per serving (g)',
+                labelText: 'Protein per serving (g)',
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),

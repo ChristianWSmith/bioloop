@@ -109,6 +109,175 @@ void main() {
       expect(filteredResults[0].name, 'Chicken Breast');
     });
 
+    test('searchLocal: unlogged foods appear above logged foods regardless of source', () async {
+      final now = DateTime.now().toIso8601String();
+
+      // Manual foods (will be logged)
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Chicken Breast',
+        servingLabel: '100g',
+        caloriesPerServing: 165,
+        proteinPerServing: 31,
+        carbsPerServing: 0,
+        fatPerServing: 3.6,
+        createdAt: now,
+      ));
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Brown Rice',
+        servingLabel: '100g',
+        caloriesPerServing: 111,
+        proteinPerServing: 2.6,
+        carbsPerServing: 23,
+        fatPerServing: 0.9,
+        createdAt: now,
+      ));
+
+      // OFF-imported foods (never logged) — imported at different times
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Imported Yogurt',
+        servingLabel: '150g',
+        caloriesPerServing: 120,
+        proteinPerServing: 10,
+        carbsPerServing: 15,
+        fatPerServing: 3,
+        source: Value('open_food_facts'),
+        createdAt: '2026-05-10T10:00:00',
+      ));
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Imported Granola',
+        servingLabel: '50g',
+        caloriesPerServing: 220,
+        proteinPerServing: 6,
+        carbsPerServing: 30,
+        fatPerServing: 8,
+        source: Value('open_food_facts'),
+        createdAt: '2026-05-12T10:00:00',
+      ));
+
+      // Manual food never logged (should be in unlogged group, sorted by createdAt)
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Almonds',
+        servingLabel: '30g',
+        caloriesPerServing: 170,
+        proteinPerServing: 6,
+        carbsPerServing: 6,
+        fatPerServing: 15,
+        createdAt: now,
+      ));
+
+      // Log the manual foods
+      await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
+        name: 'Chicken Breast',
+        calories: 165,
+        proteinGrams: 31,
+        carbsGrams: 0,
+        fatGrams: 3.6,
+        servings: 1,
+        servingLabel: '100g',
+        mealType: 'lunch',
+        foodId: Value(1),
+        loggedAt: '2026-05-15T12:00:00',
+      ));
+      await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
+        name: 'Brown Rice',
+        calories: 111,
+        proteinGrams: 2.6,
+        carbsGrams: 23,
+        fatGrams: 0.9,
+        servings: 1,
+        servingLabel: '100g',
+        mealType: 'dinner',
+        foodId: Value(2),
+        loggedAt: '2026-05-15T13:00:00',
+      ));
+
+      final mockApiClient = OpenFoodFactsClient(
+        client: MockClient((_) async => http.Response('{}', 200)),
+      );
+      final service = FoodSearchService(db: db, apiClient: mockApiClient);
+
+      final results = await service.searchLocal('');
+
+      // Group A: all unlogged foods (sorted by createdAt DESC)
+      // Almonds has `now` (newest), then Granola (May 12), then Yogurt (May 10)
+      expect(results[0].name, 'Almonds');
+      expect(results[1].name, 'Imported Granola');
+      expect(results[2].name, 'Imported Yogurt');
+      // Group B: logged foods (sorted by loggedAt DESC)
+      expect(results[3].name, 'Brown Rice');       // May 15 13:00
+      expect(results[4].name, 'Chicken Breast');   // May 15 12:00
+    });
+
+    test('searchLocal: imported food moves to logged group after first log', () async {
+      final now = DateTime.now().toIso8601String();
+
+      // Manual logged food
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Chicken Breast',
+        servingLabel: '100g',
+        caloriesPerServing: 165,
+        proteinPerServing: 31,
+        carbsPerServing: 0,
+        fatPerServing: 3.6,
+        createdAt: now,
+      ));
+
+      // OFF-imported food (never logged)
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Imported Yogurt',
+        servingLabel: '150g',
+        caloriesPerServing: 120,
+        proteinPerServing: 10,
+        carbsPerServing: 15,
+        fatPerServing: 3,
+        source: Value('open_food_facts'),
+        createdAt: '2026-05-12T10:00:00',
+      ));
+
+      // Log the manual food
+      await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
+        name: 'Chicken Breast',
+        calories: 165,
+        proteinGrams: 31,
+        carbsGrams: 0,
+        fatGrams: 3.6,
+        servings: 1,
+        servingLabel: '100g',
+        mealType: 'lunch',
+        foodId: Value(1),
+        loggedAt: '2026-05-15T12:00:00',
+      ));
+
+      final mockApiClient = OpenFoodFactsClient(
+        client: MockClient((_) async => http.Response('{}', 200)),
+      );
+      final service = FoodSearchService(db: db, apiClient: mockApiClient);
+
+      // Before logging imported food: imported first, then logged
+      var results = await service.searchLocal('');
+      expect(results[0].name, 'Imported Yogurt');
+      expect(results[1].name, 'Chicken Breast');
+
+      // Now log the imported food
+      await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
+        name: 'Imported Yogurt',
+        calories: 120,
+        proteinGrams: 10,
+        carbsGrams: 15,
+        fatGrams: 3,
+        servings: 1,
+        servingLabel: '150g',
+        mealType: 'snack',
+        foodId: Value(2),
+        loggedAt: '2026-05-16T10:00:00',
+      ));
+
+      // After logging: both in logged group, sorted by recency
+      results = await service.searchLocal('');
+      expect(results[0].name, 'Imported Yogurt'); // May 16 — most recent log
+      expect(results[1].name, 'Chicken Breast');  // May 15
+    });
+
     test('searchWeb returns API results only', () async {
       final mock = MockClient((_) async {
         return http.Response(jsonEncode({

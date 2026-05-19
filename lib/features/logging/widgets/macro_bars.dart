@@ -46,10 +46,10 @@ class MacroBars extends StatelessWidget {
               children: [
                 Expanded(
                   child: _MacroColumn(
-                    label: 'Protein',
-                    consumed: consumedProtein,
-                    target: targets.proteinGrams,
-                    color: Colors.blue,
+                    label: 'Fat',
+                    consumed: consumedFat,
+                    target: targets.fatGrams,
+                    color: Colors.orange,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -64,10 +64,10 @@ class MacroBars extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _MacroColumn(
-                    label: 'Fat',
-                    consumed: consumedFat,
-                    target: targets.fatGrams,
-                    color: Colors.orange,
+                    label: 'Protein',
+                    consumed: consumedProtein,
+                    target: targets.proteinGrams,
+                    color: Colors.blue,
                   ),
                 ),
               ],

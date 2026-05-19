@@ -103,16 +103,6 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 Expanded(
                   child: MacroRing(
-                    consumed: consumedProtein,
-                    target: targets.proteinGrams,
-                    label: 'Protein',
-                    unit: 'g',
-                    color: Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: MacroRing(
                     consumed: consumedFat,
                     target: targets.fatGrams,
                     label: 'Fat',
@@ -128,6 +118,16 @@ class DashboardScreen extends ConsumerWidget {
                     label: 'Carbs',
                     unit: 'g',
                     color: Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: MacroRing(
+                    consumed: consumedProtein,
+                    target: targets.proteinGrams,
+                    label: 'Protein',
+                    unit: 'g',
+                    color: Colors.blue,
                   ),
                 ),
               ],

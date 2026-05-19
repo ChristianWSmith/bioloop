@@ -11,7 +11,7 @@ import 'barcode_scanner.dart';
 class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
   final FoodSearchService searchService;
   final OpenFoodFactsClient apiClient;
-  final Future<Food?> Function(BuildContext) onCreateCustomFood;
+  final Future<Food?> Function(BuildContext, {Food? existingFood}) onCreateCustomFood;
   final Future<void> Function(FoodSearchItem)? onQuickLog;
   final void Function(Food)? onEditFood;
   final Future<void> Function(Food)? onDeleteFood;
@@ -46,8 +46,28 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
           );
           if (result is FoodResult) {
             final item = FoodSearchItem.fromFoodResult(result);
-            await onQuickLog?.call(item);
-            navigator.pop<FoodSearchItem?>(null);
+            final syntheticFood = Food(
+              id: -1,
+              name: item.name,
+              servingLabel: item.servingLabel,
+              servingQuantity: item.servingQuantity,
+              servingUnit: item.servingUnit,
+              caloriesPerServing: item.caloriesPerServing,
+              proteinPerServing: item.proteinPerServing,
+              carbsPerServing: item.carbsPerServing,
+              fatPerServing: item.fatPerServing,
+              barcode: item.barcode,
+              brand: item.brand,
+              source: item.source,
+              createdAt: '',
+            );
+            // ignore: use_build_context_synchronously
+            final food = await onCreateCustomFood(navigator.context, existingFood: syntheticFood);
+            if (food != null && navigator.mounted) {
+              _searchMode = 'local';
+              query = '';
+              navigator.pop<FoodSearchItem?>(FoodSearchItem.fromFood(food));
+            }
           } else if (result == 'manual') {
             // ignore: use_build_context_synchronously
             final food = await onCreateCustomFood(navigator.context);
@@ -88,6 +108,30 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
               }
             : null,
         onSelectItem: (item) => close(context, item),
+        onSelectWebItem: (item) async {
+          final nav = Navigator.of(context);
+          final syntheticFood = Food(
+            id: -1,
+            name: item.name,
+            servingLabel: item.servingLabel,
+            servingQuantity: item.servingQuantity,
+            servingUnit: item.servingUnit,
+            caloriesPerServing: item.caloriesPerServing,
+            proteinPerServing: item.proteinPerServing,
+            carbsPerServing: item.carbsPerServing,
+            fatPerServing: item.fatPerServing,
+            barcode: item.barcode,
+            brand: item.brand,
+            source: item.source,
+            createdAt: '',
+          );
+          final food = await onCreateCustomFood(context, existingFood: syntheticFood);
+          if (food != null) {
+            _searchMode = 'local';
+            query = '';
+            nav.pop<FoodSearchItem?>(FoodSearchItem.fromFood(food));
+          }
+        },
         onEditFood: onEditFood,
         onDeleteFood: onDeleteFood,
       );
@@ -107,6 +151,30 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
               }
             : null,
         onSelectItem: (item) => close(context, item),
+        onSelectWebItem: (item) async {
+          final nav = Navigator.of(context);
+          final syntheticFood = Food(
+            id: -1,
+            name: item.name,
+            servingLabel: item.servingLabel,
+            servingQuantity: item.servingQuantity,
+            servingUnit: item.servingUnit,
+            caloriesPerServing: item.caloriesPerServing,
+            proteinPerServing: item.proteinPerServing,
+            carbsPerServing: item.carbsPerServing,
+            fatPerServing: item.fatPerServing,
+            barcode: item.barcode,
+            brand: item.brand,
+            source: item.source,
+            createdAt: '',
+          );
+          final food = await onCreateCustomFood(context, existingFood: syntheticFood);
+          if (food != null) {
+            _searchMode = 'local';
+            query = '';
+            nav.pop<FoodSearchItem?>(FoodSearchItem.fromFood(food));
+          }
+        },
         onEditFood: onEditFood,
         onDeleteFood: onDeleteFood,
       );
@@ -117,9 +185,10 @@ class _FoodSearchContent extends ConsumerStatefulWidget {
   final FoodSearchService searchService;
   final String searchMode;
   final ValueChanged<String> onSearchModeChanged;
-  final Future<Food?> Function(BuildContext) onCreateCustomFood;
+  final Future<Food?> Function(BuildContext, {Food? existingFood}) onCreateCustomFood;
   final Future<void> Function(FoodSearchItem)? onQuickLog;
   final void Function(FoodSearchItem item) onSelectItem;
+  final Future<void> Function(FoodSearchItem item) onSelectWebItem;
   final void Function(Food)? onEditFood;
   final Future<void> Function(Food)? onDeleteFood;
 
@@ -131,6 +200,7 @@ class _FoodSearchContent extends ConsumerStatefulWidget {
     required this.onCreateCustomFood,
     this.onQuickLog,
     required this.onSelectItem,
+    required this.onSelectWebItem,
     this.onEditFood,
     this.onDeleteFood,
   });
@@ -188,13 +258,14 @@ class _FoodSearchContentState extends ConsumerState<_FoodSearchContent> {
                   onDeleteFood: widget.onDeleteFood,
                 )
                : _WebSearchContent(
-                   query: widget.query,
-                   searchService: widget.searchService,
-                   onSelectItem: widget.onSelectItem,
-                   immediateQuery: _localSearchMode == 'web' && widget.query.isNotEmpty
-                       ? widget.query
-                       : null,
-                 ),
+                    query: widget.query,
+                    searchService: widget.searchService,
+                    onSelectItem: widget.onSelectItem,
+                    onSelectWebItem: widget.onSelectWebItem,
+                    immediateQuery: _localSearchMode == 'web' && widget.query.isNotEmpty
+                        ? widget.query
+                        : null,
+                  ),
         ),
       ],
     );
@@ -203,7 +274,7 @@ class _FoodSearchContentState extends ConsumerState<_FoodSearchContent> {
 
 class _LocalSearchContent extends ConsumerWidget {
   final String query;
-  final Future<Food?> Function(BuildContext) onCreateCustomFood;
+  final Future<Food?> Function(BuildContext, {Food? existingFood}) onCreateCustomFood;
   final Future<void> Function(FoodSearchItem)? onQuickLog;
   final void Function(FoodSearchItem item) onSelectItem;
   final void Function(Food)? onEditFood;
@@ -254,13 +325,16 @@ class _LocalSearchContent extends ConsumerWidget {
           ...items.map((item) {
             final macroText =
                 '${item.caloriesPerServing.toStringAsFixed(0)} cal  '
-                '• ${item.proteinPerServing.toStringAsFixed(1)}g P  '
+                '• ${item.fatPerServing.toStringAsFixed(1)}g F  '
                 '• ${item.carbsPerServing.toStringAsFixed(1)}g C  '
-                '• ${item.fatPerServing.toStringAsFixed(1)}g F';
+                '• ${item.proteinPerServing.toStringAsFixed(1)}g P';
+            final brandLine = item.brand != null && item.brand!.isNotEmpty
+                ? '${item.brand} • ${item.servingLabel}'
+                : item.servingLabel;
             return ListTile(
               title: Text(item.name),
               subtitle: Text(
-                '$macroText\n${item.servingLabel}',
+                '$macroText\n$brandLine',
               ),
               isThreeLine: true,
               onTap: () => onQuickLog != null
@@ -321,12 +395,14 @@ class _WebSearchContent extends StatefulWidget {
   final String query;
   final FoodSearchService searchService;
   final void Function(FoodSearchItem item) onSelectItem;
+  final Future<void> Function(FoodSearchItem item) onSelectWebItem;
   final String? immediateQuery;
 
   const _WebSearchContent({
     required this.query,
     required this.searchService,
     required this.onSelectItem,
+    required this.onSelectWebItem,
     this.immediateQuery,
   });
 
@@ -422,16 +498,19 @@ class _WebSearchContentState extends State<_WebSearchContent> {
           children: items.map((item) {
             final macroText =
                 '${item.caloriesPerServing.toStringAsFixed(0)} cal  '
-                '• ${item.proteinPerServing.toStringAsFixed(1)}g P  '
+                '• ${item.fatPerServing.toStringAsFixed(1)}g F  '
                 '• ${item.carbsPerServing.toStringAsFixed(1)}g C  '
-                '• ${item.fatPerServing.toStringAsFixed(1)}g F';
+                '• ${item.proteinPerServing.toStringAsFixed(1)}g P';
+            final brandLine = item.brand != null && item.brand!.isNotEmpty
+                ? '${item.brand} • ${item.servingLabel}'
+                : item.servingLabel;
             return ListTile(
               title: Text(item.name),
               subtitle: Text(
-                '$macroText\n${item.servingLabel}',
+                '$macroText\n$brandLine',
               ),
               isThreeLine: true,
-              onTap: () => widget.onSelectItem(item),
+              onTap: () => widget.onSelectWebItem(item),
             );
           }).toList(),
         );

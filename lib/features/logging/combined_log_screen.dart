@@ -60,9 +60,9 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
       delegate: FoodSearchDelegate(
         searchService: searchService,
         apiClient: apiClient,
-        onCreateCustomFood: (context) async {
+        onCreateCustomFood: (context, {existingFood}) async {
           return await Navigator.of(context).push<Food>(
-            MaterialPageRoute(builder: (_) => const ManualFoodForm()),
+            MaterialPageRoute(builder: (_) => ManualFoodForm(existingFood: existingFood)),
           );
         },
         onQuickLog: (item) async {
@@ -514,16 +514,16 @@ class _MacroBreakdownBar extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              flex: (proteinCals).toInt().clamp(1, 9999),
-              child: Container(color: Colors.blue),
+              flex: (fatCals).toInt().clamp(1, 9999),
+              child: Container(color: Colors.orange),
             ),
             Expanded(
               flex: (carbsCals).toInt().clamp(1, 9999),
               child: Container(color: Colors.green),
             ),
             Expanded(
-              flex: (fatCals).toInt().clamp(1, 9999),
-              child: Container(color: Colors.orange),
+              flex: (proteinCals).toInt().clamp(1, 9999),
+              child: Container(color: Colors.blue),
             ),
           ],
         ),

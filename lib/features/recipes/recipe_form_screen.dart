@@ -70,10 +70,10 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       delegate: FoodSearchDelegate(
         searchService: searchService,
         apiClient: apiClient,
-        onCreateCustomFood: (context) async {
+        onCreateCustomFood: (context, {existingFood}) async {
           return await Navigator.of(context).push<Food>(
             MaterialPageRoute(
-              builder: (_) => const ManualFoodForm(),
+              builder: (_) => ManualFoodForm(existingFood: existingFood),
             ),
           );
         },
@@ -334,13 +334,13 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${totalProtein.toStringAsFixed(1)}p · ${totalCarbs.toStringAsFixed(1)}c · ${totalFat.toStringAsFixed(1)}f',
+                    '${totalFat.toStringAsFixed(1)}f · ${totalCarbs.toStringAsFixed(1)}c · ${totalProtein.toStringAsFixed(1)}p',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   if (servingSize > 0) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'Per $label: ${(totalCals / perUnit).toStringAsFixed(1)} kcal · ${(totalProtein / perUnit).toStringAsFixed(1)}p · ${(totalCarbs / perUnit).toStringAsFixed(1)}c · ${(totalFat / perUnit).toStringAsFixed(1)}f',
+                      'Per $label: ${(totalCals / perUnit).toStringAsFixed(1)} kcal · ${(totalFat / perUnit).toStringAsFixed(1)}f · ${(totalCarbs / perUnit).toStringAsFixed(1)}c · ${(totalProtein / perUnit).toStringAsFixed(1)}p',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
