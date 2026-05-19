@@ -486,7 +486,7 @@ void main() {
       expect(entry.name, 'Test Meal');
       expect(entry.recipeId, recipeId);
       expect(entry.mealType, 'lunch');
-      expect(entry.servings, closeTo(0.5, 0.001));
+      expect(entry.servings, closeTo(200, 0.001));
       expect(entry.servingLabel, 'g');
 
       // Chicken (2×165=330) + Oil (1×119=119) = 449 total

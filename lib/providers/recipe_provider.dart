@@ -69,7 +69,7 @@ class RecipeService {
       proteinGrams: macros.proteinGrams * scale,
       carbsGrams: macros.carbsGrams * scale,
       fatGrams: macros.fatGrams * scale,
-      servings: scale,
+      servings: portion,
       servingLabel: recipe.servingLabel,
       recipeId: Value(recipeId),
       mealType: mealType,

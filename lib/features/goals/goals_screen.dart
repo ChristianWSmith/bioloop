@@ -246,6 +246,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         birthdate: Value(_birthdate),
         useImperial: Value(_useImperial ? 1 : 0),
         activityLevel: Value(_activityLevel),
+        accentColorSeed: const Value(null),
         updatedAt: Value(now),
       ));
       ref.invalidate(userGoalsProvider);

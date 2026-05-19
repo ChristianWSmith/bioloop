@@ -191,6 +191,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         useImperial: Value(_useImperial ? 1 : 0),
         activityLevel: Value(_activityLevel),
         onboardingCompleted: const Value(1),
+        accentColorSeed: const Value(null),
         updatedAt: Value(now),
       ));
 
