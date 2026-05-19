@@ -192,11 +192,11 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
           const Divider(height: 24),
           _macroRow(theme, 'Calories', _displayCalories.toStringAsFixed(0)),
           const SizedBox(height: 4),
-          _macroRow(theme, 'Protein', '${_displayProtein.toStringAsFixed(1)} g'),
+          _macroRow(theme, 'Fat', '${_displayFat.toStringAsFixed(1)} g'),
           const SizedBox(height: 4),
           _macroRow(theme, 'Carbs', '${_displayCarbs.toStringAsFixed(1)} g'),
           const SizedBox(height: 4),
-          _macroRow(theme, 'Fat', '${_displayFat.toStringAsFixed(1)} g'),
+          _macroRow(theme, 'Protein', '${_displayProtein.toStringAsFixed(1)} g'),
           const SizedBox(height: 12),
           Row(
             children: [

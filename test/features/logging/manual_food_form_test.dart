@@ -195,9 +195,9 @@ void main() {
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Test');
       await tester.enterText(find.byType(TextFormField).at(2), '1');
-      await tester.enterText(find.byType(TextFormField).at(4), '20');
+      await tester.enterText(find.byType(TextFormField).at(4), '10');
       await tester.enterText(find.byType(TextFormField).at(5), '30');
-      await tester.enterText(find.byType(TextFormField).at(6), '10');
+      await tester.enterText(find.byType(TextFormField).at(6), '20');
 
       final caloriesField = tester.widget<TextField>(
         find.descendant(
@@ -216,15 +216,15 @@ void main() {
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Test');
       await tester.enterText(find.byType(TextFormField).at(2), '1');
-      await tester.enterText(find.byType(TextFormField).at(4), '20');
+      await tester.enterText(find.byType(TextFormField).at(4), '10');
       await tester.enterText(find.byType(TextFormField).at(5), '30');
-      await tester.enterText(find.byType(TextFormField).at(6), '10');
+      await tester.enterText(find.byType(TextFormField).at(6), '20');
 
       // Manually set calories
       await tester.enterText(find.byType(TextFormField).at(3), '300');
 
       // Change a macro — calories should recalculate automatically
-      await tester.enterText(find.byType(TextFormField).at(4), '25');
+      await tester.enterText(find.byType(TextFormField).at(6), '25');
 
       // 25*4 + 30*4 + 10*9 = 100 + 120 + 90 = 310
       final caloriesField = tester.widget<TextField>(

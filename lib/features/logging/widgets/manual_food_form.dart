@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/database.dart';
+import '../../../providers/data_trigger_provider.dart';
 import '../../../providers/database_provider.dart';
 
 const _commonUnits = [
@@ -40,10 +41,10 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
       _nameController.text = food.name;
       _brandController.text = food.brand ?? '';
       _qtyController.text = _formatQuantity(food.servingQuantity);
-      _caloriesController.text = food.caloriesPerServing.toString();
-      _proteinController.text = food.proteinPerServing.toString();
-      _carbsController.text = food.carbsPerServing.toString();
-      _fatController.text = food.fatPerServing.toString();
+      _caloriesController.text = _formatMacro(food.caloriesPerServing, 0);
+      _proteinController.text = _formatMacro(food.proteinPerServing, 1);
+      _carbsController.text = _formatMacro(food.carbsPerServing, 1);
+      _fatController.text = _formatMacro(food.fatPerServing, 1);
       _selectedUnit = food.servingUnit;
       if (!_commonUnits.contains(food.servingUnit)) {
         _customUnit = food.servingUnit;
@@ -69,6 +70,11 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
 
   String _formatQuantity(double value) =>
       value == value.roundToDouble() ? value.toInt().toString() : value.toStringAsFixed(1);
+
+  String _formatMacro(double value, int decimals) =>
+      value == value.roundToDouble()
+          ? value.toInt().toString()
+          : value.toStringAsFixed(decimals);
 
   String _buildLabel() {
     final qty = double.tryParse(_qtyController.text) ?? 1;
@@ -191,6 +197,7 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
           source: const Value('manual'),
           createdAt: now,
         ));
+        ref.read(dataTriggerProvider.notifier).state++;
 
         if (mounted) {
           final food = Food(
@@ -347,9 +354,9 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _proteinController,
+              controller: _fatController,
               decoration: const InputDecoration(
-                labelText: 'Protein per serving (g)',
+                labelText: 'Fat per serving (g)',
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
@@ -379,9 +386,9 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _fatController,
+              controller: _proteinController,
               decoration: const InputDecoration(
-                labelText: 'Fat per serving (g)',
+                labelText: 'Protein per serving (g)',
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),

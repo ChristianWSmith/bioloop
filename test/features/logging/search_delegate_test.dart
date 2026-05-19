@@ -775,7 +775,7 @@ void main() {
       expect(find.text('Test Yogurt'), findsOneWidget);
     });
 
-    testWidgets('save web food inserts into DB and delegate stays open', (tester) async {
+    testWidgets('save web food inserts into DB and closes delegate with result', (tester) async {
       final db = AppDatabase.createInMemory();
       addTearDown(() => db.close());
 
@@ -799,6 +799,7 @@ void main() {
         )),
       );
       final service = FoodSearchService(db: db, apiClient: mockApiClient);
+      FoodSearchItem? returnedItem;
 
       await tester.pumpWidget(
         ProviderScope(
@@ -810,8 +811,8 @@ void main() {
           child: MaterialApp(
             home: Builder(
               builder: (context) => ElevatedButton(
-                onPressed: () {
-                  showSearch<FoodSearchItem?>(
+                onPressed: () async {
+                  returnedItem = await showSearch<FoodSearchItem?>(
                     context: context,
                     delegate: FoodSearchDelegate(
                       searchService: service,
@@ -866,9 +867,9 @@ void main() {
       await tester.tap(saveButton);
       await tester.pumpAndSettle();
 
-      // Delegate should still be open (Custom Food form is gone)
-      expect(find.text('Custom Food'), findsNothing);
-      expect(find.text('My Foods'), findsOneWidget);
+      // Delegate should have closed and returned the food
+      expect(returnedItem, isNotNull);
+      expect(returnedItem!.name, 'Test Yogurt');
 
       // Food should be in the database
       final foods = await (db.select(db.foods)).get();

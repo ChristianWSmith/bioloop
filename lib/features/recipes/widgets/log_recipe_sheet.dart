@@ -89,7 +89,7 @@ class _LogRecipeSheetState extends ConsumerState<LogRecipeSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Total: ${macros.calories.toStringAsFixed(0)} kcal · ${macros.proteinGrams.toStringAsFixed(1)}p · ${macros.carbsGrams.toStringAsFixed(1)}c · ${macros.fatGrams.toStringAsFixed(1)}f',
+            'Total: ${macros.calories.toStringAsFixed(0)} kcal · ${macros.fatGrams.toStringAsFixed(1)}f · ${macros.carbsGrams.toStringAsFixed(1)}c · ${macros.proteinGrams.toStringAsFixed(1)}p',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           Text(
@@ -108,7 +108,7 @@ class _LogRecipeSheetState extends ConsumerState<LogRecipeSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${_scale.toStringAsFixed(3)}× recipe — ${scaledCals.toStringAsFixed(0)} kcal · ${scaledProtein.toStringAsFixed(1)}p · ${scaledCarbs.toStringAsFixed(1)}c · ${scaledFat.toStringAsFixed(1)}f',
+            '${_scale.toStringAsFixed(3)}× recipe — ${scaledCals.toStringAsFixed(0)} kcal · ${scaledFat.toStringAsFixed(1)}f · ${scaledCarbs.toStringAsFixed(1)}c · ${scaledProtein.toStringAsFixed(1)}p',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                 ),

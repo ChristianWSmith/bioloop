@@ -148,8 +148,8 @@ class _QuickFoodLogSheetState extends ConsumerState<QuickFoodLogSheet> {
                     '',
                   ),
                   _miniMacro(
-                    'P',
-                    (widget.food.proteinPerServing * (_servings / sq))
+                    'F',
+                    (widget.food.fatPerServing * (_servings / sq))
                         .toStringAsFixed(1),
                     'g',
                   ),
@@ -160,8 +160,8 @@ class _QuickFoodLogSheetState extends ConsumerState<QuickFoodLogSheet> {
                     'g',
                   ),
                   _miniMacro(
-                    'F',
-                    (widget.food.fatPerServing * (_servings / sq))
+                    'P',
+                    (widget.food.proteinPerServing * (_servings / sq))
                         .toStringAsFixed(1),
                     'g',
                   ),

@@ -219,29 +219,25 @@ class AppDatabase extends _$AppDatabase {
 
     final allFoods = await (select(foods).get());
 
-    final groupA = <Food>[];
-    final groupB = <Food>[];
-    final groupC = <Food>[];
+    final unlogged = <Food>[];
+    final logged = <Food>[];
 
     for (final food in allFoods) {
       if (lastLoggedAt.containsKey(food.id)) {
-        groupB.add(food);
-      } else if (food.source == 'open_food_facts') {
-        groupA.add(food);
+        logged.add(food);
       } else {
-        groupC.add(food);
+        unlogged.add(food);
       }
     }
 
-    groupA.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    groupB.sort((a, b) {
+    unlogged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    logged.sort((a, b) {
       final aTime = lastLoggedAt[a.id] ?? '';
       final bTime = lastLoggedAt[b.id] ?? '';
       return bTime.compareTo(aTime);
     });
-    groupC.sort((a, b) => a.name.compareTo(b.name));
 
-    final combined = [...groupA, ...groupB, ...groupC];
+    final combined = [...unlogged, ...logged];
 
     if (query != null && query.trim().isNotEmpty) {
       final q = query.toLowerCase();

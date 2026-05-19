@@ -89,6 +89,7 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
             : null,
         onSelectItem: (item) => close(context, item),
         onSelectWebItem: (item) async {
+          final nav = Navigator.of(context);
           final syntheticFood = Food(
             id: -1,
             name: item.name,
@@ -104,7 +105,12 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
             source: item.source,
             createdAt: '',
           );
-          await onCreateCustomFood(context, existingFood: syntheticFood);
+          final food = await onCreateCustomFood(context, existingFood: syntheticFood);
+          if (food != null) {
+            _searchMode = 'local';
+            query = '';
+            nav.pop<FoodSearchItem?>(FoodSearchItem.fromFood(food));
+          }
         },
         onEditFood: onEditFood,
         onDeleteFood: onDeleteFood,
@@ -126,6 +132,7 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
             : null,
         onSelectItem: (item) => close(context, item),
         onSelectWebItem: (item) async {
+          final nav = Navigator.of(context);
           final syntheticFood = Food(
             id: -1,
             name: item.name,
@@ -141,7 +148,12 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
             source: item.source,
             createdAt: '',
           );
-          await onCreateCustomFood(context, existingFood: syntheticFood);
+          final food = await onCreateCustomFood(context, existingFood: syntheticFood);
+          if (food != null) {
+            _searchMode = 'local';
+            query = '';
+            nav.pop<FoodSearchItem?>(FoodSearchItem.fromFood(food));
+          }
         },
         onEditFood: onEditFood,
         onDeleteFood: onDeleteFood,
@@ -293,9 +305,9 @@ class _LocalSearchContent extends ConsumerWidget {
           ...items.map((item) {
             final macroText =
                 '${item.caloriesPerServing.toStringAsFixed(0)} cal  '
-                '• ${item.proteinPerServing.toStringAsFixed(1)}g P  '
+                '• ${item.fatPerServing.toStringAsFixed(1)}g F  '
                 '• ${item.carbsPerServing.toStringAsFixed(1)}g C  '
-                '• ${item.fatPerServing.toStringAsFixed(1)}g F';
+                '• ${item.proteinPerServing.toStringAsFixed(1)}g P';
             final brandLine = item.brand != null && item.brand!.isNotEmpty
                 ? '${item.brand} • ${item.servingLabel}'
                 : item.servingLabel;
@@ -466,9 +478,9 @@ class _WebSearchContentState extends State<_WebSearchContent> {
           children: items.map((item) {
             final macroText =
                 '${item.caloriesPerServing.toStringAsFixed(0)} cal  '
-                '• ${item.proteinPerServing.toStringAsFixed(1)}g P  '
+                '• ${item.fatPerServing.toStringAsFixed(1)}g F  '
                 '• ${item.carbsPerServing.toStringAsFixed(1)}g C  '
-                '• ${item.fatPerServing.toStringAsFixed(1)}g F';
+                '• ${item.proteinPerServing.toStringAsFixed(1)}g P';
             final brandLine = item.brand != null && item.brand!.isNotEmpty
                 ? '${item.brand} • ${item.servingLabel}'
                 : item.servingLabel;

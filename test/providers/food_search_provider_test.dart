@@ -109,7 +109,7 @@ void main() {
       expect(filteredResults[0].name, 'Chicken Breast');
     });
 
-    test('searchLocal: imported unlogged foods appear above logged foods', () async {
+    test('searchLocal: unlogged foods appear above logged foods regardless of source', () async {
       final now = DateTime.now().toIso8601String();
 
       // Manual foods (will be logged)
@@ -154,7 +154,7 @@ void main() {
         createdAt: '2026-05-12T10:00:00',
       ));
 
-      // Manual food never logged (should be at bottom, alphabetical)
+      // Manual food never logged (should be in unlogged group, sorted by createdAt)
       await db.into(db.foods).insert(FoodsCompanion.insert(
         name: 'Almonds',
         servingLabel: '30g',
@@ -198,14 +198,14 @@ void main() {
 
       final results = await service.searchLocal('');
 
-      // Group A: imported, unlogged (sorted by createdAt DESC)
-      expect(results[0].name, 'Imported Granola'); // May 12
-      expect(results[1].name, 'Imported Yogurt');  // May 10
+      // Group A: all unlogged foods (sorted by createdAt DESC)
+      // Almonds has `now` (newest), then Granola (May 12), then Yogurt (May 10)
+      expect(results[0].name, 'Almonds');
+      expect(results[1].name, 'Imported Granola');
+      expect(results[2].name, 'Imported Yogurt');
       // Group B: logged foods (sorted by loggedAt DESC)
-      expect(results[2].name, 'Brown Rice');       // May 15 13:00
-      expect(results[3].name, 'Chicken Breast');   // May 15 12:00
-      // Group C: never logged, not imported (alphabetical)
-      expect(results[4].name, 'Almonds');
+      expect(results[3].name, 'Brown Rice');       // May 15 13:00
+      expect(results[4].name, 'Chicken Breast');   // May 15 12:00
     });
 
     test('searchLocal: imported food moves to logged group after first log', () async {
