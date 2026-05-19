@@ -875,7 +875,7 @@ void main() {
       final foods = await (db.select(db.foods)).get();
       expect(foods.length, 1);
       expect(foods.first.name, 'Test Yogurt');
-      expect(foods.first.source, 'manual');
+      expect(foods.first.source, 'open_food_facts');
     });
 
     testWidgets('cancel web food form does not save', (tester) async {

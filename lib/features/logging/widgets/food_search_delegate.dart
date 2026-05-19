@@ -46,8 +46,28 @@ class FoodSearchDelegate extends SearchDelegate<FoodSearchItem?> {
           );
           if (result is FoodResult) {
             final item = FoodSearchItem.fromFoodResult(result);
-            await onQuickLog?.call(item);
-            navigator.pop<FoodSearchItem?>(null);
+            final syntheticFood = Food(
+              id: -1,
+              name: item.name,
+              servingLabel: item.servingLabel,
+              servingQuantity: item.servingQuantity,
+              servingUnit: item.servingUnit,
+              caloriesPerServing: item.caloriesPerServing,
+              proteinPerServing: item.proteinPerServing,
+              carbsPerServing: item.carbsPerServing,
+              fatPerServing: item.fatPerServing,
+              barcode: item.barcode,
+              brand: item.brand,
+              source: item.source,
+              createdAt: '',
+            );
+            // ignore: use_build_context_synchronously
+            final food = await onCreateCustomFood(navigator.context, existingFood: syntheticFood);
+            if (food != null && navigator.mounted) {
+              _searchMode = 'local';
+              query = '';
+              navigator.pop<FoodSearchItem?>(FoodSearchItem.fromFood(food));
+            }
           } else if (result == 'manual') {
             // ignore: use_build_context_synchronously
             final food = await onCreateCustomFood(navigator.context);

@@ -49,7 +49,18 @@ class _QuickFoodLogSheetState extends ConsumerState<QuickFoodLogSheet> {
 
     final food = widget.food;
     final db = ref.read(databaseProvider);
-    final now = (widget.loggedAt ?? DateTime.now()).toIso8601String();
+    final nowTime = DateTime.now();
+    final now = widget.loggedAt != null
+        ? DateTime(
+            widget.loggedAt!.year,
+            widget.loggedAt!.month,
+            widget.loggedAt!.day,
+            nowTime.hour,
+            nowTime.minute,
+            nowTime.second,
+            nowTime.millisecond,
+          ).toIso8601String()
+        : nowTime.toIso8601String();
 
     try {
       int? foodId = food.localId;

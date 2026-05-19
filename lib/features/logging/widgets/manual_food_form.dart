@@ -192,9 +192,9 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
           proteinPerServing: double.parse(_proteinController.text),
           carbsPerServing: double.parse(_carbsController.text),
           fatPerServing: double.parse(_fatController.text),
-          barcode: const Value(null),
+          barcode: Value(widget.existingFood?.barcode),
           brand: Value(brandValue),
-          source: const Value('manual'),
+          source: Value(widget.existingFood?.source ?? 'manual'),
           createdAt: now,
         ));
         ref.read(dataTriggerProvider.notifier).state++;
@@ -210,9 +210,9 @@ class _ManualFoodFormState extends ConsumerState<ManualFoodForm> {
             proteinPerServing: double.parse(_proteinController.text),
             carbsPerServing: double.parse(_carbsController.text),
             fatPerServing: double.parse(_fatController.text),
-            barcode: null,
+            barcode: widget.existingFood?.barcode,
             brand: brandValue,
-            source: 'manual',
+            source: widget.existingFood?.source ?? 'manual',
             createdAt: now,
           );
           Navigator.of(context).pop(food);

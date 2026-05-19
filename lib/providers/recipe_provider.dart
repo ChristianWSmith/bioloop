@@ -50,7 +50,18 @@ class RecipeService {
     if (recipe == null) throw Exception('Recipe not found');
     final macros = await db.computeRecipeMacros(recipeId);
     final scale = recipe.servingSize > 0 ? portion / recipe.servingSize : 1.0;
-    final now = (loggedAt ?? DateTime.now()).toIso8601String();
+    final nowTime = DateTime.now();
+    final now = loggedAt != null
+        ? DateTime(
+            loggedAt.year,
+            loggedAt.month,
+            loggedAt.day,
+            nowTime.hour,
+            nowTime.minute,
+            nowTime.second,
+            nowTime.millisecond,
+          ).toIso8601String()
+        : nowTime.toIso8601String();
 
     return await db.insertEntry(FoodEntriesCompanion.insert(
       name: recipe.name,
