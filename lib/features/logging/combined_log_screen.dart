@@ -60,9 +60,9 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
       delegate: FoodSearchDelegate(
         searchService: searchService,
         apiClient: apiClient,
-        onCreateCustomFood: (context) async {
+        onCreateCustomFood: (context, {existingFood}) async {
           return await Navigator.of(context).push<Food>(
-            MaterialPageRoute(builder: (_) => const ManualFoodForm()),
+            MaterialPageRoute(builder: (_) => ManualFoodForm(existingFood: existingFood)),
           );
         },
         onQuickLog: (item) async {

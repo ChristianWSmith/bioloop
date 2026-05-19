@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,11 +35,11 @@ void main() {
 
     Future<void> fillRequiredFields(WidgetTester tester) async {
       await tester.enterText(find.byType(TextFormField).at(0), 'Test Food');
-      await tester.enterText(find.byType(TextFormField).at(1), '1');
-      await tester.enterText(find.byType(TextFormField).at(2), '200');
-      await tester.enterText(find.byType(TextFormField).at(3), '10');
-      await tester.enterText(find.byType(TextFormField).at(4), '20');
-      await tester.enterText(find.byType(TextFormField).at(5), '5');
+      await tester.enterText(find.byType(TextFormField).at(2), '1');
+      await tester.enterText(find.byType(TextFormField).at(3), '200');
+      await tester.enterText(find.byType(TextFormField).at(4), '10');
+      await tester.enterText(find.byType(TextFormField).at(5), '20');
+      await tester.enterText(find.byType(TextFormField).at(6), '5');
     }
 
     Future<void> tapSave(WidgetTester tester) async {
@@ -57,11 +58,11 @@ void main() {
       addTearDown(() => db.close());
       await pushForm(tester, db);
 
-      await tester.enterText(find.byType(TextFormField).at(1), '1');
-      await tester.enterText(find.byType(TextFormField).at(2), '200');
-      await tester.enterText(find.byType(TextFormField).at(3), '10');
-      await tester.enterText(find.byType(TextFormField).at(4), '20');
-      await tester.enterText(find.byType(TextFormField).at(5), '5');
+      await tester.enterText(find.byType(TextFormField).at(2), '1');
+      await tester.enterText(find.byType(TextFormField).at(3), '200');
+      await tester.enterText(find.byType(TextFormField).at(4), '10');
+      await tester.enterText(find.byType(TextFormField).at(5), '20');
+      await tester.enterText(find.byType(TextFormField).at(6), '5');
 
       await tapSave(tester);
       await tester.pumpAndSettle();
@@ -75,8 +76,8 @@ void main() {
       await pushForm(tester, db);
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Test Food');
-      await tester.enterText(find.byType(TextFormField).at(1), '1');
-      await tester.enterText(find.byType(TextFormField).at(2), '-1');
+      await tester.enterText(find.byType(TextFormField).at(2), '1');
+      await tester.enterText(find.byType(TextFormField).at(3), '-1');
 
       await tapSave(tester);
       await tester.pumpAndSettle();
@@ -193,10 +194,10 @@ void main() {
       await pushForm(tester, db);
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Test');
-      await tester.enterText(find.byType(TextFormField).at(1), '1');
-      await tester.enterText(find.byType(TextFormField).at(3), '20');
-      await tester.enterText(find.byType(TextFormField).at(4), '30');
-      await tester.enterText(find.byType(TextFormField).at(5), '10');
+      await tester.enterText(find.byType(TextFormField).at(2), '1');
+      await tester.enterText(find.byType(TextFormField).at(4), '20');
+      await tester.enterText(find.byType(TextFormField).at(5), '30');
+      await tester.enterText(find.byType(TextFormField).at(6), '10');
 
       final caloriesField = tester.widget<TextField>(
         find.descendant(
@@ -214,16 +215,16 @@ void main() {
       await pushForm(tester, db);
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Test');
-      await tester.enterText(find.byType(TextFormField).at(1), '1');
-      await tester.enterText(find.byType(TextFormField).at(3), '20');
-      await tester.enterText(find.byType(TextFormField).at(4), '30');
-      await tester.enterText(find.byType(TextFormField).at(5), '10');
+      await tester.enterText(find.byType(TextFormField).at(2), '1');
+      await tester.enterText(find.byType(TextFormField).at(4), '20');
+      await tester.enterText(find.byType(TextFormField).at(5), '30');
+      await tester.enterText(find.byType(TextFormField).at(6), '10');
 
       // Manually set calories
-      await tester.enterText(find.byType(TextFormField).at(2), '300');
+      await tester.enterText(find.byType(TextFormField).at(3), '300');
 
       // Change a macro — calories should recalculate automatically
-      await tester.enterText(find.byType(TextFormField).at(3), '25');
+      await tester.enterText(find.byType(TextFormField).at(4), '25');
 
       // 25*4 + 30*4 + 10*9 = 100 + 120 + 90 = 310
       final caloriesField = tester.widget<TextField>(
@@ -242,20 +243,20 @@ void main() {
       await pushForm(tester, db);
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Test');
-      await tester.enterText(find.byType(TextFormField).at(1), '1');
-      await tester.enterText(find.byType(TextFormField).at(3), '20');
-      await tester.enterText(find.byType(TextFormField).at(4), '30');
-      await tester.enterText(find.byType(TextFormField).at(5), '10');
+      await tester.enterText(find.byType(TextFormField).at(2), '1');
+      await tester.enterText(find.byType(TextFormField).at(4), '20');
+      await tester.enterText(find.byType(TextFormField).at(5), '30');
+      await tester.enterText(find.byType(TextFormField).at(6), '10');
 
-      await tester.enterText(find.byType(TextFormField).at(2), '300');
+      await tester.enterText(find.byType(TextFormField).at(3), '300');
 
-      await tester.enterText(find.byType(TextFormField).at(3), '');
       await tester.enterText(find.byType(TextFormField).at(4), '');
       await tester.enterText(find.byType(TextFormField).at(5), '');
+      await tester.enterText(find.byType(TextFormField).at(6), '');
 
-      await tester.enterText(find.byType(TextFormField).at(3), '10');
       await tester.enterText(find.byType(TextFormField).at(4), '10');
       await tester.enterText(find.byType(TextFormField).at(5), '10');
+      await tester.enterText(find.byType(TextFormField).at(6), '10');
 
       final caloriesField = tester.widget<TextField>(
         find.descendant(
@@ -264,6 +265,173 @@ void main() {
         ),
       );
       expect(caloriesField.controller?.text, '170');
+    });
+
+    testWidgets('brand field: save with brand stores it in DB', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'Brand Food');
+      await tester.enterText(find.byType(TextFormField).at(1), 'Acme');
+      await tester.enterText(find.byType(TextFormField).at(2), '1');
+      await tester.enterText(find.byType(TextFormField).at(3), '200');
+      await tester.enterText(find.byType(TextFormField).at(4), '10');
+      await tester.enterText(find.byType(TextFormField).at(5), '20');
+      await tester.enterText(find.byType(TextFormField).at(6), '5');
+
+      await tapSave(tester);
+      await tester.pumpAndSettle();
+
+      final foods = await (db.select(db.foods)).get();
+      expect(foods.length, 1);
+      expect(foods.first.brand, 'Acme');
+    });
+
+    testWidgets('brand field: save without brand stores null', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+      await pushForm(tester, db);
+
+      await fillRequiredFields(tester);
+
+      await tapSave(tester);
+      await tester.pumpAndSettle();
+
+      final foods = await (db.select(db.foods)).get();
+      expect(foods.length, 1);
+      expect(foods.first.brand, isNull);
+    });
+
+    testWidgets('brand field: edit pre-fills brand', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+
+      final now = DateTime.now().toIso8601String();
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Existing Food',
+        servingLabel: '100g',
+        caloriesPerServing: 200,
+        proteinPerServing: 10,
+        carbsPerServing: 20,
+        fatPerServing: 5,
+        brand: Value('BrandX'),
+        createdAt: now,
+      ));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ProviderScope(
+                    overrides: [databaseProvider.overrideWithValue(db)],
+                    child: ManualFoodForm(
+                      existingFood: Food(
+                        id: 1,
+                        name: 'Existing Food',
+                        servingLabel: '100g',
+                        servingQuantity: 100,
+                        servingUnit: 'g',
+                        caloriesPerServing: 200,
+                        proteinPerServing: 10,
+                        carbsPerServing: 20,
+                        fatPerServing: 5,
+                        barcode: null,
+                        brand: 'BrandX',
+                        source: 'manual',
+                        createdAt: now,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              child: const Text('Open Form'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Form'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Edit Food'), findsOneWidget);
+
+      final brandField = tester.widget<TextField>(
+        find.descendant(
+          of: find.widgetWithText(TextFormField, 'Brand (optional)'),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(brandField.controller?.text, 'BrandX');
+    });
+
+    testWidgets('brand field: clearing brand saves null', (tester) async {
+      final db = createDb();
+      addTearDown(() => db.close());
+
+      final now = DateTime.now().toIso8601String();
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Existing Food',
+        servingLabel: '100g',
+        caloriesPerServing: 200,
+        proteinPerServing: 10,
+        carbsPerServing: 20,
+        fatPerServing: 5,
+        brand: Value('BrandX'),
+        createdAt: now,
+      ));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ProviderScope(
+                    overrides: [databaseProvider.overrideWithValue(db)],
+                    child: ManualFoodForm(
+                      existingFood: Food(
+                        id: 1,
+                        name: 'Existing Food',
+                        servingLabel: '100g',
+                        servingQuantity: 100,
+                        servingUnit: 'g',
+                        caloriesPerServing: 200,
+                        proteinPerServing: 10,
+                        carbsPerServing: 20,
+                        fatPerServing: 5,
+                        barcode: null,
+                        brand: 'BrandX',
+                        source: 'manual',
+                        createdAt: now,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              child: const Text('Open Form'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Form'));
+      await tester.pumpAndSettle();
+
+      // Clear the brand field
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Brand (optional)'),
+        '',
+      );
+
+      await tapSave(tester);
+      await tester.pumpAndSettle();
+
+      final foods = await (db.select(db.foods)).get();
+      expect(foods.length, 1);
+      expect(foods.first.brand, isNull);
     });
   });
 }

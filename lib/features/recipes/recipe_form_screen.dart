@@ -70,10 +70,10 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
       delegate: FoodSearchDelegate(
         searchService: searchService,
         apiClient: apiClient,
-        onCreateCustomFood: (context) async {
+        onCreateCustomFood: (context, {existingFood}) async {
           return await Navigator.of(context).push<Food>(
             MaterialPageRoute(
-              builder: (_) => const ManualFoodForm(),
+              builder: (_) => ManualFoodForm(existingFood: existingFood),
             ),
           );
         },

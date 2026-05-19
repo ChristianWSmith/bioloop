@@ -210,24 +210,38 @@ class AppDatabase extends _$AppDatabase {
         .get();
 
     final seenIds = <int>{};
-    final orderedIds = <int>[];
+    final lastLoggedAt = <int, String>{};
     for (final entry in allEntries) {
       if (entry.foodId != null && seenIds.add(entry.foodId!)) {
-        orderedIds.add(entry.foodId!);
+        lastLoggedAt[entry.foodId!] = entry.loggedAt;
       }
     }
 
     final allFoods = await (select(foods).get());
-    final rest = allFoods.where((f) => !seenIds.contains(f.id)).toList();
-    rest.sort((a, b) => a.name.compareTo(b.name));
 
-    final foodMap = {for (final f in allFoods) f.id: f};
-    final orderedFoods = orderedIds
-        .map((id) => foodMap[id])
-        .whereType<Food>()
-        .toList();
+    final groupA = <Food>[];
+    final groupB = <Food>[];
+    final groupC = <Food>[];
 
-    final combined = [...orderedFoods, ...rest];
+    for (final food in allFoods) {
+      if (lastLoggedAt.containsKey(food.id)) {
+        groupB.add(food);
+      } else if (food.source == 'open_food_facts') {
+        groupA.add(food);
+      } else {
+        groupC.add(food);
+      }
+    }
+
+    groupA.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    groupB.sort((a, b) {
+      final aTime = lastLoggedAt[a.id] ?? '';
+      final bTime = lastLoggedAt[b.id] ?? '';
+      return bTime.compareTo(aTime);
+    });
+    groupC.sort((a, b) => a.name.compareTo(b.name));
+
+    final combined = [...groupA, ...groupB, ...groupC];
 
     if (query != null && query.trim().isNotEmpty) {
       final q = query.toLowerCase();
