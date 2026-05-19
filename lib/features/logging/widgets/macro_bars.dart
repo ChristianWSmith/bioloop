@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/macro_targets_provider.dart';
 
-class MacroBars extends StatelessWidget {
+class MacroBars extends ConsumerStatefulWidget {
   final MacroTargets targets;
   final double consumedCalories;
   final double consumedProtein;
@@ -18,61 +19,76 @@ class MacroBars extends StatelessWidget {
   });
 
   @override
+  ConsumerState<MacroBars> createState() => _MacroBarsState();
+}
+
+class _MacroBarsState extends ConsumerState<MacroBars> {
+  bool _showRemaining = false;
+
+  @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _MacroRow(
-              label: 'Calories',
-              consumed: consumedCalories,
-              target: targets.targetCalories,
-              unit: 'kcal',
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 8),
-            _ProgressBar(
-              value: targets.targetCalories > 0
-                  ? consumedCalories / targets.targetCalories
-                  : 0.0,
-              color: Theme.of(context).colorScheme.primary,
-              isOver: targets.targetCalories > 0 && consumedCalories > targets.targetCalories,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _MacroColumn(
-                    label: 'Fat',
-                    consumed: consumedFat,
-                    target: targets.fatGrams,
-                    color: Colors.orange,
+      child: InkWell(
+        onTap: () => setState(() => _showRemaining = !_showRemaining),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _MacroRow(
+                label: 'Calories',
+                consumed: widget.consumedCalories,
+                target: widget.targets.targetCalories,
+                unit: 'kcal',
+                color: Theme.of(context).colorScheme.primary,
+                showRemaining: _showRemaining,
+              ),
+              const SizedBox(height: 8),
+              _ProgressBar(
+                value: widget.targets.targetCalories > 0
+                    ? widget.consumedCalories / widget.targets.targetCalories
+                    : 0.0,
+                color: Theme.of(context).colorScheme.primary,
+                isOver: widget.targets.targetCalories > 0 && widget.consumedCalories > widget.targets.targetCalories,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MacroColumn(
+                      label: 'Fat',
+                      consumed: widget.consumedFat,
+                      target: widget.targets.fatGrams,
+                      color: Colors.orange,
+                      showRemaining: _showRemaining,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _MacroColumn(
-                    label: 'Carbs',
-                    consumed: consumedCarbs,
-                    target: targets.carbsGrams,
-                    color: Colors.green,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _MacroColumn(
+                      label: 'Carbs',
+                      consumed: widget.consumedCarbs,
+                      target: widget.targets.carbsGrams,
+                      color: Colors.green,
+                      showRemaining: _showRemaining,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _MacroColumn(
-                    label: 'Protein',
-                    consumed: consumedProtein,
-                    target: targets.proteinGrams,
-                    color: Colors.blue,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _MacroColumn(
+                      label: 'Protein',
+                      consumed: widget.consumedProtein,
+                      target: widget.targets.proteinGrams,
+                      color: Colors.blue,
+                      showRemaining: _showRemaining,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -85,6 +101,7 @@ class _MacroRow extends StatelessWidget {
   final double target;
   final String unit;
   final Color color;
+  final bool showRemaining;
 
   const _MacroRow({
     required this.label,
@@ -92,7 +109,19 @@ class _MacroRow extends StatelessWidget {
     required this.target,
     required this.unit,
     required this.color,
+    required this.showRemaining,
   });
+
+  String _formatValue() {
+    if (!showRemaining) {
+      return '${consumed.toInt()} / ${target.toInt()} $unit';
+    }
+    if (consumed <= target) {
+      return '${(target - consumed).toInt()} left';
+    } else {
+      return '${(consumed - target).toInt()} over';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +137,7 @@ class _MacroRow extends StatelessWidget {
               ),
         ),
         Text(
-          '${consumed.toInt()} / ${target.toInt()} $unit',
+          _formatValue(),
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
@@ -143,13 +172,26 @@ class _MacroColumn extends StatelessWidget {
   final double consumed;
   final double target;
   final Color color;
+  final bool showRemaining;
 
   const _MacroColumn({
     required this.label,
     required this.consumed,
     required this.target,
     required this.color,
+    required this.showRemaining,
   });
+
+  String _formatValue() {
+    if (!showRemaining) {
+      return '${consumed.toInt()} / ${target.toInt()} g';
+    }
+    if (consumed <= target) {
+      return '${(target - consumed).toInt()} left';
+    } else {
+      return '${(consumed - target).toInt()} over';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +208,7 @@ class _MacroColumn extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          '${consumed.toInt()} / ${target.toInt()} g',
+          _formatValue(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

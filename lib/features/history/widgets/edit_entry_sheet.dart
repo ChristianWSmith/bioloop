@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/database.dart';
 import '../../../providers/data_trigger_provider.dart';
+import '../../../providers/database_provider.dart';
 import '../../../providers/food_log_provider.dart';
 
 class EditEntrySheet extends ConsumerStatefulWidget {
@@ -30,6 +31,9 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
   double _displayCarbs = 0;
   double _displayFat = 0;
 
+  bool _isRecipeEntry = false;
+  bool _isLoadingRecipe = false;
+
   @override
   void initState() {
     super.initState();
@@ -39,17 +43,73 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
         text: _formatQuantity(e.servings));
     _mealType = e.mealType;
 
-    _baseCalories = e.calories / e.servings;
-    _baseProtein = e.proteinGrams / e.servings;
-    _baseCarbs = e.carbsGrams / e.servings;
-    _baseFat = e.fatGrams / e.servings;
+    _isRecipeEntry = e.recipeId != null;
 
-    _displayCalories = e.calories;
-    _displayProtein = e.proteinGrams;
-    _displayCarbs = e.carbsGrams;
-    _displayFat = e.fatGrams;
+    if (_isRecipeEntry) {
+      _isLoadingRecipe = true;
+      _initRecipeData();
+    } else {
+      _baseCalories = e.calories / e.servings;
+      _baseProtein = e.proteinGrams / e.servings;
+      _baseCarbs = e.carbsGrams / e.servings;
+      _baseFat = e.fatGrams / e.servings;
+
+      _displayCalories = e.calories;
+      _displayProtein = e.proteinGrams;
+      _displayCarbs = e.carbsGrams;
+      _displayFat = e.fatGrams;
+    }
 
     _servingsController.addListener(_onServingsChanged);
+  }
+
+  Future<void> _initRecipeData() async {
+    if (widget.entry.recipeId == null) return;
+
+    try {
+      final db = ref.read(databaseProvider);
+      final recipe = await db.getRecipe(widget.entry.recipeId!);
+      final macros = await db.computeRecipeMacros(widget.entry.recipeId!);
+
+      if (!mounted || recipe == null) return;
+
+      final servingSize = recipe.servingSize > 0 ? recipe.servingSize : 1;
+      final perUnitCalories = macros.calories / servingSize;
+      final perUnitProtein = macros.proteinGrams / servingSize;
+      final perUnitCarbs = macros.carbsGrams / servingSize;
+      final perUnitFat = macros.fatGrams / servingSize;
+
+      setState(() {
+        _baseCalories = perUnitCalories;
+        _baseProtein = perUnitProtein;
+        _baseCarbs = perUnitCarbs;
+        _baseFat = perUnitFat;
+
+        _displayCalories = _baseCalories * widget.entry.servings;
+        _displayProtein = _baseProtein * widget.entry.servings;
+        _displayCarbs = _baseCarbs * widget.entry.servings;
+        _displayFat = _baseFat * widget.entry.servings;
+
+        _isLoadingRecipe = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingRecipe = false);
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Error'),
+            content: Text('Failed to load recipe data: $e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -132,6 +192,31 @@ class _EditEntrySheetState extends ConsumerState<EditEntrySheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    if (_isLoadingRecipe) {
+      return Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 16,
+          right: 16,
+          top: 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Edit entry',
+              style: theme.textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.only(

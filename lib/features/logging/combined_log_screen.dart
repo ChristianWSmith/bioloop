@@ -220,6 +220,43 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
     return map;
   }
 
+  Future<Map<int, Food>> _fetchFoodMap(List<FoodEntry> entries) async {
+    final foodIds = entries
+        .where((e) => e.foodId != null && e.recipeId == null)
+        .map((e) => e.foodId!)
+        .toSet();
+
+    if (foodIds.isEmpty) return {};
+
+    final db = ref.read(databaseProvider);
+    final foods = await (db.select(db.foods)
+          ..where((f) => f.id.isIn(foodIds)))
+        .get();
+
+    return {for (final f in foods) f.id: f};
+  }
+
+  String _formatQuantity(double value) =>
+      value == value.roundToDouble() ? value.toInt().toString() : value.toStringAsFixed(1);
+
+  String _buildSubtitleText(FoodEntry entry, Map<int, Food> foodMap) {
+    final qty = entry.servings;
+    final formattedQty = _formatQuantity(qty);
+
+    if (entry.recipeId != null) {
+      return '$formattedQty ${entry.servingLabel}';
+    }
+
+    final food = entry.foodId != null ? foodMap[entry.foodId] : null;
+    final brand = food?.brand;
+
+    if (brand != null && brand.isNotEmpty) {
+      return '$brand • $formattedQty ${entry.servingLabel}';
+    }
+
+    return '$formattedQty ${entry.servingLabel}';
+  }
+
   Future<void> _shareCsv() async {
     final db = ref.read(databaseProvider);
     final entries = await db.select(db.foodEntries).get();
@@ -357,119 +394,137 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
                 return ai.compareTo(bi);
               });
 
-            return ListView(
-              padding: const EdgeInsets.only(top: 8, bottom: 80),
-              children: [
-                macroBars,
-                for (final mealType in sortedMeals) ...[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          left: BorderSide(
-                            color: _mealColors[mealType] ?? Colors.grey,
-                            width: 3,
-                          ),
-                        ),
-                      ),
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _mealIcons[mealType] ?? Icons.circle,
-                            size: 18,
-                            color: _mealColors[mealType] ?? Colors.grey,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            mealType[0].toUpperCase() + mealType.substring(1),
-                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: _mealColors[mealType] ?? Colors.grey,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: (_mealColors[mealType] ?? Colors.grey)
-                                  .withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 1),
-                            child: Text(
-                              '${groups[mealType]!.length}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    color: _mealColors[mealType] ?? Colors.grey,
-                                  ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  for (final entry in groups[mealType]!) ...[
-                    Dismissible(
-                      key: ValueKey('entry_${entry.id}'),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        color: Theme.of(context).colorScheme.error,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 16),
-                        child: Icon(Icons.delete,
-                            color: Theme.of(context).colorScheme.onError),
-                      ),
-                      confirmDismiss: (_) async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Delete entry?'),
-                            content: Text('Delete "${entry.name}"?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(false),
-                                child: const Text('Cancel'),
+            final foodMap = _fetchFoodMap(entries);
+
+            return FutureBuilder<Map<int, Food>>(
+              future: foodMap,
+              builder: (context, snapshot) {
+                final map = snapshot.data ?? {};
+                return ListView(
+                  padding: const EdgeInsets.only(top: 8, bottom: 80),
+                  children: [
+                    macroBars,
+                    for (final mealType in sortedMeals) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border(
+                              left: BorderSide(
+                                color: _mealColors[mealType] ?? Colors.grey,
+                                width: 3,
                               ),
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(true),
-                                child: const Text('Delete'),
+                            ),
+                          ),
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _mealIcons[mealType] ?? Icons.circle,
+                                size: 18,
+                                color: _mealColors[mealType] ?? Colors.grey,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                mealType[0].toUpperCase() + mealType.substring(1),
+                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                      color: _mealColors[mealType] ?? Colors.grey,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: (_mealColors[mealType] ?? Colors.grey)
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                child: Text(
+                                  '${groups[mealType]!.length}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: _mealColors[mealType] ?? Colors.grey,
+                                      ),
+                                ),
                               ),
                             ],
                           ),
-                        );
-                        if (confirmed == true) {
-                          await _deleteEntry(entry);
-                        }
-                        return confirmed ?? false;
-                      },
-                      child: ListTile(
-                        title: Text(entry.name),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: _MacroBreakdownBar(
-                            proteinGrams: entry.proteinGrams,
-                            carbsGrams: entry.carbsGrams,
-                            fatGrams: entry.fatGrams,
+                        ),
+                      ),
+                      for (final entry in groups[mealType]!) ...[
+                        Dismissible(
+                          key: ValueKey('entry_${entry.id}'),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            color: Theme.of(context).colorScheme.error,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 16),
+                            child: Icon(Icons.delete,
+                                color: Theme.of(context).colorScheme.onError),
+                          ),
+                          confirmDismiss: (_) async {
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Delete entry?'),
+                                content: Text('Delete "${entry.name}"?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(ctx).pop(false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirmed == true) {
+                              await _deleteEntry(entry);
+                            }
+                            return confirmed ?? false;
+                          },
+                          child: ListTile(
+                            title: Text(entry.name),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                _MacroBreakdownBar(
+                                  proteinGrams: entry.proteinGrams,
+                                  carbsGrams: entry.carbsGrams,
+                                  fatGrams: entry.fatGrams,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _buildSubtitleText(entry, map),
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            trailing: Text(
+                              '${entry.calories.toInt()} cal',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            onTap: () => _editEntry(entry),
+                            onLongPress: () => _deleteEntry(entry),
                           ),
                         ),
-                        trailing: Text(
-                          '${entry.calories.toInt()} cal',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        onTap: () => _editEntry(entry),
-                        onLongPress: () => _deleteEntry(entry),
-                      ),
-                    ),
+                      ],
+                    ],
                   ],
-                ],
-              ],
+                );
+              },
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
