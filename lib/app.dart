@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +11,7 @@ import 'features/onboarding/onboarding_screen.dart';
 import 'providers/bodyweight_provider.dart';
 import 'providers/data_trigger_provider.dart';
 import 'providers/database_provider.dart';
+import 'providers/day_trigger_provider.dart';
 import 'providers/food_log_provider.dart';
 import 'providers/goals_provider.dart';
 import 'providers/reset_provider.dart';
@@ -91,15 +94,17 @@ class _AppState extends ConsumerState<App> {
   }
 }
 
-class _AppShell extends StatefulWidget {
+class _AppShell extends ConsumerStatefulWidget {
   const _AppShell();
 
   @override
-  State<_AppShell> createState() => _AppShellState();
+  ConsumerState<_AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<_AppShell> {
+class _AppShellState extends ConsumerState<_AppShell> with WidgetsBindingObserver {
   int _currentIndex = 1;
+  late DateTime _lastKnownDay;
+  Timer? _midnightTimer;
 
   static const _screens = <Widget>[
     DashboardScreen(),
@@ -107,6 +112,56 @@ class _AppShellState extends State<_AppShell> {
     BodyweightScreen(),
     GoalsScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _lastKnownDay = _today();
+    _scheduleMidnightTimer();
+  }
+
+  @override
+  void dispose() {
+    _midnightTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkDayRollover();
+    }
+  }
+
+  void _scheduleMidnightTimer() {
+    _midnightTimer?.cancel();
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    _midnightTimer = Timer(tomorrow.difference(now), () {
+      if (!mounted) return;
+      _fireDayRollover();
+    });
+  }
+
+  void _checkDayRollover() {
+    final today = _today();
+    if (today != _lastKnownDay) {
+      _fireDayRollover();
+    }
+  }
+
+  void _fireDayRollover() {
+    _lastKnownDay = _today();
+    ref.read(dayTriggerProvider.notifier).state++;
+    _scheduleMidnightTimer();
+  }
+
+  static DateTime _today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
 
   @override
   Widget build(BuildContext context) {

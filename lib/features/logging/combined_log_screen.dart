@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/database.dart';
 import '../../providers/data_trigger_provider.dart';
 import '../../providers/database_provider.dart';
+import '../../providers/day_trigger_provider.dart';
 import '../../providers/food_log_provider.dart';
 import '../../providers/food_search_provider.dart';
 import '../../providers/macro_targets_provider.dart';
@@ -279,6 +280,14 @@ class _CombinedLogScreenState extends ConsumerState<CombinedLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(dayTriggerProvider, (_, _) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      if (_currentDate == today) {
+        setState(() => _currentDate = today);
+      }
+    });
+
     final entriesAsync = ref.watch(dateFoodProvider(_currentDate));
     final targetsAsync = ref.watch(macroTargetsProvider);
 
