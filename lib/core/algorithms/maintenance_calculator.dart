@@ -59,11 +59,13 @@ class MaintenanceCalculator {
     final cutoff = today.subtract(Duration(days: lookbackDays));
     final cutoffStr =
         '${cutoff.year}-${cutoff.month.toString().padLeft(2, '0')}-${cutoff.day.toString().padLeft(2, '0')}';
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
     final calByDate = <String, double>{};
     for (final entry in foodEntries) {
       final date = entry.loggedAt.substring(0, 10);
-      if (date.compareTo(cutoffStr) >= 0) {
+      if (date.compareTo(cutoffStr) >= 0 && date.compareTo(todayStr) <= 0) {
         calByDate[date] = (calByDate[date] ?? 0) + entry.calories;
       }
     }

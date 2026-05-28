@@ -185,7 +185,7 @@ class MaintenanceCard extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Based on ${result.dataPoints} data points',
+          'Based on ${result.dataPoints} data points (through yesterday)',
           style: TextStyle(fontSize: 12, color: Colors.grey[500]),
         ),
       ],
