@@ -10,10 +10,14 @@ final maintenanceProvider = FutureProvider<MaintenanceResult?>((ref) async {
   ref.watch(dataTriggerProvider);
   final db = ref.watch(databaseProvider);
   final now = DateTime.now().subtract(const Duration(days: 1));
-  final lookback = 30;
+  
+  // Use 90-day lookback (3 months max)
+  // Algorithm internally uses rolling window within this period
+  final lookback = 90;
 
-  final allFoodEntries = await db.getEntriesPaginated(limit: 365);
-  final allWeights = await db.getWeights();
+  // Fetch reasonable limits (prevent loading years of data)
+  final allFoodEntries = await db.getEntriesPaginated(limit: 500);
+  final allWeights = await db.getWeights(limit: 200);
 
   return MaintenanceCalculator.calculate(
     foodEntries: allFoodEntries,

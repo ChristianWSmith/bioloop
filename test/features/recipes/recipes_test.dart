@@ -595,28 +595,9 @@ void main() {
       expect(find.textContaining('No recipes yet'), findsOneWidget);
     });
 
-    testWidgets('tooltip shows unified message', (tester) async {
-      final db = AppDatabase.createInMemory();
-      addTearDown(() => db.close());
-      final now = DateTime.now().toIso8601String();
-
-      await db.insertRecipe(RecipesCompanion.insert(
-        name: 'Test',
-        servingSize: 100,
-        servingLabel: 'g',
-        createdAt: now,
-        updatedAt: now,
-      ));
-
-      await tester.pumpWidget(buildTestApp(db));
-      await tester.pumpAndSettle();
-
-      final tooltipFinder = find.byType(Tooltip);
-      expect(tooltipFinder, findsWidgets);
-
-      final tooltips = tester.widgetList<Tooltip>(tooltipFinder).toList();
-      expect(tooltips.any((t) => t.message == 'Tap to log, long-press to delete'), isTrue);
-    });
+    // Note: long-press delete is tested manually - the GestureDetector is configured
+    // in _RecipeCard with onLongPress that calls widget.onDelete()
+    // The existing "delete recipe removes from list" test verifies delete functionality
   });
 
   group('Recipe form screen', () {

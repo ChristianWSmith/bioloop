@@ -109,7 +109,7 @@ void main() {
       expect(filteredResults[0].name, 'Chicken Breast');
     });
 
-    test('searchLocal: unlogged foods appear above logged foods regardless of source', () async {
+    test('searchLocal: logged foods appear above unlogged foods (sorted by recency)', () async {
       final now = DateTime.now().toIso8601String();
 
       // Manual foods (will be logged)
@@ -154,7 +154,7 @@ void main() {
         createdAt: '2026-05-12T10:00:00',
       ));
 
-      // Manual food never logged (should be in unlogged group, sorted by createdAt)
+      // Manual food never logged (should sink to bottom, sorted by createdAt)
       await db.into(db.foods).insert(FoodsCompanion.insert(
         name: 'Almonds',
         servingLabel: '30g',
@@ -198,14 +198,13 @@ void main() {
 
       final results = await service.searchLocal('');
 
-      // Group A: all unlogged foods (sorted by createdAt DESC)
-      // Almonds has `now` (newest), then Granola (May 12), then Yogurt (May 10)
-      expect(results[0].name, 'Almonds');
-      expect(results[1].name, 'Imported Granola');
-      expect(results[2].name, 'Imported Yogurt');
-      // Group B: logged foods (sorted by loggedAt DESC)
-      expect(results[3].name, 'Brown Rice');       // May 15 13:00
-      expect(results[4].name, 'Chicken Breast');   // May 15 12:00
+      // Logged foods first (sorted by loggedAt DESC)
+      expect(results[0].name, 'Brown Rice');       // May 15 13:00 (most recent)
+      expect(results[1].name, 'Chicken Breast');   // May 15 12:00
+      // Unlogged foods sink to bottom (sorted by createdAt DESC)
+      expect(results[2].name, 'Almonds');          // now (newest unlogged)
+      expect(results[3].name, 'Imported Granola'); // May 12
+      expect(results[4].name, 'Imported Yogurt');  // May 10 (oldest)
     });
 
     test('searchLocal: imported food moves to logged group after first log', () async {
@@ -253,10 +252,10 @@ void main() {
       );
       final service = FoodSearchService(db: db, apiClient: mockApiClient);
 
-      // Before logging imported food: imported first, then logged
+      // Before logging imported food: logged first, unlogged sinks
       var results = await service.searchLocal('');
-      expect(results[0].name, 'Imported Yogurt');
-      expect(results[1].name, 'Chicken Breast');
+      expect(results[0].name, 'Chicken Breast');    // logged
+      expect(results[1].name, 'Imported Yogurt');   // unlogged (sink)
 
       // Now log the imported food
       await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
@@ -269,13 +268,13 @@ void main() {
         servingLabel: '150g',
         mealType: 'snack',
         foodId: Value(2),
-        loggedAt: '2026-05-16T10:00:00',
+        loggedAt: '2026-05-15T14:00:00',
       ));
 
-      // After logging: both in logged group, sorted by recency
+      // After logging: both are logged, sorted by loggedAt DESC
       results = await service.searchLocal('');
-      expect(results[0].name, 'Imported Yogurt'); // May 16 — most recent log
-      expect(results[1].name, 'Chicken Breast');  // May 15
+      expect(results[0].name, 'Imported Yogurt');   // May 15 14:00 (most recent)
+      expect(results[1].name, 'Chicken Breast');    // May 15 12:00
     });
 
     test('searchWeb returns API results only', () async {

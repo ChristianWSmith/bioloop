@@ -5,7 +5,7 @@ import 'package:bioloop/core/database/database.dart';
 
 void main() {
   group('searchLocalByRecency', () {
-    test('unlogged foods appear before logged foods', () async {
+    test('logged foods appear before unlogged foods', () async {
       final db = AppDatabase.createInMemory();
       addTearDown(() => db.close());
 
@@ -59,43 +59,11 @@ void main() {
       final results = await db.searchLocalByRecency();
 
       expect(results.length, 3);
-      // Unlogged foods first (order between them by createdAt, which is same)
-      expect(results[0].name, isIn(['Unlogged A', 'Unlogged B']));
+      // Logged food first
+      expect(results[0].name, 'Logged C');
+      // Unlogged foods sink to bottom
       expect(results[1].name, isIn(['Unlogged A', 'Unlogged B']));
-      // Logged food last
-      expect(results[2].name, 'Logged C');
-    });
-
-    test('unlogged foods sorted by createdAt DESC', () async {
-      final db = AppDatabase.createInMemory();
-      addTearDown(() => db.close());
-
-      // Insert older unlogged food first
-      await db.into(db.foods).insert(FoodsCompanion.insert(
-        name: 'Old Food',
-        servingLabel: '100g',
-        caloriesPerServing: 100,
-        proteinPerServing: 10,
-        carbsPerServing: 10,
-        fatPerServing: 5,
-        createdAt: '2026-01-01T00:00:00',
-      ));
-      // Insert newer unlogged food
-      await db.into(db.foods).insert(FoodsCompanion.insert(
-        name: 'New Food',
-        servingLabel: '100g',
-        caloriesPerServing: 200,
-        proteinPerServing: 20,
-        carbsPerServing: 20,
-        fatPerServing: 10,
-        createdAt: '2026-06-01T00:00:00',
-      ));
-
-      final results = await db.searchLocalByRecency();
-
-      expect(results.length, 2);
-      expect(results[0].name, 'New Food');
-      expect(results[1].name, 'Old Food');
+      expect(results[2].name, isIn(['Unlogged A', 'Unlogged B']));
     });
 
     test('logged foods sorted by lastLoggedAt DESC', () async {
@@ -157,42 +125,144 @@ void main() {
       expect(results[1].name, 'Food A');
     });
 
-    test('source does not affect ordering within unlogged group', () async {
+    test('unlogged foods sink to bottom, sorted by createdAt DESC', () async {
       final db = AppDatabase.createInMemory();
       addTearDown(() => db.close());
 
-      // Manual food created first (older)
+      final now = DateTime.now().toIso8601String();
+
+      // Logged food (logged today)
       await db.into(db.foods).insert(FoodsCompanion.insert(
-        name: 'Manual Old',
+        name: 'Logged Food',
+        servingLabel: '100g',
+        caloriesPerServing: 300,
+        proteinPerServing: 30,
+        carbsPerServing: 30,
+        fatPerServing: 15,
+        createdAt: '2026-01-01T00:00:00',
+      ));
+      await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
+        name: 'Logged Food',
+        calories: 300,
+        proteinGrams: 30,
+        carbsGrams: 30,
+        fatGrams: 15,
+        servings: 1,
+        servingLabel: '100g',
+        mealType: 'lunch',
+        foodId: const Value(1),
+        loggedAt: now,
+      ));
+
+      // Unlogged food created 2 days ago
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Old Unlogged',
         servingLabel: '100g',
         caloriesPerServing: 100,
         proteinPerServing: 10,
         carbsPerServing: 10,
         fatPerServing: 5,
-        source: const Value('manual'),
-        createdAt: '2026-01-01T00:00:00',
+        createdAt: '2026-05-14T00:00:00',
       ));
-      // OFF food created later (newer)
+
+      // Unlogged food created today (newer)
       await db.into(db.foods).insert(FoodsCompanion.insert(
-        name: 'OFF New',
+        name: 'New Unlogged',
         servingLabel: '100g',
         caloriesPerServing: 200,
         proteinPerServing: 20,
         carbsPerServing: 20,
         fatPerServing: 10,
-        source: const Value('open_food_facts'),
-        createdAt: '2026-06-01T00:00:00',
+        createdAt: now,
       ));
 
       final results = await db.searchLocalByRecency();
 
-      expect(results.length, 2);
-      // Newer OFF food should appear before older manual food
-      expect(results[0].name, 'OFF New');
-      expect(results[1].name, 'Manual Old');
+      expect(results.length, 3);
+      // Logged food first
+      expect(results[0].name, 'Logged Food');
+      // Unlogged foods sink, sorted by createdAt DESC
+      expect(results[1].name, 'New Unlogged');
+      expect(results[2].name, 'Old Unlogged');
     });
 
-    test('query filters across both groups', () async {
+    test('fuzzy search matches brand name', () async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+
+      final now = DateTime.now().toIso8601String();
+
+      // Food with brand
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Chicken Breast',
+        servingLabel: '100g',
+        caloriesPerServing: 165,
+        proteinPerServing: 31,
+        carbsPerServing: 0,
+        fatPerServing: 3.6,
+        brand: const Value('Tyson'),
+        createdAt: now,
+      ));
+
+      // Food without brand
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Brown Rice',
+        servingLabel: '100g',
+        caloriesPerServing: 111,
+        proteinPerServing: 2.6,
+        carbsPerServing: 23,
+        fatPerServing: 0.9,
+        createdAt: now,
+      ));
+
+      // Search by brand name
+      final results = await db.searchLocalByRecency(query: 'tyson');
+
+      expect(results.length, 1);
+      expect(results[0].name, 'Chicken Breast');
+    });
+
+    test('fuzzy search matches name OR brand', () async {
+      final db = AppDatabase.createInMemory();
+      addTearDown(() => db.close());
+
+      final now = DateTime.now().toIso8601String();
+
+      // Food A: name "Rice", no brand
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Rice',
+        servingLabel: '100g',
+        caloriesPerServing: 111,
+        proteinPerServing: 2.6,
+        carbsPerServing: 23,
+        fatPerServing: 0.9,
+        createdAt: now,
+      ));
+
+      // Food B: name "Pasta", brand "Barilla"
+      await db.into(db.foods).insert(FoodsCompanion.insert(
+        name: 'Pasta',
+        servingLabel: '100g',
+        caloriesPerServing: 150,
+        proteinPerServing: 5,
+        carbsPerServing: 30,
+        fatPerServing: 1,
+        brand: const Value('Barilla'),
+        createdAt: now,
+      ));
+
+      // Search by name
+      final resultsByName = await db.searchLocalByRecency(query: 'rice');
+      expect(resultsByName.length, 1);
+      expect(resultsByName[0].name, 'Rice');
+
+      // Search by brand
+      final resultsByBrand = await db.searchLocalByRecency(query: 'barilla');
+      expect(resultsByBrand.length, 1);
+      expect(resultsByBrand[0].name, 'Pasta');
+    });
+
+    test('query filters by name or brand (case-insensitive)', () async {
       final db = AppDatabase.createInMemory();
       addTearDown(() => db.close());
 
@@ -205,50 +275,18 @@ void main() {
         proteinPerServing: 31,
         carbsPerServing: 0,
         fatPerServing: 3.6,
-        createdAt: now,
-      ));
-      await db.into(db.foods).insert(FoodsCompanion.insert(
-        name: 'Brown Rice',
-        servingLabel: '100g',
-        caloriesPerServing: 111,
-        proteinPerServing: 2.6,
-        carbsPerServing: 23,
-        fatPerServing: 0.9,
-        createdAt: now,
-      ));
-      await db.into(db.foods).insert(FoodsCompanion.insert(
-        name: 'Chicken Thigh',
-        servingLabel: '100g',
-        caloriesPerServing: 200,
-        proteinPerServing: 25,
-        carbsPerServing: 0,
-        fatPerServing: 12,
+        brand: const Value('TYSON'),
         createdAt: now,
       ));
 
-      // Log only Brown Rice
-      await db.into(db.foodEntries).insert(FoodEntriesCompanion.insert(
-        name: 'Brown Rice',
-        calories: 111,
-        proteinGrams: 2.6,
-        carbsGrams: 23,
-        fatGrams: 0.9,
-        servings: 1,
-        servingLabel: '100g',
-        mealType: 'lunch',
-        foodId: const Value(2),
-        loggedAt: '2026-05-16T12:00:00',
-      ));
+      // Search lowercase should match uppercase brand
+      final results = await db.searchLocalByRecency(query: 'tyson');
 
-      final results = await db.searchLocalByRecency(query: 'chicken');
-
-      expect(results.length, 2);
-      // Both unlogged chicken foods, sorted by createdAt (same, so insertion order)
+      expect(results.length, 1);
       expect(results[0].name, 'Chicken Breast');
-      expect(results[1].name, 'Chicken Thigh');
     });
 
-    test('limit is applied after sorting and filtering', () async {
+    test('limit is applied after sorting', () async {
       final db = AppDatabase.createInMemory();
       addTearDown(() => db.close());
 

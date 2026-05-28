@@ -166,29 +166,26 @@ class _RecipeCardState extends State<_RecipeCard> {
           widget.onDelete();
         }
       },
-      child: Tooltip(
-        message: 'Tap to log, long-press to delete',
-        child: AnimatedScale(
-          scale: _isLongPressing ? 0.95 : 1.0,
-          duration: const Duration(milliseconds: 150),
-          child: Card(
-            color: _isLongPressing
-                ? Theme.of(context).colorScheme.surfaceContainerHighest
-                : null,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: ListTile(
-              leading: const Icon(Icons.restaurant_menu),
-              title: Text(widget.recipe.name),
-              subtitle: Text(
-                '${widget.recipe.servingSize.toStringAsFixed(0)} ${widget.recipe.servingLabel}',
-              ),
-              trailing: IconButton(
-                icon: const Icon(Icons.edit, size: 20),
-                onPressed: widget.onEdit,
-                tooltip: 'Edit recipe',
-              ),
-              onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _isLongPressing ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: Card(
+          color: _isLongPressing
+              ? Theme.of(context).colorScheme.surfaceContainerHighest
+              : null,
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: ListTile(
+            leading: const Icon(Icons.restaurant_menu),
+            title: Text(widget.recipe.name),
+            subtitle: Text(
+              '${widget.recipe.servingSize.toStringAsFixed(0)} ${widget.recipe.servingLabel}',
             ),
+            trailing: IconButton(
+              icon: const Icon(Icons.edit, size: 20),
+              onPressed: widget.onEdit,
+              tooltip: 'Edit recipe',
+            ),
+            onTap: widget.onTap,
           ),
         ),
       ),

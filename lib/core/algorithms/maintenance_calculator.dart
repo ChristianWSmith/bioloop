@@ -33,9 +33,18 @@ class MaintenanceCalculator {
   /// This ensures new users with sparse early data can still get maintenance estimates.
   /// The algorithm assumes weight stability before the first logged weight.
   ///
-  /// ## Requirements
+  /// ## Primary Regression Requirements
   /// - Minimum 7 weight points in 30-day window (after forward-fill)
-  /// - Minimum 10 paired (calories, weight-slope) data points
+  /// - Minimum 14 paired (calories, weight-slope) data points
+  /// - Minimum 10 actual weight entries
+  ///
+  /// ## Fallback: Rolling Average Trend
+  /// When regression fails (insufficient paired data < 14 points or < 10 actual weights),
+  /// falls back to a rolling average trend method that calculates overall weight change.
+  ///
+  /// **Rolling average minimum requirements**:
+  /// - 7 total days in the lookback window
+  /// - 3 actual weight measurements (not forward-filled)
   ///
   /// ## Zero Slope Handling
   /// If the regression slope is zero (weight stability despite calorie variance),
@@ -180,7 +189,20 @@ class MaintenanceCalculator {
       pairedChanges.add(slope);
     }
 
-    if (pairedAvgCals.length < 10) {
+    if (pairedAvgCals.length < 14 || weightEntries.length < 10) {
+      // Sparse data (< 14 paired points or < 10 actual weights) — use rolling average trend fallback
+      // Primary regression is unreliable with forward-filled plateaus
+      final trendResult = _calculateRollingAverageTrend(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        calByDate: calByDate,
+        start: start,
+        end: end,
+      );
+      if (trendResult != null) {
+        return trendResult;
+      }
+      // Fallback failed, return failure
       return MaintenanceResult(
         maintenanceCalories: 0,
         confidenceInterval: 0,
@@ -204,6 +226,18 @@ class MaintenanceCalculator {
     final denom2 = np * sx2 - sx * sx;
     final rSlope = denom2.abs() < 1e-10 ? 0 : (np * sxy - sx * sy) / denom2;
     if (rSlope.abs() < 1e-10) {
+      // Regression found zero slope — try rolling average trend fallback
+      final trendResult = _calculateRollingAverageTrend(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        calByDate: calByDate,
+        start: start,
+        end: end,
+      );
+      if (trendResult != null) {
+        return trendResult;
+      }
+      // Fallback failed, return average calories as maintenance
       final avgCalories = sx / np;
       return MaintenanceResult(
         maintenanceCalories: avgCalories,
@@ -228,6 +262,116 @@ class MaintenanceCalculator {
       maintenanceCalories: maintenance,
       confidenceInterval: ci,
       dataPoints: np,
+    );
+  }
+
+  /// Calculates maintenance using rolling average trend method.
+  ///
+  /// This is a fallback for when the primary regression fails due to
+  /// insufficient paired data or zero slope. It uses the actual weight
+  /// measurements (not forward-filled) to calculate the overall trend.
+  ///
+  /// ## Algorithm
+  /// 1. Compare first-N vs last-N actual weight measurements
+  /// 2. Calculate daily rate from the difference
+  /// 3. maintenance = avgCalories - (slope_kg_per_day × 2.20462 × 3500)
+  ///    (Note: negative slope = weight loss = maintenance > intake, so we subtract)
+  ///
+  /// ## Returns
+  /// - MaintenanceResult with trend-based estimate, or null if insufficient data
+  static MaintenanceResult? _calculateRollingAverageTrend({
+    required List<FoodEntry> foodEntries,
+    required List<BodyweightEntry> weightEntries,
+    required Map<String, double> calByDate,
+    required DateTime start,
+    required DateTime end,
+  }) {
+    final totalDays = end.difference(start).inDays + 1;
+    // Need at least 7 days for meaningful trend
+    if (totalDays < 7) return null;
+    
+    // Filter to actual weight entries in the date range
+    final cutoffStr =
+        '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
+    final endStr =
+        '${end.year}-${end.month.toString().padLeft(2, '0')}-${end.day.toString().padLeft(2, '0')}';
+    
+    final actualWeights = weightEntries.where((w) {
+      final date = w.loggedAt.substring(0, 10);
+      return date.compareTo(cutoffStr) >= 0 && date.compareTo(endStr) <= 0;
+    }).toList();
+    
+    // Need at least 3 actual measurements
+    if (actualWeights.length < 3) return null;
+    
+    // Sort by date
+    actualWeights.sort((a, b) => a.loggedAt.compareTo(b.loggedAt));
+    
+    // Calculate average of first third and last third of measurements
+    final third = (actualWeights.length / 3).clamp(1, actualWeights.length ~/ 2).toInt();
+    final firstThird = actualWeights.sublist(0, third);
+    final lastThird = actualWeights.sublist(actualWeights.length - third);
+    
+    final avgFirstWeight = firstThird.fold<double>(
+      0.0,
+      (sum, w) => sum + w.weightKg,
+    ) / firstThird.length;
+    
+    final avgLastWeight = lastThird.fold<double>(
+      0.0,
+      (sum, w) => sum + w.weightKg,
+    ) / lastThird.length;
+    
+    // Calculate days between midpoints
+    final firstDate = DateTime.parse(firstThird.first.loggedAt);
+    final lastDate = DateTime.parse(lastThird.last.loggedAt);
+    final daysBetween = lastDate.difference(firstDate).inDays;
+    
+    if (daysBetween < 1) return null;
+    
+    // Calculate slope (kg per day)
+    final weightChange = avgLastWeight - avgFirstWeight;
+    final slope = weightChange / daysBetween;
+    
+    // Calculate average calories over the period
+    double totalCals = 0;
+    int calDays = 0;
+    for (final cals in calByDate.values) {
+      totalCals += cals;
+      calDays++;
+    }
+    if (calDays == 0) return null;
+    final avgCalories = totalCals / calDays;
+    
+    // Check for near-zero slope (weight stability)
+    if (slope.abs() < 1e-6) {
+      // Weight is stable — return average calories with infinite confidence
+      return MaintenanceResult(
+        maintenanceCalories: avgCalories,
+        confidenceInterval: double.infinity,
+        dataPoints: actualWeights.length,
+      );
+    }
+    
+    final slopeLbsPerDay = slope * 2.20462;
+
+    // Calculate maintenance from trend
+    // Negative slope (weight loss) → maintenance = intake + deficit
+    // Positive slope (weight gain) → maintenance = intake - surplus
+    // Formula: maintenance = avgCalories - (slope_lbs_per_day × 3500)
+    final maintenance = avgCalories - (slopeLbsPerDay * 3500);
+
+    // Calculate confidence interval based on data quality
+    // More measurements = narrower CI
+    final baseCI = 500.0 / actualWeights.length;
+    // Adjust for measurement spread (more days = more confidence)
+    final spreadFactor = 1.0 + (10.0 / daysBetween);
+    final confidenceInterval = baseCI * spreadFactor;
+
+    return MaintenanceResult(
+      maintenanceCalories: maintenance,
+      confidenceInterval: confidenceInterval,
+      dataPoints: actualWeights.length,
     );
   }
 }

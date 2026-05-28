@@ -209,45 +209,40 @@ class AppDatabase extends _$AppDatabase {
           ]))
         .get();
 
-    final seenIds = <int>{};
     final lastLoggedAt = <int, String>{};
     for (final entry in allEntries) {
-      if (entry.foodId != null && seenIds.add(entry.foodId!)) {
+      if (entry.foodId != null && !lastLoggedAt.containsKey(entry.foodId!)) {
         lastLoggedAt[entry.foodId!] = entry.loggedAt;
       }
     }
 
     final allFoods = await (select(foods).get());
 
-    final unlogged = <Food>[];
-    final logged = <Food>[];
-
-    for (final food in allFoods) {
-      if (lastLoggedAt.containsKey(food.id)) {
-        logged.add(food);
-      } else {
-        unlogged.add(food);
+    // Single sort: by lastLoggedAt DESC, unlogged foods sink to bottom
+    allFoods.sort((a, b) {
+      final aTime = lastLoggedAt[a.id];
+      final bTime = lastLoggedAt[b.id];
+      if (aTime == null && bTime == null) {
+        // Both unlogged - sort by createdAt DESC
+        return b.createdAt.compareTo(a.createdAt);
       }
-    }
-
-    unlogged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    logged.sort((a, b) {
-      final aTime = lastLoggedAt[a.id] ?? '';
-      final bTime = lastLoggedAt[b.id] ?? '';
+      if (aTime == null) return 1;  // a is unlogged, sinks
+      if (bTime == null) return -1; // b is unlogged, sinks
+      // Both logged - sort by loggedAt DESC
       return bTime.compareTo(aTime);
     });
 
-    final combined = [...unlogged, ...logged];
-
+    // Fuzzy search: matches name OR brand
     if (query != null && query.trim().isNotEmpty) {
       final q = query.toLowerCase();
-      return combined
-          .where((f) => f.name.toLowerCase().contains(q))
+      return allFoods
+          .where((f) => f.name.toLowerCase().contains(q) ||
+                       (f.brand != null && f.brand!.toLowerCase().contains(q)))
           .take(limit)
           .toList();
     }
 
-    return combined.take(limit).toList();
+    return allFoods.take(limit).toList();
   }
 
   Future<List<FoodEntry>> getEntriesPaginated(

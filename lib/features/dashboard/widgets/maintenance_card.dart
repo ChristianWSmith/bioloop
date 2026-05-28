@@ -68,10 +68,10 @@ class MaintenanceCard extends ConsumerWidget {
       case MaintenanceFailureReason.noWeights:
         message = 'Start logging your weight to get estimates';
       case MaintenanceFailureReason.insufficientPairedData:
-        message = 'Log 10+ days of food + weight to calculate your maintenance';
+        message = 'Log 7+ days with 3+ weight entries to calculate maintenance';
         showProgress = true;
       case null:
-        message = 'Log 10+ days of food + weight to calculate your maintenance';
+        message = 'Log 7+ days with 3+ weight entries to calculate maintenance';
         showProgress = true;
     }
 
@@ -97,7 +97,7 @@ class MaintenanceCard extends ConsumerWidget {
             error: (_, _) => const LinearProgressIndicator(minHeight: 8),
             data: (result) {
               final dataPoints = result?.dataPoints ?? 0;
-              final progress = (dataPoints / 10.0).clamp(0.0, 1.0);
+              final progress = (dataPoints / 7.0).clamp(0.0, 1.0);
               return Row(
                 children: [
                   Expanded(
@@ -111,7 +111,7 @@ class MaintenanceCard extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '$dataPoints/10',
+                    '$dataPoints/7',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
