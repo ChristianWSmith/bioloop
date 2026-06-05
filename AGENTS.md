@@ -1,6 +1,6 @@
 # bioloop — AGENTS.md
 
-Flutter macro counter that auto-adjusts daily targets based on bodyweight trends. Uses rolling regression to derive maintenance calories from logged food + weight data.
+Flutter macro counter that auto-adjusts daily targets based on bodyweight trends. Uses endpoint averaging model to derive maintenance calories from logged food + weight data.
 
 **Tech stack**: Flutter / drift / Riverpod / OpenFoodFacts API
 
@@ -32,7 +32,7 @@ lib/
       open_food_facts_client.dart
       models/food_result.dart
     algorithms/
-      maintenance_calculator.dart  # rolling linear regression
+      maintenance_calculator.dart  # endpoint averaging model
       mifflin_st_jeor.dart         # BMR estimator
     utils/
       calorie_clamp.dart           # clamp OFF calories to 4-4-9 max
@@ -79,7 +79,7 @@ lib/
 | `foodSearchServiceProvider` | `Provider<FoodSearchService>` | Local + API search |
 | `openFoodFactsClientProvider` | `Provider<OpenFoodFactsClient>` | API HTTP client |
 | `macroTargetsProvider` | `FutureProvider<MacroTargets>` | Calculated daily targets |
-| `maintenanceProvider` | `FutureProvider<MaintenanceResult?>` | Rolling regression output (watches dataTriggerProvider + resetTriggerProvider); returns non-null result even on failure with `failureReason` set |
+| `maintenanceProvider` | `FutureProvider<MaintenanceResult?>` | Endpoint averaging model output (watches dataTriggerProvider + resetTriggerProvider); returns non-null result even on failure with `failureReason` set |
 | `localFoodListProvider` | `FutureProvider.family<List<FoodSearchItem>, String>` | Local food list by query (watches dataTriggerProvider for reactive refresh after mutations) |
 | `onboardingProvider` | `Provider<OnboardingService>` | Onboarding read/write |
 | `recipeListProvider` | `FutureProvider<List<Recipe>>` | All recipes |
@@ -123,7 +123,7 @@ lib/
 - **Onboarding complete** (`_onOnboardingComplete` in `app.dart`): invalidates `bodyweightProvider`, `todaysFoodProvider`, and `userGoalsProvider` and increments `dataTriggerProvider` so providers re-fetch with the newly saved data
 - **Unit preference helpers** (`UnitPreferences` in `unit_preferences_provider.dart`): `displayWeight(double kg)` converts kg→lb, `kgWeight(double display)` converts lb→kg; `proteinUnitForBasis(String basis)` returns `'g/lb'`, `'g/kg'`, or `'g/cm'` depending on basis and unit prefs; use `unitPreferencesProvider` instead of reading `useImperial` directly from the DB
 - **Data reset**: `resetAll()` truncates all 6 tables in FK-safe order within a transaction; increments `resetTriggerProvider` → `App` re-checks onboarding
-- **Maintenance refresh**: `dataTriggerProvider` (StateProvider<int>) is incremented at every bodyweight/food mutation site alongside `ref.invalidate(bodyweightProvider)` / `ref.invalidate(todaysFoodProvider)`. `maintenanceProvider` watches it, making the maintenance estimate reactively refresh. The `MaintenanceCard` progress bar uses `result.dataPoints` from `maintenanceProvider` directly (not a separate provider), so the progress metric matches the actual paired data point count the regression requires.
+- **Maintenance refresh**: `dataTriggerProvider` (StateProvider<int>) is incremented at every bodyweight/food mutation site alongside `ref.invalidate(bodyweightProvider)` / `ref.invalidate(todaysFoodProvider)`. `maintenanceProvider` watches it, making the maintenance estimate reactively refresh. The `MaintenanceCard` progress bar uses `result.dataPoints` from `maintenanceProvider` directly (not a separate provider), showing actual weight entry count.
 
 ## Important notes
 
@@ -132,10 +132,10 @@ lib/
 - `databaseProvider` is intentionally un-implemented at declaration site (throws `UnimplementedError`); `main.dart` creates the real DB and overrides it
 - Schema version is 1 with onCreate only — no onUpgrade migration strategy implemented yet
 - `getRecentFoods()` / `searchLocalByRecency()` in `AppDatabase`: `searchLocalByRecency()` partitions foods into 2 groups: (A) all foods never logged, sorted by `createdAt DESC`; (B) all logged foods, sorted by last `loggedAt DESC`. Concatenates A + B, then filters by query and takes limit. The `source` column does not affect grouping. `getRecentFoods()` fetches distinct `foodId`s from `food_entries` in a Dart-side loop (drift 2.31.0 has no `groupBy` on `SimpleSelectStatement`); orders by `MAX(loggedAt)` DESC, limit 10, then fetches `Food` records from the `foods` table
-- Maintenance calculator (`maintenance_provider.dart`) uses `DateTime.now().subtract(const Duration(days: 1))` so the 30-day regression window ends yesterday, excluding today's partial data
-- `MaintenanceResult` includes a `MaintenanceFailureReason? failureReason` field (null on success). Reasons: `noWeights` (no weight entries), `insufficientPairedData` (< 10 paired calorie+slope points). Zero regression slope (weight stability) returns average calories as maintenance with infinite confidence interval.
-- **`dataPoints` counts actual paired calendar days** (dates with both forward-filled weight AND logged food), not window-based regression pairs. With 2 days of food + weight, `dataPoints` shows `2/10`, not `0/10`. File: `lib/core/algorithms/maintenance_calculator.dart:117-122`
-- Minimum paired data threshold is 10. `MaintenanceCard` shows reason-specific messages instead of a generic "insufficient data" prompt.
+- Maintenance calculator (`maintenance_calculator.dart`) uses endpoint averaging model: averages first N and last N weight entries (N = min(7, n~/2)), computes slope across full date span → `maintenance = avgCalories - (slope_lbs/day × 3500)`. Uses actual weight entries only (no forward-fill). Smooths daily scale noise and repeated weigh-ins. File: `lib/core/algorithms/maintenance_calculator.dart`
+- `MaintenanceResult` includes a `MaintenanceFailureReason? failureReason` field (null on success). Reasons: `noWeights` (no weight entries), `insufficientPairedData` (< 5 weight entries or < 10 day span). Zero slope (weight stability) returns average calories as maintenance with infinite confidence interval.
+- **`dataPoints` counts actual weight entries** used in the calculation. With 17 weight entries, `dataPoints` shows `17`.
+- Minimum thresholds: 5 actual weight entries AND 10 day span between first and last weight. `MaintenanceCard` shows reason-specific messages instead of a generic "insufficient data" prompt.
 - All macro calculations (save, preview, recipe totals, ingredient rows, `computeRecipeMacros()`) use `macroPerServing * (qty / servingQuantity)` with a zero-division guard. When adding new macro math, always use this pattern.
 - `_selectFood()` defaults to `_servings = food.servingQuantity` (not 1). This is correct with the formula fix — for per-100g foods, `_servings=100` means `macro * (100/100) = macro`, giving the right display for 1 serving.
 - **Recipe ingredient default quantity**: When adding ingredients to a recipe, the quantity defaults to `food.servingQuantity` (not `1`). Both paths (search dialog and custom food form) use `food.servingQuantity` as the default, matching the `_selectFood()` convention.
@@ -145,7 +145,6 @@ lib/
 - **`DayNavigator`** is a static utility class (`DayNavigator.format(DateTime)`) that returns a formatted date string ("Today", "Yesterday", "Tomorrow", or "Jan 15, 2026"). The chevron buttons live in `AppBar.title` as a `Row(mainAxisSize: MainAxisSize.min)` with the date `Text` between them, and `centerTitle: true` centers the whole group. Only `menu_book` (recipe log) and `PopupMenuButton` (CSV) remain in `actions`.
 - **Per-food macro breakdown bars**: `_MacroBreakdownBar` in `combined_log_screen.dart` renders 3 proportional colored segments (orange=fat, green=carbs, blue=protein) using `Expanded(flex:)` based on each macro's calorie contribution (4-4-9 rule). Display order is Fat → Carbs → Protein (left to right). Fills the full `ListTile` width, wrapped in `ClipRRect`. Zero-total food returns `SizedBox.shrink()`. Zero-value segments use `clamp(1, 9999)`.
 - **Log screen entry display**: Each food entry's `ListTile` subtitle is the `_MacroBreakdownBar` (no macro text or time). Trailing is bold `"XXX cal"` text (meal-type badge removed). Section headers have a 3px colored left border strip, meal-type icon (`Icons.free_breakfast`/`Icons.lunch_dining`/`Icons.dinner_dining`/`Icons.cookie`), bold colored heading, and tinted count badge.
-- **Maintenance forward-fill**: `MaintenanceCalculator.calculate()` assumes the oldest logged weight for all dates before the first weight entry. This ensures new users with sparse early data can get maintenance estimates. Example: If you onboard at 190 lbs on May 16, the algorithm assumes you were 190 lbs for all dates in the 30-day window before May 16. If you delete the May 16 weight, the assumption shifts to the new oldest weight. File: `lib/core/algorithms/maintenance_calculator.dart:57-78`
 - **Recipe edit bug fix**: When editing a recipe, the save logic re-inserts ingredients after deleting them. Previously, ingredients were deleted but not re-inserted, causing zero macros. File: `lib/features/recipes/recipe_form_screen.dart:204-217`
 - **Dashboard bodyweight sparkline**: `DashboardScreen` shows a single `BodyweightSparkline` graph. `DashboardRange.compute()` derives the time range from weight entries only. Time range is non-persistent (resets to 1M on app restart). Files: `lib/features/dashboard/dashboard_screen.dart`, `lib/providers/shared_dashboard_range_provider.dart`
 - **Time range toggle**: `SegmentedButton<TimeRange>` positioned between `MaintenanceCard` and the sparkline. Three segments: "1M" (30 days), "6M" (180 days), "All" (all data). The sparkline filters data based on selected range with smart adjustment (uses earliest data point if less than selected range). X-axis intervals auto-adjust: 7 days (1M), 30 days (6M), 60 days (All). File: `lib/features/dashboard/dashboard_screen.dart:140-151`

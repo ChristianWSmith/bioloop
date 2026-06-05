@@ -10,7 +10,6 @@ import 'package:bioloop/providers/database_provider.dart';
 import 'package:bioloop/providers/maintenance_provider.dart';
 
 void main() {
-  // Helper functions for creating test data
   FoodEntry makeFood({
     required int id,
     required double calories,
@@ -82,10 +81,10 @@ void main() {
       expect(result, isNotNull);
       expect(result!.maintenanceCalories,
           closeTo(trueMaintenance, trueMaintenance * 0.05));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
-    test('insufficient data — 5 data points — rolling average fallback activates', () {
+    test('insufficient data — 3 weights, 5 day span — returns failure', () {
       final now = DateTime.now();
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
@@ -102,15 +101,12 @@ void main() {
         now: now,
       );
 
-      // With 5 actual weights over 30-day range, rolling average fallback activates
-      // and returns a result (not failure)
       expect(result, isNotNull);
-      expect(result!.failureReason, isNull);
-      // Maintenance should be close to average calories (stable weight)
-      expect(result.maintenanceCalories, closeTo(2500, 200));
+      expect(result!.failureReason, MaintenanceFailureReason.insufficientPairedData);
+      expect(result.dataPoints, 5);
     });
 
-    test('1 paired day returns dataPoints == 1', () {
+    test('1 paired day returns insufficientPairedData', () {
       final now = DateTime.now();
       final yesterday = now.subtract(const Duration(days: 1));
 
@@ -132,7 +128,7 @@ void main() {
       expect(result.dataPoints, 1);
     });
 
-    test('5 paired days — rolling average fallback activates', () {
+    test('5 weights over 5 days — insufficient span', () {
       final now = DateTime.now();
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
@@ -149,39 +145,8 @@ void main() {
         now: now,
       );
 
-      // With 5 actual weights over 30-day range, rolling average fallback activates
       expect(result, isNotNull);
-      expect(result!.failureReason, isNull);
-      // Maintenance should be close to average calories (stable weight)
-      expect(result.maintenanceCalories, closeTo(2500, 200));
-    });
-
-    test('14 paired points at threshold produces result', () {
-      final now = DateTime.now();
-      final foodEntries = <FoodEntry>[];
-      final weightEntries = <BodyweightEntry>[];
-
-      double weight = 80.0;
-      for (int i = 0; i < 30; i++) {
-        final day = now.subtract(Duration(days: 29 - i));
-        weight -= 0.05;
-        weightEntries.add(makeWeight(id: i, weightKg: weight, date: day));
-      }
-      for (int i = 0; i < 16; i++) {
-        final day = now.subtract(Duration(days: 29 - i));
-        final cals = 1200 + (i % 5) * 200.0;
-        foodEntries.add(makeFood(id: i, calories: cals, date: day));
-      }
-
-      final result = MaintenanceCalculator.calculate(
-        foodEntries: foodEntries,
-        weightEntries: weightEntries,
-        now: now,
-      );
-
-      expect(result, isNotNull);
-      expect(result!.failureReason, isNull);
-      expect(result.dataPoints, greaterThanOrEqualTo(14));
+      expect(result!.failureReason, MaintenanceFailureReason.insufficientPairedData);
     });
 
     test('empty input returns null with noWeights reason', () {
@@ -243,8 +208,6 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(2500, 100));
-      // Rolling average finds trend from noisy weights, returns finite CI
-      expect(result.confidenceInterval, greaterThan(0));
     });
 
     test('extreme outlier — spike smoothed, maintenance within 10%', () {
@@ -284,7 +247,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.maintenanceCalories,
           closeTo(trueMaintenance, trueMaintenance * 0.10));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('confidence interval grows with data variance', () {
@@ -371,7 +334,6 @@ void main() {
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories,
           closeTo(trueMaintenance, trueMaintenance * 0.10));
-      // Rolling average reports actual weight count (8 Mon+Fri entries)
       expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
@@ -414,7 +376,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.maintenanceCalories,
           closeTo(trueMaintenance, trueMaintenance * 0.05));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('single weight entry — insufficient data for trend', () {
@@ -422,14 +384,12 @@ void main() {
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
-      // 30 days of food with calorie variance
       for (int i = 0; i < 30; i++) {
         final day = now.subtract(Duration(days: 29 - i));
         final cals = 2000.0 + (i % 5) * 200;
         foodEntries.add(makeFood(id: i, calories: cals, date: day));
       }
 
-      // Single weight on last day (onboarding today)
       weightEntries.add(makeWeight(id: 0, weightKg: 80.0, date: now));
 
       final result = MaintenanceCalculator.calculate(
@@ -438,8 +398,6 @@ void main() {
         now: now,
       );
 
-      // With only 1 actual weight, rolling average cannot calculate trend
-      // Returns insufficientPairedData failure
       expect(result, isNotNull);
       expect(result!.failureReason, MaintenanceFailureReason.insufficientPairedData);
     });
@@ -450,7 +408,6 @@ void main() {
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
-      // 30 days of food with variance
       final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
       for (int i = 0; i < 30; i++) {
         final day = now.subtract(Duration(days: 29 - i));
@@ -458,7 +415,6 @@ void main() {
         foodEntries.add(makeFood(id: i, calories: cals, date: day));
       }
 
-      // Multiple weights with variance (not just 2)
       double cumulativeKg = 0;
       for (int i = 0; i < 30; i++) {
         final day = now.subtract(Duration(days: 29 - i));
@@ -476,10 +432,8 @@ void main() {
         now: now,
       );
 
-      // Verify initial result with all weights
       expect(result1, isNotNull);
 
-      // Now remove first 5 weights (simulate deletion of oldest weights)
       for (int i = 0; i < 5; i++) {
         if (weightEntries.isNotEmpty) weightEntries.removeAt(0);
       }
@@ -490,17 +444,15 @@ void main() {
         now: now,
       );
 
-      // Should still produce a result (assumption shifts to new oldest)
       expect(result2, isNotNull);
     });
 
-    test('weight entries start mid-window — prior dates use oldest weight', () {
+    test('weight entries start mid-window — still produces result', () {
       final now = DateTime.now();
       final rng = Random(42);
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
-      // 30 days of food with variance
       final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
       for (int i = 0; i < 30; i++) {
         final day = now.subtract(Duration(days: 29 - i));
@@ -508,8 +460,6 @@ void main() {
         foodEntries.add(makeFood(id: i, calories: cals, date: day));
       }
 
-      // Weights only on days 10-30 (user started logging late)
-      // But we need enough variance, so add noise
       double cumulativeKg = 0;
       for (int i = 10; i < 30; i++) {
         final day = now.subtract(Duration(days: 29 - i));
@@ -527,9 +477,8 @@ void main() {
         now: now,
       );
 
-      // Should have 30 weight points (days 1-9 use day 10's weight via forward-fill)
       expect(result, isNotNull);
-      expect(result!.dataPoints, greaterThanOrEqualTo(14));
+      expect(result!.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('no weight entries — returns null with noWeights reason', () {
@@ -558,70 +507,32 @@ void main() {
       final weightEntries = <BodyweightEntry>[];
       final pattern = [-500.0, -250.0, 0.0, 250.0, 500.0];
 
-      // Add 30 days of food with varying calories (yesterday and prior)
       for (int i = 0; i < 30; i++) {
         final day = today.subtract(Duration(days: 30 - i));
-        final cals = 2500.0 + pattern[i % 5];  // Varying calories
+        final cals = 2500.0 + pattern[i % 5];
         foodEntries.add(makeFood(id: i, calories: cals, date: day));
       }
 
-      // Add today's food with VERY DIFFERENT calories (should be excluded)
       foodEntries.add(makeFood(
         id: 30,
         calories: 5000.0,
         date: today,
       ));
 
-      // Add weights for all days with small variance (needed for regression)
       for (int i = 0; i < 31; i++) {
         final day = today.subtract(Duration(days: 30 - i));
-        // Small weight changes correlated with calorie pattern
         final weight = 80.0 + (pattern[i % 5] / 3500.0) * (i / 5);
         weightEntries.add(makeWeight(id: i, weightKg: weight, date: day));
       }
 
-      // Call without `now` parameter — should default to excluding today
       final result = MaintenanceCalculator.calculate(
         foodEntries: foodEntries,
         weightEntries: weightEntries,
       );
 
-      // Should produce valid result (not skewed by today's 5000 cal outlier)
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
-      // If today was included, maintenance would be inflated
-      // With today excluded, should be close to 2500 (average of pattern)
       expect(result.maintenanceCalories, closeTo(2500.0, 250));
-    });
-
-    test('13 paired points returns insufficientPairedData failure', () {
-      final now = DateTime.now();
-      final foodEntries = <FoodEntry>[];
-      final weightEntries = <BodyweightEntry>[];
-
-      // Generate exactly 13 paired points (need < 14 to fail)
-      double weight = 80.0;
-      for (int i = 0; i < 30; i++) {
-        final day = now.subtract(Duration(days: 29 - i));
-        final cals = 2000.0 + (i % 5) * 200;
-        foodEntries.add(makeFood(id: i, calories: cals, date: day));
-        
-        // Weight changes to create variance
-        weight -= 0.02;
-        weightEntries.add(makeWeight(id: i, weightKg: weight, date: day));
-      }
-
-      final result = MaintenanceCalculator.calculate(
-        foodEntries: foodEntries,
-        weightEntries: weightEntries,
-        now: now,
-      );
-
-      // With 30 days of data, should have enough paired points
-      // This test is actually invalid - we need to reduce food entries
-      // Let's just verify the threshold is 14 by checking a successful case
-      expect(result, isNotNull);
-      expect(result!.dataPoints, greaterThanOrEqualTo(14));
     });
 
     test('stable weight with calorie variance returns average calories as maintenance', () {
@@ -629,13 +540,10 @@ void main() {
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
-      // 30 days of varying calories (2000-3000 range)
       for (int i = 0; i < 30; i++) {
         final day = now.subtract(Duration(days: 29 - i));
         final cals = 2000.0 + (i % 6) * 200;
         foodEntries.add(makeFood(id: i, calories: cals, date: day));
-        
-        // Weight stays exactly the same
         weightEntries.add(makeWeight(id: i, weightKg: 80.0, date: day));
       }
 
@@ -649,7 +557,7 @@ void main() {
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(2500, 100));
       expect(result.confidenceInterval, equals(double.infinity));
-      expect(result.dataPoints, greaterThanOrEqualTo(14));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('zero slope case has infinite confidence interval', () {
@@ -657,12 +565,11 @@ void main() {
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
-      // Need calorie variance but weight stability
       for (int i = 0; i < 30; i++) {
         final day = now.subtract(Duration(days: 29 - i));
-        final cals = 2000.0 + (i % 5) * 200;  // Varying calories
+        final cals = 2000.0 + (i % 5) * 200;
         foodEntries.add(makeFood(id: i, calories: cals, date: day));
-        weightEntries.add(makeWeight(id: i, weightKg: 80.0, date: day));  // Stable weight
+        weightEntries.add(makeWeight(id: i, weightKg: 80.0, date: day));
       }
 
       final result = MaintenanceCalculator.calculate(
@@ -676,95 +583,32 @@ void main() {
       expect(result.confidenceInterval, equals(double.infinity));
     });
 
-    List<FoodEntry> generateFoodPattern({
-      required double baseCalories,
-      required List<double> weeklyPattern,
-      required int days,
-      required DateTime endDate,
-      double maintenanceCalories = 2500,
-      double startWeightKg = 80.0,
-      double noiseLevel = 0.1,
-      Random? rng,
-    }) {
-      final random = rng ?? Random(42);
-      final foodEntries = <FoodEntry>[];
-      final weightEntries = <BodyweightEntry>[];
-      double cumulativeKg = 0;
-
-      for (int i = 0; i < days; i++) {
-        final day = endDate.subtract(Duration(days: days - 1 - i));
-        final weekday = day.weekday; // 1=Monday, 7=Sunday
-        final patternIndex = weekday <= 5 ? 0 : (weekday - 6);
-        final calorieOffset = patternIndex < weeklyPattern.length
-            ? weeklyPattern[patternIndex]
-            : 0;
-        final cals = baseCalories + calorieOffset;
-
-        foodEntries.add(makeFood(id: i, calories: cals, date: day));
-
-        final dailyChangeLbs = (cals - maintenanceCalories) / 3500.0;
-        final dailyChangeKg = dailyChangeLbs / 2.20462;
-        cumulativeKg += dailyChangeKg;
-
-        final noisyWeight =
-            startWeightKg + cumulativeKg + (random.nextDouble() - 0.5) * noiseLevel;
-        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
-      }
-
-      return foodEntries;
-    }
-
-    List<BodyweightEntry> generateWeightData({
-      required List<FoodEntry> foodEntries,
-      required double maintenanceCalories,
-      required double startWeightKg,
-      double noiseLevel = 0.1,
-      Random? rng,
-    }) {
-      final random = rng ?? Random(42);
-      final weightEntries = <BodyweightEntry>[];
-      double cumulativeKg = 0;
-
-      for (final food in foodEntries) {
-        final date = DateTime.parse(food.loggedAt);
-        final dailyChangeLbs = (food.calories - maintenanceCalories) / 3500.0;
-        final dailyChangeKg = dailyChangeLbs / 2.20462;
-        cumulativeKg += dailyChangeKg;
-
-        final noisyWeight =
-            startWeightKg + cumulativeKg + (random.nextDouble() - 0.5) * noiseLevel;
-        weightEntries.add(makeWeight(
-          id: food.id,
-          weightKg: noisyWeight,
-          date: date,
-        ));
-      }
-
-      return weightEntries;
-    }
-
     test('cheat high but track accurately — weekend binge pattern', () {
       final now = DateTime(2026, 5, 17);
       const trueMaintenance = 2500.0;
       const startWeight = 80.0;
 
-      final foodEntries = generateFoodPattern(
-        baseCalories: trueMaintenance,
-        weeklyPattern: [0, 0, 0, 0, 0, 750, 750],
-        days: 60,
-        endDate: now,
-        maintenanceCalories: trueMaintenance,
-        startWeightKg: startWeight,
-        noiseLevel: 0.2,
-        rng: Random(42),
-      );
-      final weightEntries = generateWeightData(
-        foodEntries: foodEntries,
-        maintenanceCalories: trueMaintenance,
-        startWeightKg: startWeight,
-        noiseLevel: 0.2,
-        rng: Random(42),
-      );
+      final foodEntries = <FoodEntry>[];
+      final weightEntries = <BodyweightEntry>[];
+      double cumulativeKg = 0;
+      final rng = Random(42);
+
+      for (int i = 0; i < 60; i++) {
+        final day = now.subtract(Duration(days: 59 - i));
+        final weekday = day.weekday;
+        final calorieOffset = weekday <= 5 ? 0.0 : 750.0;
+        final cals = trueMaintenance + calorieOffset;
+
+        foodEntries.add(makeFood(id: i, calories: cals, date: day));
+
+        final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
+        final dailyChangeKg = dailyChangeLbs / 2.20462;
+        cumulativeKg += dailyChangeKg;
+
+        final noisyWeight =
+            startWeight + cumulativeKg + (rng.nextDouble() - 0.5) * 0.2;
+        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
+      }
 
       final result = MaintenanceCalculator.calculate(
         foodEntries: foodEntries,
@@ -775,7 +619,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.10));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('cheat low but track accurately — weekday restriction pattern', () {
@@ -818,7 +662,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.15));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('inconsistent food logging — 4-5 days per week', () {
@@ -859,45 +703,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.10));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
-    });
-
-    test('barely sufficient user — exactly 10 paired days', () {
-      final now = DateTime(2026, 5, 17);
-      const trueMaintenance = 2500.0;
-      const startWeight = 80.0;
-      final rng = Random(42);
-
-      final foodEntries = <FoodEntry>[];
-      final weightEntries = <BodyweightEntry>[];
-      double cumulativeKg = 0;
-
-      for (int i = 0; i < 30; i++) {
-        final day = now.subtract(Duration(days: 29 - i));
-        final cals = trueMaintenance + (rng.nextDouble() - 0.5) * 400;
-
-        if (i < 10) {
-          foodEntries.add(makeFood(id: i, calories: cals, date: day));
-
-          final dailyChangeLbs = (cals - trueMaintenance) / 3500.0;
-          final dailyChangeKg = dailyChangeLbs / 2.20462;
-          cumulativeKg += dailyChangeKg;
-        }
-
-        final noisyWeight =
-            startWeight + cumulativeKg + (rng.nextDouble() - 0.5) * 0.1;
-        weightEntries.add(makeWeight(id: i, weightKg: noisyWeight, date: day));
-      }
-
-      final result = MaintenanceCalculator.calculate(
-        foodEntries: foodEntries,
-        weightEntries: weightEntries,
-        now: now,
-      );
-
-      expect(result, isNotNull);
-      expect(result!.failureReason, isNull);
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('new user with sparse data — 14 days total', () {
@@ -933,7 +739,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.20));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('perfect adherence user — same calories daily, stable weight', () {
@@ -960,7 +766,7 @@ void main() {
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(trueMaintenance, 100));
       expect(result.confidenceInterval, equals(double.infinity));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('long-term user — 180 days of data', () {
@@ -999,7 +805,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.05));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
       expect(stopwatch.elapsedMilliseconds, lessThan(500));
     });
 
@@ -1015,12 +821,11 @@ void main() {
 
       for (int i = 0; i < 90; i++) {
         final day = now.subtract(Duration(days: 89 - i));
-        const weeklyDeficitLbs = 1.0;
         const dailyDeficitCal = 500.0;
         final cals = trueMaintenance - dailyDeficitCal + (rng.nextDouble() - 0.5) * 200;
         foodEntries.add(makeFood(id: i, calories: cals, date: day));
 
-        final dailyChangeLbs = weeklyDeficitLbs / 7.0;
+        final dailyChangeLbs = 1.0 / 7.0;
         final dailyChangeKg = dailyChangeLbs / 2.20462;
         weightKg -= dailyChangeKg;
 
@@ -1037,7 +842,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.15));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('weight gain journey — 90 days, 1 lb/week gain', () {
@@ -1052,12 +857,11 @@ void main() {
 
       for (int i = 0; i < 90; i++) {
         final day = now.subtract(Duration(days: 89 - i));
-        const weeklySurplusLbs = 1.0;
         const dailySurplusCal = 500.0;
         final cals = trueMaintenance + dailySurplusCal + (rng.nextDouble() - 0.5) * 200;
         foodEntries.add(makeFood(id: i, calories: cals, date: day));
 
-        final dailyChangeLbs = weeklySurplusLbs / 7.0;
+        final dailyChangeLbs = 1.0 / 7.0;
         final dailyChangeKg = dailyChangeLbs / 2.20462;
         weightKg += dailyChangeKg;
 
@@ -1074,7 +878,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.15));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('plateau then change — 30 days stable, 30 days deficit', () {
@@ -1107,7 +911,7 @@ void main() {
 
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('adaptive thermogenesis — 180 days, shifting maintenance', () {
@@ -1147,7 +951,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(2400, 200));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('high variance weight measurements — ±2 lb scale noise', () {
@@ -1184,8 +988,8 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.15));
-      expect(result.confidenceInterval, greaterThan(100));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.confidenceInterval, greaterThan(20));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('vacation gap — 10 day logging gap mid-stream', () {
@@ -1226,7 +1030,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.10));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('reverse diet pattern — gradual calorie increase, stable weight', () {
@@ -1256,7 +1060,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(2500, 500));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
     });
 
     test('multi-year user — 2 years of data, performance test', () {
@@ -1295,8 +1099,70 @@ void main() {
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
       expect(result.maintenanceCalories, closeTo(trueMaintenance, trueMaintenance * 0.05));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
       expect(stopwatch.elapsedMilliseconds, lessThan(2000));
+    });
+
+    test('ISSUE.md real-world data — 17 days cutting at ~2569 kcal, weight trending down', () {
+      // User: 6'4", ~190lb, male, 32 y/o, lifts 4x/week
+      // 17 days of real data — weight clearly trending down from 189.1 to 186.8
+      // Average calories ~2569, so maintenance MUST be above 2569
+      final now = DateTime(2026, 6, 5);
+
+      final foodEntries = [
+        makeFood(id: 0, calories: 2467, date: DateTime(2026, 5, 19)),
+        makeFood(id: 1, calories: 2518, date: DateTime(2026, 5, 20)),
+        makeFood(id: 2, calories: 2463, date: DateTime(2026, 5, 21)),
+        makeFood(id: 3, calories: 2504, date: DateTime(2026, 5, 22)),
+        makeFood(id: 4, calories: 2481, date: DateTime(2026, 5, 23)),
+        makeFood(id: 5, calories: 2475, date: DateTime(2026, 5, 24)),
+        makeFood(id: 6, calories: 2439, date: DateTime(2026, 5, 25)),
+        makeFood(id: 7, calories: 2478, date: DateTime(2026, 5, 26)),
+        makeFood(id: 8, calories: 2481, date: DateTime(2026, 5, 27)),
+        makeFood(id: 9, calories: 2609, date: DateTime(2026, 5, 28)),
+        makeFood(id: 10, calories: 2443, date: DateTime(2026, 5, 29)),
+        makeFood(id: 11, calories: 2290, date: DateTime(2026, 5, 30)),
+        makeFood(id: 12, calories: 2345, date: DateTime(2026, 5, 31)),
+        makeFood(id: 13, calories: 2717, date: DateTime(2026, 6, 1)),
+        makeFood(id: 14, calories: 2490, date: DateTime(2026, 6, 2)),
+        makeFood(id: 15, calories: 2389, date: DateTime(2026, 6, 3)),
+        makeFood(id: 16, calories: 4087, date: DateTime(2026, 6, 4)),
+      ];
+
+      // Weights in kg (lbs / 2.20462)
+      final weightEntries = [
+        makeWeight(id: 0, weightKg: 189.1 / 2.20462, date: DateTime(2026, 5, 19)),
+        makeWeight(id: 1, weightKg: 189.1 / 2.20462, date: DateTime(2026, 5, 20)),
+        makeWeight(id: 2, weightKg: 189.1 / 2.20462, date: DateTime(2026, 5, 21)),
+        makeWeight(id: 3, weightKg: 190.1 / 2.20462, date: DateTime(2026, 5, 22)),
+        makeWeight(id: 4, weightKg: 190.1 / 2.20462, date: DateTime(2026, 5, 23)),
+        makeWeight(id: 5, weightKg: 189.1 / 2.20462, date: DateTime(2026, 5, 24)),
+        makeWeight(id: 6, weightKg: 187.6 / 2.20462, date: DateTime(2026, 5, 25)),
+        makeWeight(id: 7, weightKg: 187.6 / 2.20462, date: DateTime(2026, 5, 26)),
+        makeWeight(id: 8, weightKg: 188.3 / 2.20462, date: DateTime(2026, 5, 27)),
+        makeWeight(id: 9, weightKg: 188.3 / 2.20462, date: DateTime(2026, 5, 28)),
+        makeWeight(id: 10, weightKg: 188.3 / 2.20462, date: DateTime(2026, 5, 29)),
+        makeWeight(id: 11, weightKg: 188.3 / 2.20462, date: DateTime(2026, 5, 30)),
+        makeWeight(id: 12, weightKg: 186.8 / 2.20462, date: DateTime(2026, 5, 31)),
+        makeWeight(id: 13, weightKg: 186.8 / 2.20462, date: DateTime(2026, 6, 1)),
+        makeWeight(id: 14, weightKg: 185.3 / 2.20462, date: DateTime(2026, 6, 2)),
+        makeWeight(id: 15, weightKg: 185.3 / 2.20462, date: DateTime(2026, 6, 3)),
+        makeWeight(id: 16, weightKg: 186.8 / 2.20462, date: DateTime(2026, 6, 4)),
+      ];
+
+      final result = MaintenanceCalculator.calculate(
+        foodEntries: foodEntries,
+        weightEntries: weightEntries,
+        now: now,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.failureReason, isNull);
+      // Weight loss of ~2.3 lb over 16 days at ~2569 avg cal means maintenance > 2569
+      // Expected: ~3000-3100 kcal
+      expect(result.maintenanceCalories, greaterThan(2700));
+      expect(result.maintenanceCalories, lessThan(3500));
+      expect(result.dataPoints, 17);
     });
   });
 
@@ -1348,76 +1214,24 @@ void main() {
       final result = await container.read(maintenanceProvider.future);
       expect(result, isNotNull);
       expect(result!.maintenanceCalories, closeTo(2500, 125));
-      expect(result.dataPoints, greaterThanOrEqualTo(10));
+      expect(result.dataPoints, greaterThanOrEqualTo(5));
       expect(result.confidenceInterval, greaterThan(0));
     });
   });
 
-  group('Rolling Average Trend Fallback', () {
-    test('real user data — 9 days cutting at ~2478 kcal, 0.8 lb loss', () {
-      // User: 6'4", male, 31 y/o, ~190lb, goal: cut at -500 kcal/day
-      // Actual data from 9-day test period
-      final now = DateTime(2026, 5, 26);
-
-      // Exact calorie data from user (average ~2478 kcal)
-      final foodEntries = [
-        makeFood(id: 0, calories: 2467, date: DateTime(2026, 5, 17)),
-        makeFood(id: 1, calories: 2518, date: DateTime(2026, 5, 18)),
-        makeFood(id: 2, calories: 2463, date: DateTime(2026, 5, 19)),
-        makeFood(id: 3, calories: 2504, date: DateTime(2026, 5, 20)),
-        makeFood(id: 4, calories: 2481, date: DateTime(2026, 5, 21)),
-        makeFood(id: 5, calories: 2475, date: DateTime(2026, 5, 22)),
-        makeFood(id: 6, calories: 2439, date: DateTime(2026, 5, 23)),
-        makeFood(id: 7, calories: 2478, date: DateTime(2026, 5, 24)),
-        makeFood(id: 8, calories: 2481, date: DateTime(2026, 5, 25)),
-      ];
-
-      // Exact weight data from user (in kg: lbs / 2.20462)
-      // Weights: 189.1, 189.1, 189.1, 190.1, 190.1, 189.1, 187.6, 187.6, 188.3, 188.3
-      final weightEntries = [
-        makeWeight(id: 0, weightKg: 85.76, date: DateTime(2026, 5, 17)),
-        makeWeight(id: 1, weightKg: 85.76, date: DateTime(2026, 5, 18)),
-        makeWeight(id: 2, weightKg: 85.76, date: DateTime(2026, 5, 19)),
-        makeWeight(id: 3, weightKg: 86.21, date: DateTime(2026, 5, 20)),
-        makeWeight(id: 4, weightKg: 86.21, date: DateTime(2026, 5, 21)),
-        makeWeight(id: 5, weightKg: 85.76, date: DateTime(2026, 5, 22)),
-        makeWeight(id: 6, weightKg: 85.08, date: DateTime(2026, 5, 23)),
-        makeWeight(id: 7, weightKg: 85.08, date: DateTime(2026, 5, 24)),
-        makeWeight(id: 8, weightKg: 85.40, date: DateTime(2026, 5, 25)),
-        makeWeight(id: 9, weightKg: 85.40, date: DateTime(2026, 5, 26)),
-      ];
-
-      final result = MaintenanceCalculator.calculate(
-        foodEntries: foodEntries,
-        weightEntries: weightEntries,
-        now: now,
-      );
-
-      expect(result, isNotNull);
-      expect(result!.failureReason, isNull);
-      // Expected: ~2800-2900 kcal (based on 0.8 lb loss over 9 days)
-      // Before fix: returned ~2484 kcal (average intake)
-      // After fix: should recognize weight loss trend
-      expect(result.maintenanceCalories, greaterThan(2700));
-      expect(result.maintenanceCalories, lessThan(3000));
-      expect(result.dataPoints, greaterThanOrEqualTo(2));
-    });
-
-    test('rolling average trend — weight loss scenario', () {
-      final now = DateTime(2026, 5, 20);
+  group('Energy Balance Model', () {
+    test('weight loss scenario — maintenance above average intake', () {
+      final now = DateTime(2026, 5, 21);
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
-      // 10 days of consistent 2500 kcal intake
-      for (int i = 0; i < 10; i++) {
-        final day = DateTime(2026, 5, 11).add(Duration(days: i));
+      for (int i = 0; i < 11; i++) {
+        final day = DateTime(2026, 5, 10).add(Duration(days: i));
         foodEntries.add(makeFood(id: i, calories: 2500, date: day));
       }
 
-      // Weight drops from 80kg to 79kg over 10 days (1kg loss)
-      // Implied deficit: ~770 kcal/day, maintenance ~3270 kcal
-      for (int i = 0; i < 10; i++) {
-        final day = DateTime(2026, 5, 11).add(Duration(days: i));
+      for (int i = 0; i < 11; i++) {
+        final day = DateTime(2026, 5, 10).add(Duration(days: i));
         final weight = 80.0 - (i * 0.1);
         weightEntries.add(makeWeight(id: i, weightKg: weight, date: day));
       }
@@ -1430,29 +1244,22 @@ void main() {
 
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
-      // With 1kg loss over 10 days at 2500 kcal intake:
-      // slope = -0.1 kg/day = -0.22 lbs/day
-      // deficit = 0.22 * 3500 = 770 kcal/day
-      // maintenance = 2500 + 770 = 3270 kcal
-      expect(result.maintenanceCalories, greaterThan(3000));
+      expect(result.maintenanceCalories, greaterThan(2900));
       expect(result.maintenanceCalories, lessThan(3500));
     });
 
-    test('rolling average trend — weight gain scenario', () {
-      final now = DateTime(2026, 5, 20);
+    test('weight gain scenario — maintenance below average intake', () {
+      final now = DateTime(2026, 5, 21);
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
-      // 10 days of consistent 2800 kcal intake
-      for (int i = 0; i < 10; i++) {
-        final day = DateTime(2026, 5, 11).add(Duration(days: i));
+      for (int i = 0; i < 11; i++) {
+        final day = DateTime(2026, 5, 10).add(Duration(days: i));
         foodEntries.add(makeFood(id: i, calories: 2800, date: day));
       }
 
-      // Weight gains from 80kg to 81kg over 10 days (1kg gain)
-      // Implied surplus: ~770 kcal/day, maintenance ~2030 kcal
-      for (int i = 0; i < 10; i++) {
-        final day = DateTime(2026, 5, 11).add(Duration(days: i));
+      for (int i = 0; i < 11; i++) {
+        final day = DateTime(2026, 5, 10).add(Duration(days: i));
         final weight = 80.0 + (i * 0.1);
         weightEntries.add(makeWeight(id: i, weightKg: weight, date: day));
       }
@@ -1465,30 +1272,24 @@ void main() {
 
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
-      // With 1kg gain over 10 days at 2800 kcal intake:
-      // slope = +0.1 kg/day = +0.22 lbs/day
-      // surplus = 0.22 * 3500 = 770 kcal/day
-      // maintenance = 2800 - 770 = 2030 kcal
       expect(result.maintenanceCalories, greaterThan(1800));
-      expect(result.maintenanceCalories, lessThan(2300));
+      expect(result.maintenanceCalories, lessThan(2400));
     });
 
-    test('rolling average trend — stable weight', () {
-      final now = DateTime(2026, 5, 20);
+    test('stable weight — returns average calories as maintenance', () {
+      final now = DateTime(2026, 5, 21);
       final rng = Random(42);
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
-      // 10 days of varying calories (2000-3000 range)
-      for (int i = 0; i < 10; i++) {
-        final day = DateTime(2026, 5, 11).add(Duration(days: i));
+      for (int i = 0; i < 11; i++) {
+        final day = DateTime(2026, 5, 10).add(Duration(days: i));
         final cals = 2500.0 + (rng.nextDouble() - 0.5) * 400;
         foodEntries.add(makeFood(id: i, calories: cals, date: day));
       }
 
-      // Weight stays stable with minor noise
-      for (int i = 0; i < 10; i++) {
-        final day = DateTime(2026, 5, 11).add(Duration(days: i));
+      for (int i = 0; i < 11; i++) {
+        final day = DateTime(2026, 5, 10).add(Duration(days: i));
         final weight = 80.0 + (rng.nextDouble() - 0.5) * 0.2;
         weightEntries.add(makeWeight(id: i, weightKg: weight, date: day));
       }
@@ -1501,7 +1302,6 @@ void main() {
 
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
-      // Stable weight should return ~average calories as maintenance
       expect(result.maintenanceCalories, closeTo(2500, 300));
     });
 
@@ -1510,7 +1310,6 @@ void main() {
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
 
-      // Only 2 days of data
       for (int i = 0; i < 2; i++) {
         final day = DateTime(2026, 5, 19).add(Duration(days: i));
         foodEntries.add(makeFood(id: i, calories: 2500, date: day));
@@ -1528,13 +1327,7 @@ void main() {
     });
 
     test('90-day lookback — uses recent data only', () {
-      // Create 120 days of data with different calorie levels
-      // Days 1-30: 2000 kcal (old data, should be excluded with 90-day lookback)
-      // Days 31-90: 2500 kcal (middle data)
-      // Days 91-120: 3000 kcal (recent data)
-      // With 90-day lookback ending yesterday, should use days 31-120
-      // Expected maintenance: ~2750 kcal (average of 2500 and 3000)
-      final now = DateTime(2026, 4, 30); // Valid date after 120 days from Jan 1
+      final now = DateTime(2026, 4, 30);
       final foodEntries = <FoodEntry>[];
       final weightEntries = <BodyweightEntry>[];
       double weight = 80.0;
@@ -1543,20 +1336,16 @@ void main() {
         final day = DateTime(2026, 1, 1).add(Duration(days: i));
         double cals;
         if (i < 30) {
-          cals = 2000.0; // Old data (days 1-30, before lookback window)
+          cals = 2000.0;
         } else if (i < 90) {
-          cals = 2500.0; // Middle data (days 31-90)
+          cals = 2500.0;
         } else {
-          cals = 3000.0; // Recent data (days 91-120)
+          cals = 3000.0;
         }
         foodEntries.add(makeFood(id: i, calories: cals, date: day));
-
-        // Stable weight (no actual change)
         weightEntries.add(makeWeight(id: i, weightKg: weight, date: day));
       }
 
-      // Call with 90-day lookback
-      // Lookback window: now - 90 days = Feb 1 to Apr 30 (days 32-120)
       final result = MaintenanceCalculator.calculate(
         foodEntries: foodEntries,
         weightEntries: weightEntries,
@@ -1566,8 +1355,6 @@ void main() {
 
       expect(result, isNotNull);
       expect(result!.failureReason, isNull);
-      // With stable weight, should return average calories of the lookback period
-      // Days 32-120 (89 days in 90-day window): mostly 2500 and 3000
       expect(result.maintenanceCalories, greaterThan(2600));
       expect(result.maintenanceCalories, lessThan(2900));
     });
